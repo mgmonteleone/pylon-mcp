@@ -4,7 +4,7 @@ This document provides context for Claude when working on the Pylon MCP Server p
 
 ## Project Overview
 
-This is an MCP (Model Context Protocol) server that provides comprehensive integration with the Pylon API. Pylon is a customer support and helpdesk platform, and this server exposes 23+ tools covering all major API functionality.
+This is an MCP (Model Context Protocol) server that provides comprehensive integration with the Pylon API. Pylon is a customer support and helpdesk platform, and this server exposes 24+ tools covering all major API functionality.
 
 ## Architecture
 
@@ -57,7 +57,9 @@ npm start           # Run built version
 To test the MCP server:
 
 1. Build the project: `npm run build`
-2. Configure Claude Desktop with the server
+2. Configure in your preferred client:
+   - **Augment Code**: Use Easy MCP feature in VS Code or JetBrains
+   - **Claude Desktop**: Add to MCP settings configuration
 3. Use natural language to test tools:
    - "Get my Pylon user info" → `pylon_get_me`
    - "Show recent issues" → `pylon_get_issues`
@@ -68,8 +70,11 @@ To test the MCP server:
 ### Local Development
 
 - Requires `PYLON_API_TOKEN` environment variable
-- Configure in Claude Desktop MCP settings
+- Can be configured in:
+  - **Augment Code**: Easy MCP feature (VS Code/JetBrains)
+  - **Claude Desktop**: MCP settings configuration
 - Use built `dist/index.js` as entrypoint
+- Can run with `npx pylon-mcp-server` after publishing to npm
 
 ### Smithery Production
 

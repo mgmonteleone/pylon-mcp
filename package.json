@@ -1,15 +1,31 @@
 {
-  "name": "pylon-mcp-server",
-  "version": "1.0.0",
+  "name": "@customer-support-success/pylon-mcp-server",
+  "version": "1.1.0",
   "description": "MCP server for Pylon API integration",
   "type": "module",
   "main": "dist/index.js",
-  "scripts": {
-    "build": "tsc",
-    "dev": "tsx src/index.ts",
-    "start": "node dist/index.js"
+  "bin": {
+    "pylon-mcp-server": "dist/index.js"
   },
-  "keywords": ["mcp", "pylon", "api", "integration"],
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/mgmonteleone/pylon-mcp.git"
+  },
+  "publishConfig": {
+    "registry": "https://us-central1-npm.pkg.dev/customer-support-success/npm-packages/"
+  },
+  "scripts": {
+    "build": "tsc && chmod +x dist/index.js",
+    "dev": "tsx src/index.ts",
+    "start": "node dist/index.js",
+    "prepare": "npm run build"
+  },
+  "keywords": [
+    "mcp",
+    "pylon",
+    "api",
+    "integration"
+  ],
   "author": "",
   "license": "MIT",
   "dependencies": {

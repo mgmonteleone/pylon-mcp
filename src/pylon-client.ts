@@ -211,6 +211,15 @@ export class PylonClient {
     return response.data;
   }
 
+  // Combined method to get issue with all messages
+  async getIssueWithMessages(issueId: string): Promise<{ issue: PylonIssue; messages: PylonMessage[] }> {
+    const [issue, messages] = await Promise.all([
+      this.getIssue(issueId),
+      this.getIssueMessages(issueId)
+    ]);
+    return { issue, messages };
+  }
+
   // Tags API
   async getTags(): Promise<PylonTag[]> {
     const response: AxiosResponse<PylonTag[]> = await this.client.get('/tags');

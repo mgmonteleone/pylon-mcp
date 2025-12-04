@@ -1,0 +1,46 @@
+# Source files (we only need dist/)
+src/
+
+# Development files
+.env
+.env.*
+!.env.example
+
+# IDE
+.idea/
+.vscode/
+.claude/
+*.swp
+*.swo
+
+# Tests
+test/
+tests/
+*.test.ts
+*.spec.ts
+
+# Build artifacts
+tsconfig.json
+tsconfig.*.json
+
+# Documentation (keep README.md, LICENSE, CLAUDE.md)
+docs/
+
+# Git
+.git/
+.gitignore
+.gitattributes
+
+# CI/CD
+.github/
+.gitlab-ci.yml
+.travis.yml
+
+# Scripts
+publish.sh
+
+# Misc
+*.log
+.DS_Store
+node_modules/
+

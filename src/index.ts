@@ -23,7 +23,7 @@ if (PYLON_API_TOKEN) {
 const server = new Server(
   {
     name: 'pylon-mcp-server',
-    version: '1.0.0',
+    version: '1.1.0',
   },
   {
     capabilities: {
@@ -54,7 +54,7 @@ const tools: Tool[] = [
   },
   {
     name: 'pylon_create_contact',
-    description: 'Create a new customer contact in Pylon. Use this when adding a new customer who will submit support requests or access your customer portal.',
+    description: 'Create a new customer contact in Pylon. Use this when adding a new customer who will submit support requests or access your customer portal. Use this carefully.',
     inputSchema: {
       type: 'object',
       properties: {
@@ -219,7 +219,7 @@ const tools: Tool[] = [
   },
   {
     name: 'pylon_get_issue',
-    description: 'Get complete details of a specific support issue/ticket. Returns full issue information including title, description, status, priority, assignee, customer info, and conversation history.',
+    description: 'Get complete details of a specific support issue/ticket. Returns full issue information including title, description, status, priority, assignee, customer info, and conversation history. Use this when you need a single issue and have been given a issue or ticket number.',
     inputSchema: {
       type: 'object',
       properties: {
@@ -254,6 +254,17 @@ const tools: Tool[] = [
         until: { type: 'string', description: 'Date and time when issue should reappear (ISO 8601 format). Examples: "2024-01-15T09:00:00Z" (specific date/time), "2024-01-20T00:00:00Z" (beginning of day)' },
       },
       required: ['issue_id', 'until'],
+    },
+  },
+  {
+    name: 'pylon_get_issue_with_messages',
+    description: 'Get a complete support issue with all its messages in a single call. Returns the full issue details (title, description, status, priority, assignee) along with the entire conversation history. This is more efficient than calling pylon_get_issue and pylon_get_issue_messages separately. Use this when you need the complete context of an issue.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        issue_id: { type: 'string', description: 'ID of the issue to retrieve with messages. Get this from pylon_get_issues or pylon_search_issues. Example: "issue_abc123"' },
+      },
+      required: ['issue_id'],
     },
   },
   {
@@ -638,7 +649,27 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
           content: [
             {
               type: 'text',
-              text: 'Issue snoozed successfully',
+              text: JSON.stringify({
+                success: true,
+                message: 'Issue snoozed successfully',
+                issue_id: args.issue_id,
+                snoozed_until: args.until
+              }, null, 2),
+            },
+          ],
+        };
+      }
+
+      case 'pylon_get_issue_with_messages': {
+        if (!args || !('issue_id' in args)) {
+          throw new Error('issue_id is required');
+        }
+        const result = await pylonClient.getIssueWithMessages(args.issue_id as string);
+        return {
+          content: [
+            {
+              type: 'text',
+              text: JSON.stringify(result, null, 2),
             },
           ],
         };
@@ -758,7 +789,11 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
           content: [
             {
               type: 'text',
-              text: 'Webhook deleted successfully',
+              text: JSON.stringify({
+                success: true,
+                message: 'Webhook deleted successfully',
+                webhook_id: args.webhook_id
+              }, null, 2),
             },
           ],
         };

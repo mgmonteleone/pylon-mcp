@@ -21,9 +21,38 @@ Set the following environment variable:
 
 ### Installation
 
+#### Option 1: Using npx from GCP Artifact Registry (Recommended)
+
+This package is published to GCP Artifact Registry. You can run it directly with npx:
+
+```bash
+# Set up authentication (one-time setup)
+gcloud auth application-default login
+
+# Run with npx
+npx --registry=https://us-central1-npm.pkg.dev/customer-support-success/npm-packages/ @customer-support-success/pylon-mcp-server
+```
+
+Or install globally:
+
+```bash
+npm install -g --registry=https://us-central1-npm.pkg.dev/customer-support-success/npm-packages/ @customer-support-success/pylon-mcp-server
+```
+
+#### Option 2: Local Development
+
 ```bash
 npm install
 npm run build
+```
+
+#### Publishing Updates (for maintainers)
+
+To publish a new version to GCP Artifact Registry:
+
+```bash
+# Update version in package.json, then:
+./publish.sh
 ```
 
 ### Development
@@ -47,6 +76,12 @@ npm run dev
 
 - `pylon_get_issues`: List issues with optional filtering by assignee, status, and limit
 - `pylon_create_issue`: Create a new issue
+- `pylon_get_issue`: Get details of a specific issue
+- `pylon_get_issue_with_messages`: **NEW** - Get a complete issue with all messages in one call
+- `pylon_get_issue_messages`: Get conversation history for an issue
+- `pylon_create_issue_message`: Add a message/reply to an issue
+- `pylon_update_issue`: Update issue status, priority, assignee, etc.
+- `pylon_snooze_issue`: Temporarily hide an issue until a future date
 
 ### Knowledge Base Tools
 
@@ -55,6 +90,72 @@ npm run dev
 - `pylon_create_knowledge_base_article`: Create a new article in a knowledge base
 
 ## Usage Examples
+
+### Running with Augment Code
+
+Augment Code supports MCP servers through its Easy MCP feature in VS Code and JetBrains IDEs.
+
+#### Setup in Augment Code (VS Code or JetBrains)
+
+1. **Open Augment Settings**:
+   - In VS Code: Open the Augment Code extension settings
+   - In JetBrains: Navigate to Augment settings
+
+2. **Navigate to Easy MCP**:
+   - Find the "Easy MCP" pane in the settings
+   - Click the "+" button to add a new MCP server
+
+3. **Configure the Server**:
+
+   **Option A: Using npx from GCP Artifact Registry (Recommended)**
+
+   Add this configuration:
+   ```json
+   {
+     "pylon": {
+       "command": "npx",
+       "args": [
+         "--registry=https://us-central1-npm.pkg.dev/customer-support-success/npm-packages/",
+         "@customer-support-success/pylon-mcp-server"
+       ],
+       "env": {
+         "PYLON_API_TOKEN": "your_pylon_api_token_here"
+       }
+     }
+   }
+   ```
+
+   **Option B: Using local installation**
+
+   If you've cloned this repository locally:
+   ```json
+   {
+     "pylon": {
+       "command": "node",
+       "args": ["/absolute/path/to/pylon-mcp-server/dist/index.js"],
+       "env": {
+         "PYLON_API_TOKEN": "your_pylon_api_token_here"
+       }
+     }
+   }
+   ```
+
+4. **Get Your Pylon API Token**:
+   - Log into your Pylon dashboard
+   - Navigate to Settings → API
+   - Generate or copy your API token
+   - Replace `your_pylon_api_token_here` with your actual token
+
+5. **Test the Integration**:
+
+   Once configured, you can ask Augment to use Pylon tools:
+
+   ```text
+   "Check my Pylon user info"
+   "Show me recent support issues"
+   "Search for a contact by email"
+   "Create a new support ticket"
+   ```
 
 ### Running Locally with Claude Desktop
 
@@ -75,7 +176,26 @@ npm run dev
 2. **Configure Claude Desktop**:
 
   Add this to your Claude Desktop MCP settings (`~/Library/Application Support/Claude/claude_desktop_config.json` on macOS):
-  
+
+  **Option A: Using npx from GCP Artifact Registry (Recommended)**
+  ```json
+  {
+    "mcpServers": {
+      "pylon": {
+        "command": "npx",
+        "args": [
+          "--registry=https://us-central1-npm.pkg.dev/customer-support-success/npm-packages/",
+          "@customer-support-success/pylon-mcp-server"
+        ],
+        "env": {
+          "PYLON_API_TOKEN": "your_pylon_api_token_here"
+        }
+      }
+    }
+  }
+  ```
+
+  **Option B: Using local installation**
   ```json
   {
     "mcpServers": {
@@ -124,17 +244,19 @@ npm run dev
 
 ### Example Tool Usage
 
-Once connected, you can use any of the 23+ available tools:
+Once connected, you can use any of the 24+ available tools:
 
 ```text
 # User Management
 "Get my user info" → uses pylon_get_me
 "Search for users named John" → uses pylon_search_users
 
-# Issue Management  
+# Issue Management
 "Show all open issues" → uses pylon_get_issues
 "Create a new bug report" → uses pylon_create_issue
+"Get issue #123 with all messages" → uses pylon_get_issue_with_messages (NEW!)
 "Add a comment to issue #123" → uses pylon_create_issue_message
+"Update issue status to resolved" → uses pylon_update_issue
 
 # Knowledge Base
 "List all knowledge bases" → uses pylon_get_knowledge_bases
