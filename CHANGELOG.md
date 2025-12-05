@@ -5,6 +5,42 @@ All notable changes to the Pylon MCP Server will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.2.0] - 2024-12-05
+
+### Added
+
+- **Attachment Support** - Full support for file attachments in Pylon
+  - New `PylonAttachment` interface with id, name, url, and description fields
+  - Updated `PylonMessage` interface to include optional `attachments` array
+  - New tool: `pylon_get_attachment` - Get details of a specific attachment by ID
+  - New tool: `pylon_create_attachment_from_url` - Create attachment from a URL
+  - New method: `PylonClient.getAttachment(attachmentId)` - Fetch attachment metadata
+  - New method: `PylonClient.createAttachment(file, description?)` - Upload file as attachment
+  - New method: `PylonClient.createAttachmentFromUrl(fileUrl, description?)` - Create from URL
+  - Messages now properly include attachment information when present
+
+- **Comprehensive Test Coverage** - Professional testing infrastructure
+  - Added Vitest testing framework with 17 passing unit tests
+  - Test coverage for all attachment methods (6 tests)
+  - Test coverage for core functionality: users, issues, contacts, messages (11 tests)
+  - Test scripts: `npm test`, `npm run test:watch`, `npm run test:ui`, `npm run test:coverage`
+  - Automated testing for error handling (404, network errors)
+  - Mock-based testing for fast, reliable test execution
+  - Full TypeScript support in tests
+
+### Changed
+
+- Tool count increased from 24+ to **26+ tools**
+- Enhanced message handling to support attachments
+- Improved documentation with testing section in README and CLAUDE.md
+
+### Improved
+
+- Better code quality with automated test validation
+- Regression prevention through comprehensive test suite
+- Developer experience with watch mode and interactive test UI
+- Documentation now includes testing instructions and coverage details
+
 ## [1.1.0] - 2024-12-04
 
 ### Added

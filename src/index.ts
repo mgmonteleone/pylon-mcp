@@ -363,6 +363,29 @@ const tools: Tool[] = [
       required: ['webhook_id'],
     },
   },
+  {
+    name: 'pylon_get_attachment',
+    description: 'Get details of a specific attachment from Pylon. Returns attachment metadata including ID, name, URL, and description. Use this to retrieve information about files attached to messages.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        attachment_id: { type: 'string', description: 'ID of the attachment to retrieve. Get this from message attachments array. Example: "att_abc123"' },
+      },
+      required: ['attachment_id'],
+    },
+  },
+  {
+    name: 'pylon_create_attachment_from_url',
+    description: 'Create an attachment in Pylon from a URL. Downloads the file from the provided URL and creates an attachment that can be used in messages or knowledge base articles. Returns the attachment details including the Pylon-hosted URL.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        file_url: { type: 'string', description: 'URL of the file to download and attach. Must be publicly accessible. Example: "https://example.com/document.pdf"' },
+        description: { type: 'string', description: 'Optional description of the attachment. Example: "Product specification document"' },
+      },
+      required: ['file_url'],
+    },
+  },
 ];
 
 server.setRequestHandler(ListToolsRequestSchema, async () => {
@@ -794,6 +817,39 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
                 message: 'Webhook deleted successfully',
                 webhook_id: args.webhook_id
               }, null, 2),
+            },
+          ],
+        };
+      }
+
+      case 'pylon_get_attachment': {
+        if (!args || !('attachment_id' in args)) {
+          throw new Error('attachment_id is required');
+        }
+        const attachment = await pylonClient.getAttachment(args.attachment_id as string);
+        return {
+          content: [
+            {
+              type: 'text',
+              text: JSON.stringify(attachment, null, 2),
+            },
+          ],
+        };
+      }
+
+      case 'pylon_create_attachment_from_url': {
+        if (!args || !('file_url' in args)) {
+          throw new Error('file_url is required');
+        }
+        const attachment = await pylonClient.createAttachmentFromUrl(
+          args.file_url as string,
+          args.description as string | undefined
+        );
+        return {
+          content: [
+            {
+              type: 'text',
+              text: JSON.stringify(attachment, null, 2),
             },
           ],
         };

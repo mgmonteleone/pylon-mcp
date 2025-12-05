@@ -61,6 +61,32 @@ To publish a new version to GCP Artifact Registry:
 npm run dev
 ```
 
+### Testing
+
+This project includes comprehensive unit tests for all functionality:
+
+```bash
+# Run tests once
+npm test
+
+# Run tests in watch mode
+npm run test:watch
+
+# Run tests with UI
+npm run test:ui
+
+# Run tests with coverage report
+npm run test:coverage
+```
+
+**Test Coverage:**
+- ✅ Attachment API (get, create from URL, file upload)
+- ✅ User Management (get user, search users)
+- ✅ Issue Management (get, create, update, filter)
+- ✅ Contact Management (get, search, create)
+- ✅ Message Management (get messages with attachments)
+- ✅ Error Handling (404, network errors)
+
 ## Available Tools
 
 ### User Tools
@@ -88,6 +114,11 @@ npm run dev
 - `pylon_get_knowledge_bases`: List all knowledge bases
 - `pylon_get_knowledge_base_articles`: Get articles from a specific knowledge base
 - `pylon_create_knowledge_base_article`: Create a new article in a knowledge base
+
+### Attachment Tools
+
+- `pylon_get_attachment`: Get details of a specific attachment
+- `pylon_create_attachment_from_url`: Create an attachment from a URL
 
 ## Usage Examples
 
@@ -244,7 +275,7 @@ Augment Code supports MCP servers through its Easy MCP feature in VS Code and Je
 
 ### Example Tool Usage
 
-Once connected, you can use any of the 24+ available tools:
+Once connected, you can use any of the 26+ available tools:
 
 ```text
 # User Management
@@ -254,9 +285,13 @@ Once connected, you can use any of the 24+ available tools:
 # Issue Management
 "Show all open issues" → uses pylon_get_issues
 "Create a new bug report" → uses pylon_create_issue
-"Get issue #123 with all messages" → uses pylon_get_issue_with_messages (NEW!)
+"Get issue #123 with all messages" → uses pylon_get_issue_with_messages
 "Add a comment to issue #123" → uses pylon_create_issue_message
 "Update issue status to resolved" → uses pylon_update_issue
+
+# Attachments
+"Get attachment details for att_123" → uses pylon_get_attachment (NEW!)
+"Create attachment from URL" → uses pylon_create_attachment_from_url (NEW!)
 
 # Knowledge Base
 "List all knowledge bases" → uses pylon_get_knowledge_bases

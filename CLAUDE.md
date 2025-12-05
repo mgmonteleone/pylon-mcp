@@ -4,7 +4,7 @@ This document provides context for Claude when working on the Pylon MCP Server p
 
 ## Project Overview
 
-This is an MCP (Model Context Protocol) server that provides comprehensive integration with the Pylon API. Pylon is a customer support and helpdesk platform, and this server exposes 24+ tools covering all major API functionality.
+This is an MCP (Model Context Protocol) server that provides comprehensive integration with the Pylon API. Pylon is a customer support and helpdesk platform, and this server exposes 26+ tools covering all major API functionality.
 
 ## Architecture
 
@@ -42,6 +42,7 @@ The server implements comprehensive Pylon API coverage:
 **Tag Management** (`/tags`)
 **Ticket Forms** (`/ticket-forms`)
 **Webhook Management** (`/webhooks`)
+**Attachment Management** (`/attachments`, `/attachments/{id}`)
 
 ## Development Commands
 
@@ -54,7 +55,32 @@ npm start           # Run built version
 
 ## Testing
 
-To test the MCP server:
+### Unit Tests
+
+The project includes comprehensive unit test coverage using Vitest:
+
+```bash
+npm test              # Run all tests
+npm run test:watch    # Watch mode
+npm run test:ui       # Interactive UI
+npm run test:coverage # Coverage report
+```
+
+**Test Files:**
+- `tests/pylon-client.attachments.test.ts` - Attachment API tests (6 tests)
+- `tests/pylon-client.core.test.ts` - Core functionality tests (11 tests)
+
+**Coverage:**
+- ✅ All attachment methods (get, create from URL, file upload)
+- ✅ User management (get, search)
+- ✅ Issue management (CRUD operations, filtering)
+- ✅ Contact management (get, search, create)
+- ✅ Message management (with attachments)
+- ✅ Error handling (404, network errors)
+
+### Integration Testing
+
+To test the MCP server with a real client:
 
 1. Build the project: `npm run build`
 2. Configure in your preferred client:

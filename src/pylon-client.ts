@@ -55,12 +55,20 @@ export interface PylonAccount {
   plan?: string;
 }
 
+export interface PylonAttachment {
+  id: string;
+  name: string;
+  url: string;
+  description?: string;
+}
+
 export interface PylonMessage {
   id: string;
   content: string;
   author_id: string;
   issue_id: string;
   created_at: string;
+  attachments?: PylonAttachment[];
 }
 
 export interface PylonTag {
@@ -255,5 +263,36 @@ export class PylonClient {
 
   async deleteWebhook(webhookId: string): Promise<void> {
     await this.client.delete(`/webhooks/${webhookId}`);
+  }
+
+  // Attachments API
+  async getAttachment(attachmentId: string): Promise<PylonAttachment> {
+    const response: AxiosResponse<PylonAttachment> = await this.client.get(`/attachments/${attachmentId}`);
+    return response.data;
+  }
+
+  async createAttachment(file: File | Blob, description?: string): Promise<PylonAttachment> {
+    const formData = new FormData();
+    formData.append('file', file);
+    if (description) {
+      formData.append('description', description);
+    }
+
+    const response: AxiosResponse<{ data: PylonAttachment }> = await this.client.post('/attachments', formData, {
+      headers: {
+        'Content-Type': 'multipart/form-data',
+      },
+    });
+    return response.data.data;
+  }
+
+  async createAttachmentFromUrl(fileUrl: string, description?: string): Promise<PylonAttachment> {
+    const payload: any = { file_url: fileUrl };
+    if (description) {
+      payload.description = description;
+    }
+
+    const response: AxiosResponse<{ data: PylonAttachment }> = await this.client.post('/attachments', payload);
+    return response.data.data;
   }
 }
