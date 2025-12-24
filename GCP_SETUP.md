@@ -92,21 +92,20 @@ Add this to `~/Library/Application Support/Claude/claude_desktop_config.json`:
 ### Publishing a New Version
 
 1. **Update the version** in `package.json`:
+
    ```bash
    npm version patch  # or minor, or major
    ```
 
-2. **Run the publish script**:
-   ```bash
-   ./publish.sh
-   ```
+2. **Publish (CI is preferred)**:
+   - CI/CD: push a tag `vX.Y.Z` and let `release.yml` build/test/publish using `GCP_CREDENTIALS` (service account key) and a short-lived access token via `gcloud auth print-access-token`.
+   - Local/manual (maintainers only):
 
-   Or manually:
-   ```bash
-   npm run build
-   export ARTIFACT_REGISTRY_TOKEN=$(gcloud auth application-default print-access-token)
-   npm publish
-   ```
+     ```bash
+     npm run build
+     export ARTIFACT_REGISTRY_TOKEN=$(gcloud auth application-default print-access-token)
+     npm publish --registry=https://us-central1-npm.pkg.dev/customer-support-success/npm-packages/
+     ```
 
 ### Verifying the Publication
 
@@ -142,6 +141,7 @@ gcloud auth application-default print-access-token
 ### Registry Not Found
 
 Make sure you're using the correct registry URL:
+
 ```
 https://us-central1-npm.pkg.dev/customer-support-success/npm-packages/
 ```
@@ -172,4 +172,3 @@ gcloud artifacts repositories add-iam-policy-binding npm-packages \
 3. **Integration** - Works seamlessly with other GCP services
 4. **Reliability** - Enterprise-grade infrastructure
 5. **Cost-Effective** - Free tier available, pay only for storage and egress
-

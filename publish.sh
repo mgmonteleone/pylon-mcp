@@ -10,7 +10,7 @@ echo "Getting GCP auth token..."
 export ARTIFACT_REGISTRY_TOKEN=$(gcloud auth application-default print-access-token)
 
 echo "Publishing to GCP Artifact Registry..."
-npm publish
+npm publish --registry=https://us-central1-npm.pkg.dev/customer-support-success/npm-packages/
 
 echo "✅ Package published successfully!"
 echo ""

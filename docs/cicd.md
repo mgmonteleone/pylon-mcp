@@ -18,7 +18,7 @@ This repository uses GitHub Actions for CI/CD. All workflows live in `.github/wo
 
 ### Required secrets / config
 
-- `GCP_CREDENTIALS`: JSON key for service account `success-admin-service-account@customer-support-success.iam.gserviceaccount.com` (must have artifactregistry.writer, and secretAccessor if secrets are used).
+- `GCP_CREDENTIALS`: JSON key for service account `success-admin-service-account@customer-support-success.iam.gserviceaccount.com` (must have artifactregistry.writer; add secretAccessor if fetching secrets).
 - Ensure repository Actions permissions allow `contents: write`, `packages: write`, `id-token: write` for releases.
 - (Optional) `CODECOV_TOKEN` if Codecov is used; CI uploads coverage when present.
 
