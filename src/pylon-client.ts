@@ -100,9 +100,9 @@ export class PylonClient {
     this.client = axios.create({
       baseURL: baseUrl,
       headers: {
-        'Authorization': `Bearer ${config.apiToken}`,
-        'Content-Type': 'application/json'
-      }
+        Authorization: `Bearer ${config.apiToken}`,
+        'Content-Type': 'application/json',
+      },
     });
   }
 
@@ -121,7 +121,11 @@ export class PylonClient {
     return response.data;
   }
 
-  async getIssues(params?: { assignee?: string; status?: string; limit?: number }): Promise<PylonIssue[]> {
+  async getIssues(params?: {
+    assignee?: string;
+    status?: string;
+    limit?: number;
+  }): Promise<PylonIssue[]> {
     const response: AxiosResponse<PylonIssue[]> = await this.client.get('/issues', { params });
     return response.data;
   }
@@ -137,12 +141,20 @@ export class PylonClient {
   }
 
   async getKnowledgeBaseArticles(knowledgeBaseId: string): Promise<PylonArticle[]> {
-    const response: AxiosResponse<PylonArticle[]> = await this.client.get(`/knowledge-bases/${knowledgeBaseId}/articles`);
+    const response: AxiosResponse<PylonArticle[]> = await this.client.get(
+      `/knowledge-bases/${knowledgeBaseId}/articles`
+    );
     return response.data;
   }
 
-  async createKnowledgeBaseArticle(knowledgeBaseId: string, article: Omit<PylonArticle, 'id' | 'knowledge_base_id'>): Promise<PylonArticle> {
-    const response: AxiosResponse<PylonArticle> = await this.client.post(`/knowledge-bases/${knowledgeBaseId}/articles`, article);
+  async createKnowledgeBaseArticle(
+    knowledgeBaseId: string,
+    article: Omit<PylonArticle, 'id' | 'knowledge_base_id'>
+  ): Promise<PylonArticle> {
+    const response: AxiosResponse<PylonArticle> = await this.client.post(
+      `/knowledge-bases/${knowledgeBaseId}/articles`,
+      article
+    );
     return response.data;
   }
 
@@ -186,13 +198,18 @@ export class PylonClient {
 
   // Contacts API (search)
   async searchContacts(query: string): Promise<PylonContact[]> {
-    const response: AxiosResponse<PylonContact[]> = await this.client.post('/contacts/search', { query });
+    const response: AxiosResponse<PylonContact[]> = await this.client.post('/contacts/search', {
+      query,
+    });
     return response.data;
   }
 
   // Issues API (search and additional operations)
   async searchIssues(query: string, filters?: any): Promise<PylonIssue[]> {
-    const response: AxiosResponse<PylonIssue[]> = await this.client.post('/issues/search', { query, ...filters });
+    const response: AxiosResponse<PylonIssue[]> = await this.client.post('/issues/search', {
+      query,
+      ...filters,
+    });
     return response.data;
   }
 
@@ -202,7 +219,10 @@ export class PylonClient {
   }
 
   async updateIssue(issueId: string, updates: Partial<PylonIssue>): Promise<PylonIssue> {
-    const response: AxiosResponse<PylonIssue> = await this.client.patch(`/issues/${issueId}`, updates);
+    const response: AxiosResponse<PylonIssue> = await this.client.patch(
+      `/issues/${issueId}`,
+      updates
+    );
     return response.data;
   }
 
@@ -212,20 +232,27 @@ export class PylonClient {
 
   // Messages API
   async getIssueMessages(issueId: string): Promise<PylonMessage[]> {
-    const response: AxiosResponse<PylonMessage[]> = await this.client.get(`/issues/${issueId}/messages`);
+    const response: AxiosResponse<PylonMessage[]> = await this.client.get(
+      `/issues/${issueId}/messages`
+    );
     return response.data;
   }
 
   async createIssueMessage(issueId: string, content: string): Promise<PylonMessage> {
-    const response: AxiosResponse<PylonMessage> = await this.client.post(`/issues/${issueId}/messages`, { content });
+    const response: AxiosResponse<PylonMessage> = await this.client.post(
+      `/issues/${issueId}/messages`,
+      { content }
+    );
     return response.data;
   }
 
   // Combined method to get issue with all messages
-  async getIssueWithMessages(issueId: string): Promise<{ issue: PylonIssue; messages: PylonMessage[] }> {
+  async getIssueWithMessages(
+    issueId: string
+  ): Promise<{ issue: PylonIssue; messages: PylonMessage[] }> {
     const [issue, messages] = await Promise.all([
       this.getIssue(issueId),
-      this.getIssueMessages(issueId)
+      this.getIssueMessages(issueId),
     ]);
     return { issue, messages };
   }
@@ -269,7 +296,9 @@ export class PylonClient {
 
   // Attachments API
   async getAttachment(attachmentId: string): Promise<PylonAttachment> {
-    const response: AxiosResponse<PylonAttachment> = await this.client.get(`/attachments/${attachmentId}`);
+    const response: AxiosResponse<PylonAttachment> = await this.client.get(
+      `/attachments/${attachmentId}`
+    );
     return response.data;
   }
 
@@ -280,11 +309,15 @@ export class PylonClient {
       formData.append('description', description);
     }
 
-    const response: AxiosResponse<{ data: PylonAttachment }> = await this.client.post('/attachments', formData, {
-      headers: {
-        'Content-Type': 'multipart/form-data',
-      },
-    });
+    const response: AxiosResponse<{ data: PylonAttachment }> = await this.client.post(
+      '/attachments',
+      formData,
+      {
+        headers: {
+          'Content-Type': 'multipart/form-data',
+        },
+      }
+    );
     return response.data.data;
   }
 
@@ -294,7 +327,10 @@ export class PylonClient {
       payload.description = description;
     }
 
-    const response: AxiosResponse<{ data: PylonAttachment }> = await this.client.post('/attachments', payload);
+    const response: AxiosResponse<{ data: PylonAttachment }> = await this.client.post(
+      '/attachments',
+      payload
+    );
     return response.data.data;
   }
 }

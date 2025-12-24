@@ -57,7 +57,8 @@ describe('pylon-mcp functional tools (stdio, mocked HTTP)', () => {
 
   beforeAll(async () => {
     mockServer = makeMockPylonServer({
-      '/me': (_req, res) => withJson(res, 200, { id: 'user_1', email: 'a@example.com', name: 'Ada Lovelace' }),
+      '/me': (_req, res) =>
+        withJson(res, 200, { id: 'user_1', email: 'a@example.com', name: 'Ada Lovelace' }),
       '/users': (_req, res) => withJson(res, 200, [{ id: 'user_1', name: 'Ada' }]),
       '/users/search': async (req, res) => {
         let body = '';
@@ -84,16 +85,20 @@ describe('pylon-mcp functional tools (stdio, mocked HTTP)', () => {
           withJson(res, 405, { message: 'Method Not Allowed' });
         }
       },
-      '/issues/ISSUE-5': (_req, res) => withJson(res, 200, { id: 'ISSUE-5', title: 'Five', status: 'open' }),
-      '/issues/ISSUE-5/messages': (_req, res) => withJson(res, 200, [{ id: 'msg_1', content: 'hello' }]),
+      '/issues/ISSUE-5': (_req, res) =>
+        withJson(res, 200, { id: 'ISSUE-5', title: 'Five', status: 'open' }),
+      '/issues/ISSUE-5/messages': (_req, res) =>
+        withJson(res, 200, [{ id: 'msg_1', content: 'hello' }]),
       '/knowledge-bases': (_req, res) => withJson(res, 200, [{ id: 'kb_1', name: 'KB' }]),
-      '/knowledge-bases/kb_1/articles': (_req, res) => withJson(res, 200, [{ id: 'art_1', title: 'Article' }]),
+      '/knowledge-bases/kb_1/articles': (_req, res) =>
+        withJson(res, 200, [{ id: 'art_1', title: 'Article' }]),
       '/teams': (_req, res) => withJson(res, 200, [{ id: 'team_1', name: 'Support' }]),
     });
 
     await new Promise<void>((resolve) => mockServer.listen(0, '127.0.0.1', () => resolve()));
     const address = mockServer.address();
-    if (typeof address === 'string' || address === null) throw new Error('Failed to bind mock server');
+    if (typeof address === 'string' || address === null)
+      throw new Error('Failed to bind mock server');
     process.env.PYLON_BASE_URL = `http://127.0.0.1:${address.port}`;
 
     const transport = startServerProcess();
@@ -129,7 +134,10 @@ describe('pylon-mcp functional tools (stdio, mocked HTTP)', () => {
   });
 
   it('pylon_search_contacts', async () => {
-    const res = await client.callTool({ name: 'pylon_search_contacts', arguments: { query: 'carol' } });
+    const res = await client.callTool({
+      name: 'pylon_search_contacts',
+      arguments: { query: 'carol' },
+    });
     expect(res?.content?.[0]?.text).toContain('Search:carol');
   });
 
@@ -147,17 +155,26 @@ describe('pylon-mcp functional tools (stdio, mocked HTTP)', () => {
   });
 
   it('pylon_get_issue', async () => {
-    const res = await client.callTool({ name: 'pylon_get_issue', arguments: { issue_id: 'ISSUE-5' } });
+    const res = await client.callTool({
+      name: 'pylon_get_issue',
+      arguments: { issue_id: 'ISSUE-5' },
+    });
     expect(res?.content?.[0]?.text).toContain('Five');
   });
 
   it('pylon_get_issue_messages', async () => {
-    const res = await client.callTool({ name: 'pylon_get_issue_messages', arguments: { issue_id: 'ISSUE-5' } });
+    const res = await client.callTool({
+      name: 'pylon_get_issue_messages',
+      arguments: { issue_id: 'ISSUE-5' },
+    });
     expect(res?.content?.[0]?.text).toContain('msg_1');
   });
 
   it('pylon_get_issue_with_messages', async () => {
-    const res = await client.callTool({ name: 'pylon_get_issue_with_messages', arguments: { issue_id: 'ISSUE-5' } });
+    const res = await client.callTool({
+      name: 'pylon_get_issue_with_messages',
+      arguments: { issue_id: 'ISSUE-5' },
+    });
     expect(res?.content?.[0]?.text).toContain('msg_1');
   });
 
@@ -167,7 +184,10 @@ describe('pylon-mcp functional tools (stdio, mocked HTTP)', () => {
   });
 
   it('pylon_get_knowledge_base_articles', async () => {
-    const res = await client.callTool({ name: 'pylon_get_knowledge_base_articles', arguments: { knowledge_base_id: 'kb_1' } });
+    const res = await client.callTool({
+      name: 'pylon_get_knowledge_base_articles',
+      arguments: { knowledge_base_id: 'kb_1' },
+    });
     expect(res?.content?.[0]?.text).toContain('art_1');
   });
 

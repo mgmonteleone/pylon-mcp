@@ -4,7 +4,7 @@ import { ElicitRequestFormParams } from '@modelcontextprotocol/sdk/types.js';
 
 /**
  * Tests for the MCP Elicitation feature used for customer-facing message confirmation.
- * 
+ *
  * These tests verify:
  * 1. The elicitation request is properly formatted
  * 2. Different user responses (accept, decline, cancel) are handled correctly
@@ -14,7 +14,7 @@ import { ElicitRequestFormParams } from '@modelcontextprotocol/sdk/types.js';
 describe('Message Confirmation Elicitation', () => {
   // Mock the Server class's elicitInput method
   let mockElicitInput: ReturnType<typeof vi.fn>;
-  
+
   beforeEach(() => {
     mockElicitInput = vi.fn();
   });
@@ -27,7 +27,7 @@ describe('Message Confirmation Elicitation', () => {
     it('should create a properly formatted elicitation request', () => {
       const issueId = 'issue_123';
       const content = 'Hello customer, your issue has been resolved.';
-      
+
       // This is the expected format for the elicitation request
       const expectedParams: ElicitRequestFormParams = {
         mode: 'form',
@@ -61,9 +61,9 @@ describe('Message Confirmation Elicitation', () => {
     it('should include issue ID and message content in the elicitation message', () => {
       const issueId = 'issue_abc123';
       const content = 'Thank you for contacting support!';
-      
+
       const message = `⚠️ CUSTOMER-FACING MESSAGE CONFIRMATION\n\nYou are about to send the following message to a customer on issue ${issueId}:\n\n---\n${content}\n---\n\nPlease review and confirm you want to send this message.`;
-      
+
       expect(message).toContain(issueId);
       expect(message).toContain(content);
       expect(message).toContain('CUSTOMER-FACING MESSAGE CONFIRMATION');
@@ -100,7 +100,7 @@ describe('Message Confirmation Elicitation', () => {
     it('should handle accept action with modified content', () => {
       const originalContent = 'Original message';
       const modifiedContent = 'Modified message with corrections';
-      
+
       const elicitResult = {
         action: 'accept' as const,
         content: {
@@ -145,8 +145,8 @@ describe('Message Confirmation Elicitation', () => {
         },
       };
 
-      const finalContent = elicitResult.content.modified_content?.trim() 
-        ? elicitResult.content.modified_content.trim() 
+      const finalContent = elicitResult.content.modified_content?.trim()
+        ? elicitResult.content.modified_content.trim()
         : originalContent;
 
       expect(finalContent).toBe(originalContent);
@@ -155,7 +155,7 @@ describe('Message Confirmation Elicitation', () => {
     it('should use modified content when provided', () => {
       const originalContent = 'Original message';
       const modifiedContent = 'Modified message';
-      
+
       const elicitResult = {
         action: 'accept' as const,
         content: {
@@ -164,8 +164,8 @@ describe('Message Confirmation Elicitation', () => {
         },
       };
 
-      const finalContent = elicitResult.content.modified_content?.trim() 
-        ? elicitResult.content.modified_content.trim() 
+      const finalContent = elicitResult.content.modified_content?.trim()
+        ? elicitResult.content.modified_content.trim()
         : originalContent;
 
       expect(finalContent).toBe(modifiedContent);
@@ -174,7 +174,7 @@ describe('Message Confirmation Elicitation', () => {
     it('should trim whitespace from modified content', () => {
       const originalContent = 'Original message';
       const modifiedContent = '  Modified message with spaces  ';
-      
+
       const elicitResult = {
         action: 'accept' as const,
         content: {
@@ -183,8 +183,8 @@ describe('Message Confirmation Elicitation', () => {
         },
       };
 
-      const finalContent = elicitResult.content.modified_content?.trim() 
-        ? elicitResult.content.modified_content.trim() 
+      const finalContent = elicitResult.content.modified_content?.trim()
+        ? elicitResult.content.modified_content.trim()
         : originalContent;
 
       expect(finalContent).toBe('Modified message with spaces');
@@ -195,7 +195,7 @@ describe('Message Confirmation Elicitation', () => {
     it('should respect PYLON_REQUIRE_MESSAGE_CONFIRMATION=false', () => {
       // When PYLON_REQUIRE_MESSAGE_CONFIRMATION is 'false', confirmation should be skipped
       const requireConfirmation = process.env.PYLON_REQUIRE_MESSAGE_CONFIRMATION !== 'false';
-      
+
       // Default behavior (env var not set)
       expect(requireConfirmation).toBe(true);
     });
@@ -204,14 +204,14 @@ describe('Message Confirmation Elicitation', () => {
       // When env var is not set, confirmation should be required
       const envValue = undefined;
       const requireConfirmation = envValue !== 'false';
-      
+
       expect(requireConfirmation).toBe(true);
     });
 
     it('should skip confirmation when explicitly disabled', () => {
       const envValue = 'false';
       const requireConfirmation = envValue !== 'false';
-      
+
       expect(requireConfirmation).toBe(false);
     });
   });
@@ -255,4 +255,3 @@ describe('Message Confirmation Elicitation', () => {
     });
   });
 });
-

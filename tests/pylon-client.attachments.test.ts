@@ -101,9 +101,7 @@ describe('PylonClient - Attachments', () => {
     it('should handle API errors', async () => {
       vi.spyOn(mockAxios, 'post').mockRejectedValue(new Error('Invalid URL'));
 
-      await expect(
-        client.createAttachmentFromUrl('invalid-url')
-      ).rejects.toThrow('Invalid URL');
+      await expect(client.createAttachmentFromUrl('invalid-url')).rejects.toThrow('Invalid URL');
     });
   });
 
@@ -141,4 +139,3 @@ describe('PylonClient - Attachments', () => {
     });
   });
 });
-
