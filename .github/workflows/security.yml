@@ -25,6 +25,9 @@ jobs:
       - name: Lint
         run: npm run lint
 
+      - name: Format check
+        run: npm run format
+
       - name: npm audit (prod deps, high+)
         run: npm audit --omit=dev --audit-level=high
 
