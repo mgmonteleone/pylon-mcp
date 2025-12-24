@@ -6,11 +6,11 @@ This repository uses GitHub Actions for CI/CD. All workflows live in `.github/wo
 
 1. `ci.yml`
    - Triggers: push to `main`, all PRs.
-   - Jobs: install (`npm ci`), lint, format check, build, test, coverage, upload coverage (artifact + Codecov if token), npm audit (prod deps, high+). Dependency review runs on PRs.
+   - Jobs: auth to GCP (gh-actions/auth + setup-gcloud), set `NODE_AUTH_TOKEN` via `gcloud auth print-access-token`, install (`npm ci`), lint, format check, build, test, coverage, upload coverage (artifact + Codecov if token), npm audit (prod deps, high+). Dependency review runs on PRs.
 
 2. `release.yml`
    - Trigger: pushing a semver tag `v*.*.*`.
-   - Steps: install, lint, format check, build, test, coverage, upload coverage (artifact + Codecov if token), `npm pack`, publish to Artifact Registry, auto-generate release notes, create GitHub release and attach the tarball.
+   - Steps: auth to GCP (gh-actions/auth + setup-gcloud), set `NODE_AUTH_TOKEN` via `gcloud auth print-access-token`, install, lint, format check, build, test, coverage, upload coverage (artifact + Codecov if token), `npm pack`, publish to Artifact Registry, auto-generate release notes, create GitHub release and attach the tarball.
 
 3. `security.yml`
    - Triggers: scheduled daily at 06:00 UTC, manual dispatch.
@@ -18,7 +18,7 @@ This repository uses GitHub Actions for CI/CD. All workflows live in `.github/wo
 
 ### Required secrets / config
 
-- `NPM_TOKEN`: publish token with write access to `https://us-central1-npm.pkg.dev/customer-support-success/npm-packages/`.
+- `GCP_CREDENTIALS`: JSON key for service account `success-admin-service-account@customer-support-success.iam.gserviceaccount.com` (must have artifactregistry.writer, and secretAccessor if secrets are used).
 - Ensure repository Actions permissions allow `contents: write`, `packages: write`, `id-token: write` for releases.
 - (Optional) `CODECOV_TOKEN` if Codecov is used; CI uploads coverage when present.
 
