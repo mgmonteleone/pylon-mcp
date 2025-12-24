@@ -5,6 +5,17 @@ All notable changes to the Pylon MCP Server will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.4.0] - 2025-12-24
+
+### Changed
+
+- Clarified tool guidance for issue lookups: when given a ticket/issue number, use `pylon_get_issue` first; reserve message-history tools for when conversation bodies are needed.
+- Improved tool input schema descriptions to accept user-provided ticket numbers directly without extra lookup steps.
+
+### Added
+
+- Tests asserting the updated tool descriptions and guidance.
+
 ## [1.2.0] - 2024-12-05
 
 ### Added

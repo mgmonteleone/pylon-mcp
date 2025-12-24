@@ -1,6 +1,6 @@
 {
   "name": "@customer-support-success/pylon-mcp-server",
-  "version": "1.2.0",
+  "version": "1.4.0",
   "description": "MCP server for Pylon API integration",
   "type": "module",
   "main": "dist/index.js",
@@ -33,8 +33,9 @@
   "author": "",
   "license": "MIT",
   "dependencies": {
-    "@modelcontextprotocol/sdk": "^1.0.0",
-    "axios": "^1.6.0"
+    "@modelcontextprotocol/sdk": "^1.25.1",
+    "axios": "^1.6.0",
+    "zod": "^4.2.1"
   },
   "devDependencies": {
     "@types/node": "^20.19.25",
