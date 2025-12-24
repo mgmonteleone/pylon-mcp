@@ -95,8 +95,10 @@ export class PylonClient {
   private client: AxiosInstance;
 
   constructor(config: PylonConfig) {
+    const baseUrl = config.baseUrl || process.env.PYLON_BASE_URL || 'https://api.usepylon.com';
+
     this.client = axios.create({
-      baseURL: config.baseUrl || 'https://api.usepylon.com',
+      baseURL: baseUrl,
       headers: {
         'Authorization': `Bearer ${config.apiToken}`,
         'Content-Type': 'application/json'
