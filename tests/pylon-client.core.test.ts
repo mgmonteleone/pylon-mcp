@@ -329,7 +329,9 @@ describe('PylonClient - Core Functionality', () => {
 
       const result = await client.getKnowledgeBaseArticles('kb1');
 
-      expect(mockAxios.get).toHaveBeenCalledWith('/knowledge-bases/kb1/articles', { params: undefined });
+      expect(mockAxios.get).toHaveBeenCalledWith('/knowledge-bases/kb1/articles', {
+        params: undefined,
+      });
       expect(result).toEqual(mockArticles);
     });
 
@@ -506,7 +508,9 @@ describe('PylonClient - Core Functionality', () => {
     });
 
     it('should list webhooks', async () => {
-      const hooks = [{ id: 'wh1', url: 'https://example.com', events: ['issue.created'], active: true }];
+      const hooks = [
+        { id: 'wh1', url: 'https://example.com', events: ['issue.created'], active: true },
+      ];
       vi.spyOn(mockAxios, 'get').mockResolvedValue({
         data: hooks,
         status: 200,
@@ -522,7 +526,11 @@ describe('PylonClient - Core Functionality', () => {
     });
 
     it('should create webhook', async () => {
-      const payload = { url: 'https://example.com/hook', events: ['issue.updated'], active: true } as any;
+      const payload = {
+        url: 'https://example.com/hook',
+        events: ['issue.updated'],
+        active: true,
+      } as any;
       const created = { id: 'wh2', ...payload };
 
       vi.spyOn(mockAxios, 'post').mockResolvedValue({
@@ -608,7 +616,9 @@ describe('PylonClient - Core Functionality', () => {
 
       const result = await client.getIssueMessages('issue_123');
 
-      expect(mockAxios.get).toHaveBeenCalledWith('/issues/issue_123/messages', { params: undefined });
+      expect(mockAxios.get).toHaveBeenCalledWith('/issues/issue_123/messages', {
+        params: undefined,
+      });
       expect(result).toEqual(mockMessages);
       expect(result[1].attachments).toBeDefined();
       expect(result[1].attachments).toHaveLength(1);

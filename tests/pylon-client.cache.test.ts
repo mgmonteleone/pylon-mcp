@@ -59,8 +59,12 @@ describe('PylonClient - Caching', () => {
     });
 
     it('should cache requests with different parameters separately', async () => {
-      const mockIssues1 = [{ id: '1', title: 'Issue 1', description: 'Desc 1', status: 'open', priority: 'high' }];
-      const mockIssues2 = [{ id: '2', title: 'Issue 2', description: 'Desc 2', status: 'closed', priority: 'low' }];
+      const mockIssues1 = [
+        { id: '1', title: 'Issue 1', description: 'Desc 1', status: 'open', priority: 'high' },
+      ];
+      const mockIssues2 = [
+        { id: '2', title: 'Issue 2', description: 'Desc 2', status: 'closed', priority: 'low' },
+      ];
 
       mockedAxios.get.mockResolvedValueOnce({ data: mockIssues1 });
       mockedAxios.get.mockResolvedValueOnce({ data: mockIssues2 });
@@ -112,7 +116,7 @@ describe('PylonClient - Caching', () => {
       expect(mockedAxios.get).toHaveBeenCalledTimes(1);
 
       // Wait for cache to expire
-      await new Promise(resolve => setTimeout(resolve, 150));
+      await new Promise((resolve) => setTimeout(resolve, 150));
 
       // Third call after expiration (should hit API again)
       await client.getMe();
@@ -155,4 +159,3 @@ describe('PylonClient - Caching', () => {
     });
   });
 });
-
