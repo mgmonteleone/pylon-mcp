@@ -67,10 +67,12 @@ npm run test:coverage # Coverage report
 ```
 
 **Test Files:**
+
 - `tests/pylon-client.attachments.test.ts` - Attachment API tests (6 tests)
 - `tests/pylon-client.core.test.ts` - Core functionality tests (11 tests)
 
 **Coverage:**
+
 - ✅ All attachment methods (get, create from URL, file upload)
 - ✅ User management (get, search)
 - ✅ Issue management (CRUD operations, filtering)

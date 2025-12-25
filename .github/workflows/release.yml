@@ -31,12 +31,19 @@ jobs:
         with:
           node-version: 20
           cache: npm
-          registry-url: ${{ env.NPM_REGISTRY }}
 
       - name: Set NODE_AUTH_TOKEN from GCP
         run: |
           TOKEN=$(gcloud auth print-access-token)
           echo "NODE_AUTH_TOKEN=$TOKEN" >> "$GITHUB_ENV"
+
+      - name: Configure npm registry for installs
+        run: npm config set registry https://registry.npmjs.org/
+
+      - name: Configure scoped registry for publish
+        run: |
+          npm config set @customer-support-success:registry=${{ env.NPM_REGISTRY }}
+          npm config set //us-central1-npm.pkg.dev/customer-support-success/npm-packages/:_authToken=$NODE_AUTH_TOKEN
 
       - name: Install dependencies
         run: npm ci

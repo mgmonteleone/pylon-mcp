@@ -113,20 +113,25 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## Release Notes Format
 
 ### Added
+
 New features and capabilities
 
 ### Changed
+
 Changes to existing functionality
 
 ### Deprecated
+
 Features that will be removed in future versions
 
 ### Removed
+
 Features that have been removed
 
 ### Fixed
+
 Bug fixes
 
 ### Security
-Security improvements and vulnerability fixes
 
+Security improvements and vulnerability fixes
