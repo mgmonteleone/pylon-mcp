@@ -42,7 +42,7 @@ describe('Environment Variable Validation', () => {
 
     expect(result.stderr).toContain('Invalid PYLON_CACHE_TTL value');
     expect(result.stderr).toContain('invalid-value');
-    expect(result.stderr).toContain('Must be a valid number');
+    expect(result.stderr).toContain('Must be a valid integer');
   });
 
   it('should accept valid numeric PYLON_CACHE_TTL', async () => {

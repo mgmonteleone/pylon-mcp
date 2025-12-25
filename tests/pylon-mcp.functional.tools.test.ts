@@ -129,6 +129,25 @@ describe('pylon-mcp functional tools (stdio, mocked HTTP)', () => {
       '/knowledge-bases/kb_1/articles': (_req, res) =>
         withJson(res, 200, [{ id: 'art_1', title: 'Article' }]),
       '/teams': (_req, res) => withJson(res, 200, [{ id: 'team_1', name: 'Support' }]),
+      '/teams/team_1': (_req, res) =>
+        withJson(res, 200, { id: 'team_1', name: 'Support', members: [] }),
+      '/accounts': (_req, res) => withJson(res, 200, [{ id: 'acc_1', name: 'Acme Corp' }]),
+      '/accounts/acc_1': (_req, res) =>
+        withJson(res, 200, { id: 'acc_1', name: 'Acme Corp', plan: 'enterprise' }),
+      '/tags': (_req, res) =>
+        withJson(res, 200, [{ id: 'tag_1', name: 'urgent', color: '#ff0000' }]),
+      '/ticket-forms': (_req, res) =>
+        withJson(res, 200, [{ id: 'form_1', name: 'Bug Report', fields: [] }]),
+      '/webhooks': (_req, res) =>
+        withJson(res, 200, [
+          { id: 'wh_1', url: 'https://example.com/hook', events: ['issue.created'], active: true },
+        ]),
+      '/attachments/att_1': (_req, res) =>
+        withJson(res, 200, { id: 'att_1', name: 'file.pdf', url: 'https://example.com/file.pdf' }),
+      // Error endpoints for testing error handling
+      '/issues/ISSUE-NOT-FOUND': (_req, res) => withJson(res, 404, { error: 'Issue not found' }),
+      '/issues/ISSUE-SERVER-ERROR': (_req, res) =>
+        withJson(res, 500, { error: 'Internal server error' }),
     });
 
     await new Promise<void>((resolve) => mockServer.listen(0, '127.0.0.1', () => resolve()));
@@ -314,5 +333,73 @@ describe('pylon-mcp functional tools (stdio, mocked HTTP)', () => {
     const text = res?.content?.[0]?.text ?? '';
     expect(text).toContain('sourceIssue');
     expect(text).toContain('similarIssues');
+  });
+
+  // Additional tool coverage tests
+  it('pylon_get_team', async () => {
+    const res = await client.callTool({
+      name: 'pylon_get_team',
+      arguments: { team_id: 'team_1' },
+    });
+    expect(res?.content?.[0]?.text).toContain('team_1');
+    expect(res?.content?.[0]?.text).toContain('Support');
+  });
+
+  it('pylon_get_accounts', async () => {
+    const res = await client.callTool({ name: 'pylon_get_accounts', arguments: {} });
+    expect(res?.content?.[0]?.text).toContain('acc_1');
+    expect(res?.content?.[0]?.text).toContain('Acme Corp');
+  });
+
+  it('pylon_get_account', async () => {
+    const res = await client.callTool({
+      name: 'pylon_get_account',
+      arguments: { account_id: 'acc_1' },
+    });
+    expect(res?.content?.[0]?.text).toContain('acc_1');
+    expect(res?.content?.[0]?.text).toContain('enterprise');
+  });
+
+  it('pylon_get_tags', async () => {
+    const res = await client.callTool({ name: 'pylon_get_tags', arguments: {} });
+    expect(res?.content?.[0]?.text).toContain('tag_1');
+    expect(res?.content?.[0]?.text).toContain('urgent');
+  });
+
+  it('pylon_get_ticket_forms', async () => {
+    const res = await client.callTool({ name: 'pylon_get_ticket_forms', arguments: {} });
+    expect(res?.content?.[0]?.text).toContain('form_1');
+    expect(res?.content?.[0]?.text).toContain('Bug Report');
+  });
+
+  it('pylon_get_webhooks', async () => {
+    const res = await client.callTool({ name: 'pylon_get_webhooks', arguments: {} });
+    expect(res?.content?.[0]?.text).toContain('wh_1');
+    expect(res?.content?.[0]?.text).toContain('issue.created');
+  });
+
+  it('pylon_get_attachment', async () => {
+    const res = await client.callTool({
+      name: 'pylon_get_attachment',
+      arguments: { attachment_id: 'att_1' },
+    });
+    expect(res?.content?.[0]?.text).toContain('att_1');
+    expect(res?.content?.[0]?.text).toContain('file.pdf');
+  });
+
+  it('pylon_search_issues', async () => {
+    const res = await client.callTool({
+      name: 'pylon_search_issues',
+      arguments: { query: 'login error' },
+    });
+    expect(res?.content?.[0]?.text).toContain('Similar: login error');
+  });
+
+  it('pylon_search_issues with filters', async () => {
+    const res = await client.callTool({
+      name: 'pylon_search_issues',
+      arguments: { query: 'bug', filters: { status: 'open' } },
+    });
+    expect(res?.content?.[0]?.text).toContain('Similar: bug');
   });
 });

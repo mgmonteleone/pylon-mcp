@@ -5,33 +5,29 @@ import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js'
 import { ElicitRequestFormParams } from '@modelcontextprotocol/sdk/types.js';
 import { z } from 'zod';
 import { PylonClient } from './pylon-client.js';
+import {
+  parseCacheTtl,
+  isMessageConfirmationRequired,
+  createPylonClient,
+  ensurePylonClient as ensureClient,
+  jsonResponse,
+  processElicitationResult,
+  buildElicitationMessage,
+  buildElicitationSchema,
+} from './server-helpers.js';
 
 // Environment variable to control whether elicitation is required for customer-facing messages
-const REQUIRE_MESSAGE_CONFIRMATION = process.env.PYLON_REQUIRE_MESSAGE_CONFIRMATION !== 'false';
+const REQUIRE_MESSAGE_CONFIRMATION = isMessageConfirmationRequired(
+  process.env.PYLON_REQUIRE_MESSAGE_CONFIRMATION
+);
 
 const PYLON_API_TOKEN = process.env.PYLON_API_TOKEN;
 
 // Parse and validate PYLON_CACHE_TTL
-let PYLON_CACHE_TTL: number | undefined = undefined;
-if (process.env.PYLON_CACHE_TTL !== undefined) {
-  const parsed = parseInt(process.env.PYLON_CACHE_TTL, 10);
-  if (isNaN(parsed)) {
-    throw new Error(
-      `Invalid PYLON_CACHE_TTL value: "${process.env.PYLON_CACHE_TTL}". Must be a valid number.`
-    );
-  }
-  PYLON_CACHE_TTL = parsed;
-}
+const PYLON_CACHE_TTL = parseCacheTtl(process.env.PYLON_CACHE_TTL);
 
 // Initialize client only when token is available
-let pylonClient: PylonClient | null = null;
-
-if (PYLON_API_TOKEN) {
-  pylonClient = new PylonClient({
-    apiToken: PYLON_API_TOKEN,
-    cacheTtl: PYLON_CACHE_TTL,
-  });
-}
+const pylonClient = createPylonClient(PYLON_API_TOKEN, PYLON_CACHE_TTL);
 
 // Create the McpServer instance (high-level API, replaces deprecated Server class)
 const mcpServer = new McpServer({
@@ -54,56 +50,14 @@ async function requestMessageConfirmation(
   try {
     const elicitParams: ElicitRequestFormParams = {
       mode: 'form',
-      message: `⚠️ CUSTOMER-FACING MESSAGE CONFIRMATION\n\nYou are about to send the following message to a customer on issue ${issueId}:\n\n---\n${content}\n---\n\nPlease review and confirm you want to send this message.`,
-      requestedSchema: {
-        type: 'object',
-        properties: {
-          confirm_send: {
-            type: 'boolean',
-            title: 'Confirm Send',
-            description: 'Check this box to confirm you want to send this message to the customer',
-            default: false,
-          },
-          modified_content: {
-            type: 'string',
-            title: 'Message Content (optional edit)',
-            description:
-              'You can modify the message content here before sending. Leave empty to use the original message.',
-          },
-        },
-        required: ['confirm_send'],
-      },
+      message: buildElicitationMessage(issueId, content),
+      requestedSchema: buildElicitationSchema(),
     };
 
     // Access elicitInput via the underlying Server instance
     const result = await mcpServer.server.elicitInput(elicitParams);
 
-    if (result.action === 'accept' && result.content) {
-      const confirmSend = result.content.confirm_send as boolean;
-      const modifiedContent = result.content.modified_content as string | undefined;
-
-      if (confirmSend) {
-        return {
-          confirmed: true,
-          content: modifiedContent && modifiedContent.trim() ? modifiedContent.trim() : content,
-        };
-      } else {
-        return {
-          confirmed: false,
-          reason: 'User did not confirm the message send',
-        };
-      }
-    } else if (result.action === 'decline') {
-      return {
-        confirmed: false,
-        reason: 'User explicitly declined to send the message',
-      };
-    } else {
-      return {
-        confirmed: false,
-        reason: 'User cancelled the confirmation dialog',
-      };
-    }
+    return processElicitationResult(result, content);
   } catch (error) {
     // If elicitation is not supported by the client, log a warning and proceed
     // This maintains backwards compatibility with clients that don't support elicitation
@@ -117,15 +71,7 @@ async function requestMessageConfirmation(
 
 // Helper function to ensure pylonClient is initialized
 function ensurePylonClient(): PylonClient {
-  if (!pylonClient) {
-    throw new Error('PYLON_API_TOKEN environment variable is required');
-  }
-  return pylonClient;
-}
-
-// Helper to create a JSON text response
-function jsonResponse(data: unknown) {
-  return { content: [{ type: 'text' as const, text: JSON.stringify(data, null, 2) }] };
+  return ensureClient(pylonClient);
 }
 
 // Register all tools using the McpServer.registerTool() pattern
