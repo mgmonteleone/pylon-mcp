@@ -358,6 +358,92 @@ mcpServer.registerTool(
     )
 );
 
+// Similar Issues Helper Tools
+mcpServer.registerTool(
+  'pylon_find_similar_issues_for_requestor',
+  {
+    description:
+      'Find similar issues from the same requestor (contact). Helps identify patterns or recurring issues from a specific customer. Fetches the source issue, then searches for issues from the same requestor with similar content.',
+    inputSchema: {
+      issue_id: z
+        .string()
+        .describe(
+          'The source issue ID to find similar issues for. Example: "issue_abc123" or "36800"'
+        ),
+      query: z
+        .string()
+        .optional()
+        .describe(
+          'Optional search terms to narrow results. If not provided, uses the source issue title. Example: "login error"'
+        ),
+      limit: z
+        .number()
+        .optional()
+        .describe('Maximum number of similar issues to return. Example: 10'),
+    },
+  },
+  async ({ issue_id, query, limit }) =>
+    jsonResponse(
+      await ensurePylonClient().findSimilarIssuesForRequestor(issue_id, { query, limit })
+    )
+);
+
+mcpServer.registerTool(
+  'pylon_find_similar_issues_for_account',
+  {
+    description:
+      'Find similar issues from the same account/company. Helps identify company-wide issues or patterns. Fetches the source issue to get the account ID, then searches for issues from the same account with similar content.',
+    inputSchema: {
+      issue_id: z
+        .string()
+        .describe(
+          'The source issue ID to find similar issues for. Example: "issue_abc123" or "36800"'
+        ),
+      query: z
+        .string()
+        .optional()
+        .describe(
+          'Optional search terms to narrow results. If not provided, uses the source issue title. Example: "billing problem"'
+        ),
+      limit: z
+        .number()
+        .optional()
+        .describe('Maximum number of similar issues to return. Example: 10'),
+    },
+  },
+  async ({ issue_id, query, limit }) =>
+    jsonResponse(
+      await ensurePylonClient().findSimilarIssuesForAccount(issue_id, { query, limit })
+    )
+);
+
+mcpServer.registerTool(
+  'pylon_find_similar_issues_global',
+  {
+    description:
+      'Find similar issues across all users and companies. Helps identify widespread issues or find solutions from past tickets. Searches for issues with similar content to the source issue, excluding the source issue from results.',
+    inputSchema: {
+      issue_id: z
+        .string()
+        .describe(
+          'The source issue ID to find similar issues for. Example: "issue_abc123" or "36800"'
+        ),
+      query: z
+        .string()
+        .optional()
+        .describe(
+          'Optional search terms to narrow results. If not provided, uses the source issue title. Example: "API timeout"'
+        ),
+      limit: z
+        .number()
+        .optional()
+        .describe('Maximum number of similar issues to return. Example: 20'),
+    },
+  },
+  async ({ issue_id, query, limit }) =>
+    jsonResponse(await ensurePylonClient().findSimilarIssuesGlobal(issue_id, { query, limit }))
+);
+
 mcpServer.registerTool(
   'pylon_snooze_issue',
   {

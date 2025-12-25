@@ -80,6 +80,12 @@ export interface PylonIssue {
   status: string;
   priority: string;
   assignee?: string;
+  /** The ID of the contact who created the issue */
+  requestor_id?: string;
+  /** The ID of the account the requestor belongs to */
+  account_id?: string;
+  /** The HTML body content of the issue */
+  body_html?: string;
 }
 
 export interface PylonKnowledgeBase {
@@ -317,6 +323,101 @@ export class PylonClient {
 
   async snoozeIssue(issueId: string, until: string): Promise<void> {
     await this.client.post(`/issues/${issueId}/snooze`, { until });
+  }
+
+  // Similar Issues Helper Methods
+
+  /**
+   * Find similar issues from the same requestor (contact).
+   * Helps identify patterns or recurring issues from a specific customer.
+   */
+  async findSimilarIssuesForRequestor(
+    issueId: string,
+    options?: { query?: string; limit?: number }
+  ): Promise<{ sourceIssue: PylonIssue; similarIssues: PylonIssue[] }> {
+    const sourceIssue = await this.getIssue(issueId);
+
+    if (!sourceIssue.requestor_id) {
+      return { sourceIssue, similarIssues: [] };
+    }
+
+    // Build search query from title or provided query
+    const searchQuery = options?.query || sourceIssue.title;
+
+    const filters: Record<string, unknown> = {
+      requestor_id: sourceIssue.requestor_id,
+    };
+    if (options?.limit) {
+      filters.limit = options.limit;
+    }
+
+    const results = await this.searchIssues(searchQuery, filters);
+
+    // Exclude the source issue from results
+    const similarIssues = results.filter((issue) => issue.id !== issueId);
+
+    return { sourceIssue, similarIssues };
+  }
+
+  /**
+   * Find similar issues from the same account/company.
+   * Helps identify company-wide issues or patterns.
+   */
+  async findSimilarIssuesForAccount(
+    issueId: string,
+    options?: { query?: string; limit?: number }
+  ): Promise<{ sourceIssue: PylonIssue; similarIssues: PylonIssue[] }> {
+    const sourceIssue = await this.getIssue(issueId);
+
+    if (!sourceIssue.account_id) {
+      return { sourceIssue, similarIssues: [] };
+    }
+
+    // Build search query from title or provided query
+    const searchQuery = options?.query || sourceIssue.title;
+
+    const filters: Record<string, unknown> = {
+      account_id: sourceIssue.account_id,
+    };
+    if (options?.limit) {
+      filters.limit = options.limit;
+    }
+
+    const results = await this.searchIssues(searchQuery, filters);
+
+    // Exclude the source issue from results
+    const similarIssues = results.filter((issue) => issue.id !== issueId);
+
+    return { sourceIssue, similarIssues };
+  }
+
+  /**
+   * Find similar issues across all users and companies.
+   * Helps identify widespread issues or find solutions from past tickets.
+   */
+  async findSimilarIssuesGlobal(
+    issueId: string,
+    options?: { query?: string; limit?: number }
+  ): Promise<{ sourceIssue: PylonIssue; similarIssues: PylonIssue[] }> {
+    const sourceIssue = await this.getIssue(issueId);
+
+    // Build search query from title or provided query
+    const searchQuery = options?.query || sourceIssue.title;
+
+    const filters: Record<string, unknown> = {};
+    if (options?.limit) {
+      filters.limit = options.limit;
+    }
+
+    const results = await this.searchIssues(
+      searchQuery,
+      Object.keys(filters).length > 0 ? filters : undefined
+    );
+
+    // Exclude the source issue from results
+    const similarIssues = results.filter((issue) => issue.id !== issueId);
+
+    return { sourceIssue, similarIssues };
   }
 
   // Messages API

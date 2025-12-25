@@ -625,6 +625,266 @@ describe('PylonClient - Core Functionality', () => {
     });
   });
 
+  describe('Similar Issues Helper Methods', () => {
+    describe('findSimilarIssuesForRequestor', () => {
+      it('should find similar issues from the same requestor', async () => {
+        const sourceIssue = {
+          id: 'issue_1',
+          title: 'Login problem',
+          description: 'Cannot login',
+          status: 'open',
+          priority: 'high',
+          requestor_id: 'contact_123',
+          account_id: 'account_456',
+        };
+
+        const similarIssues = [
+          { id: 'issue_1', title: 'Login problem', status: 'open' },
+          { id: 'issue_2', title: 'Login issue', status: 'resolved' },
+          { id: 'issue_3', title: 'Password reset', status: 'closed' },
+        ];
+
+        vi.spyOn(mockAxios, 'get').mockResolvedValue({
+          data: sourceIssue,
+          status: 200,
+          statusText: 'OK',
+          headers: {},
+          config: {} as any,
+        });
+
+        vi.spyOn(mockAxios, 'post').mockResolvedValue({
+          data: similarIssues,
+          status: 200,
+          statusText: 'OK',
+          headers: {},
+          config: {} as any,
+        });
+
+        const result = await client.findSimilarIssuesForRequestor('issue_1');
+
+        expect(mockAxios.get).toHaveBeenCalledWith('/issues/issue_1', { params: undefined });
+        expect(mockAxios.post).toHaveBeenCalledWith('/issues/search', {
+          query: 'Login problem',
+          requestor_id: 'contact_123',
+        });
+        expect(result.sourceIssue).toEqual(sourceIssue);
+        // Source issue should be excluded from results
+        expect(result.similarIssues).toHaveLength(2);
+        expect(result.similarIssues.map((i) => i.id)).not.toContain('issue_1');
+      });
+
+      it('should return empty array when requestor_id is missing', async () => {
+        const sourceIssue = {
+          id: 'issue_1',
+          title: 'Login problem',
+          description: 'Cannot login',
+          status: 'open',
+          priority: 'high',
+          // No requestor_id
+        };
+
+        vi.spyOn(mockAxios, 'get').mockResolvedValue({
+          data: sourceIssue,
+          status: 200,
+          statusText: 'OK',
+          headers: {},
+          config: {} as any,
+        });
+
+        const result = await client.findSimilarIssuesForRequestor('issue_1');
+
+        expect(result.sourceIssue).toEqual(sourceIssue);
+        expect(result.similarIssues).toEqual([]);
+      });
+
+      it('should use custom query and limit when provided', async () => {
+        const sourceIssue = {
+          id: 'issue_1',
+          title: 'Login problem',
+          description: 'Cannot login',
+          status: 'open',
+          priority: 'high',
+          requestor_id: 'contact_123',
+        };
+
+        vi.spyOn(mockAxios, 'get').mockResolvedValue({
+          data: sourceIssue,
+          status: 200,
+          statusText: 'OK',
+          headers: {},
+          config: {} as any,
+        });
+
+        vi.spyOn(mockAxios, 'post').mockResolvedValue({
+          data: [],
+          status: 200,
+          statusText: 'OK',
+          headers: {},
+          config: {} as any,
+        });
+
+        await client.findSimilarIssuesForRequestor('issue_1', {
+          query: 'custom search',
+          limit: 5,
+        });
+
+        expect(mockAxios.post).toHaveBeenCalledWith('/issues/search', {
+          query: 'custom search',
+          requestor_id: 'contact_123',
+          limit: 5,
+        });
+      });
+    });
+
+    describe('findSimilarIssuesForAccount', () => {
+      it('should find similar issues from the same account', async () => {
+        const sourceIssue = {
+          id: 'issue_1',
+          title: 'API timeout',
+          description: 'API calls timing out',
+          status: 'open',
+          priority: 'high',
+          requestor_id: 'contact_123',
+          account_id: 'account_456',
+        };
+
+        const similarIssues = [
+          { id: 'issue_1', title: 'API timeout', status: 'open' },
+          { id: 'issue_4', title: 'API slow', status: 'open' },
+        ];
+
+        vi.spyOn(mockAxios, 'get').mockResolvedValue({
+          data: sourceIssue,
+          status: 200,
+          statusText: 'OK',
+          headers: {},
+          config: {} as any,
+        });
+
+        vi.spyOn(mockAxios, 'post').mockResolvedValue({
+          data: similarIssues,
+          status: 200,
+          statusText: 'OK',
+          headers: {},
+          config: {} as any,
+        });
+
+        const result = await client.findSimilarIssuesForAccount('issue_1');
+
+        expect(mockAxios.post).toHaveBeenCalledWith('/issues/search', {
+          query: 'API timeout',
+          account_id: 'account_456',
+        });
+        expect(result.sourceIssue).toEqual(sourceIssue);
+        expect(result.similarIssues).toHaveLength(1);
+        expect(result.similarIssues[0].id).toBe('issue_4');
+      });
+
+      it('should return empty array when account_id is missing', async () => {
+        const sourceIssue = {
+          id: 'issue_1',
+          title: 'API timeout',
+          description: 'API calls timing out',
+          status: 'open',
+          priority: 'high',
+          // No account_id
+        };
+
+        vi.spyOn(mockAxios, 'get').mockResolvedValue({
+          data: sourceIssue,
+          status: 200,
+          statusText: 'OK',
+          headers: {},
+          config: {} as any,
+        });
+
+        const result = await client.findSimilarIssuesForAccount('issue_1');
+
+        expect(result.sourceIssue).toEqual(sourceIssue);
+        expect(result.similarIssues).toEqual([]);
+      });
+    });
+
+    describe('findSimilarIssuesGlobal', () => {
+      it('should find similar issues across all users and accounts', async () => {
+        const sourceIssue = {
+          id: 'issue_1',
+          title: 'Server error 500',
+          description: 'Getting 500 errors',
+          status: 'open',
+          priority: 'urgent',
+        };
+
+        const similarIssues = [
+          { id: 'issue_1', title: 'Server error 500', status: 'open' },
+          { id: 'issue_5', title: 'Server error', status: 'resolved' },
+          { id: 'issue_6', title: '500 error on checkout', status: 'closed' },
+        ];
+
+        vi.spyOn(mockAxios, 'get').mockResolvedValue({
+          data: sourceIssue,
+          status: 200,
+          statusText: 'OK',
+          headers: {},
+          config: {} as any,
+        });
+
+        vi.spyOn(mockAxios, 'post').mockResolvedValue({
+          data: similarIssues,
+          status: 200,
+          statusText: 'OK',
+          headers: {},
+          config: {} as any,
+        });
+
+        const result = await client.findSimilarIssuesGlobal('issue_1');
+
+        expect(mockAxios.post).toHaveBeenCalledWith('/issues/search', {
+          query: 'Server error 500',
+        });
+        expect(result.sourceIssue).toEqual(sourceIssue);
+        expect(result.similarIssues).toHaveLength(2);
+        expect(result.similarIssues.map((i) => i.id)).not.toContain('issue_1');
+      });
+
+      it('should use custom query and limit when provided', async () => {
+        const sourceIssue = {
+          id: 'issue_1',
+          title: 'Server error 500',
+          description: 'Getting 500 errors',
+          status: 'open',
+          priority: 'urgent',
+        };
+
+        vi.spyOn(mockAxios, 'get').mockResolvedValue({
+          data: sourceIssue,
+          status: 200,
+          statusText: 'OK',
+          headers: {},
+          config: {} as any,
+        });
+
+        vi.spyOn(mockAxios, 'post').mockResolvedValue({
+          data: [],
+          status: 200,
+          statusText: 'OK',
+          headers: {},
+          config: {} as any,
+        });
+
+        await client.findSimilarIssuesGlobal('issue_1', {
+          query: 'error 500',
+          limit: 20,
+        });
+
+        expect(mockAxios.post).toHaveBeenCalledWith('/issues/search', {
+          query: 'error 500',
+          limit: 20,
+        });
+      });
+    });
+  });
+
   describe('Error Handling', () => {
     it('should handle 404 errors', async () => {
       vi.spyOn(mockAxios, 'get').mockRejectedValue({
