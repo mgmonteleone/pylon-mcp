@@ -421,9 +421,7 @@ mcpServer.registerTool(
     },
   },
   async ({ issue_id, query, limit }) =>
-    jsonResponse(
-      await ensurePylonClient().findSimilarIssuesForAccount(issue_id, { query, limit })
-    )
+    jsonResponse(await ensurePylonClient().findSimilarIssuesForAccount(issue_id, { query, limit }))
 );
 
 mcpServer.registerTool(
