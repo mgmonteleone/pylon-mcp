@@ -938,7 +938,9 @@ describe('PylonClient - Core Functionality', () => {
         response: { status: 400, data: { error: 'Bad request' } },
       });
 
-      await expect(client.createIssue({ title: '', description: '', status: '', priority: '' })).rejects.toMatchObject({
+      await expect(
+        client.createIssue({ title: '', description: '', status: '', priority: '' })
+      ).rejects.toMatchObject({
         response: { status: 400 },
       });
     });
@@ -1014,7 +1016,13 @@ describe('PylonClient - Core Functionality', () => {
   describe('Issue Messages - Standalone', () => {
     it('should get issue messages', async () => {
       const mockMessages = [
-        { id: 'msg_1', content: 'Hello', author_id: 'user_1', issue_id: 'issue_1', created_at: '2024-01-01T00:00:00Z' },
+        {
+          id: 'msg_1',
+          content: 'Hello',
+          author_id: 'user_1',
+          issue_id: 'issue_1',
+          created_at: '2024-01-01T00:00:00Z',
+        },
       ];
 
       vi.spyOn(mockAxios, 'get').mockResolvedValue({

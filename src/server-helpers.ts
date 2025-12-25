@@ -89,7 +89,8 @@ export function processElicitationResult(
     if (confirmSend) {
       return {
         confirmed: true,
-        content: modifiedContent && modifiedContent.trim() ? modifiedContent.trim() : originalContent,
+        content:
+          modifiedContent && modifiedContent.trim() ? modifiedContent.trim() : originalContent,
       };
     } else {
       return {
@@ -144,4 +145,3 @@ export function buildElicitationSchema() {
     required: ['confirm_send'] as string[],
   };
 }
-

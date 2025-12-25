@@ -93,7 +93,9 @@ describe('Server Helpers', () => {
 
   describe('ensurePylonClient', () => {
     it('should throw error when client is null', () => {
-      expect(() => ensurePylonClient(null)).toThrow('PYLON_API_TOKEN environment variable is required');
+      expect(() => ensurePylonClient(null)).toThrow(
+        'PYLON_API_TOKEN environment variable is required'
+      );
     });
 
     it('should return client when initialized', () => {
@@ -234,4 +236,3 @@ describe('Server Helpers', () => {
     });
   });
 });
-

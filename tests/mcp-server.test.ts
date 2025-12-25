@@ -225,7 +225,8 @@ describe('Request Message Confirmation Logic', () => {
         if (confirmSend) {
           finalResult = {
             confirmed: true,
-            content: modifiedContent && modifiedContent.trim() ? modifiedContent.trim() : originalContent,
+            content:
+              modifiedContent && modifiedContent.trim() ? modifiedContent.trim() : originalContent,
           };
         } else {
           finalResult = {
@@ -305,4 +306,3 @@ describe('Request Message Confirmation Logic', () => {
     });
   });
 });
-
