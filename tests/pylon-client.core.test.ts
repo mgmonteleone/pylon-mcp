@@ -901,5 +901,134 @@ describe('PylonClient - Core Functionality', () => {
 
       await expect(client.getIssues()).rejects.toThrow('Network error');
     });
+
+    it('should handle 401 unauthorized errors', async () => {
+      vi.spyOn(mockAxios, 'get').mockRejectedValue({
+        response: { status: 401, data: { error: 'Unauthorized' } },
+      });
+
+      await expect(client.getMe()).rejects.toMatchObject({
+        response: { status: 401 },
+      });
+    });
+
+    it('should handle 500 server errors', async () => {
+      vi.spyOn(mockAxios, 'get').mockRejectedValue({
+        response: { status: 500, data: { error: 'Internal server error' } },
+      });
+
+      await expect(client.getTeams()).rejects.toMatchObject({
+        response: { status: 500 },
+      });
+    });
+
+    it('should handle timeout errors', async () => {
+      vi.spyOn(mockAxios, 'get').mockRejectedValue({
+        code: 'ECONNABORTED',
+        message: 'timeout of 30000ms exceeded',
+      });
+
+      await expect(client.getAccounts()).rejects.toMatchObject({
+        code: 'ECONNABORTED',
+      });
+    });
+
+    it('should handle POST request errors', async () => {
+      vi.spyOn(mockAxios, 'post').mockRejectedValue({
+        response: { status: 400, data: { error: 'Bad request' } },
+      });
+
+      await expect(client.createIssue({ title: '', description: '', status: '', priority: '' })).rejects.toMatchObject({
+        response: { status: 400 },
+      });
+    });
+
+    it('should handle PATCH request errors', async () => {
+      vi.spyOn(mockAxios, 'patch').mockRejectedValue({
+        response: { status: 403, data: { error: 'Forbidden' } },
+      });
+
+      await expect(client.updateIssue('issue_1', { status: 'closed' })).rejects.toMatchObject({
+        response: { status: 403 },
+      });
+    });
+
+    it('should handle DELETE request errors', async () => {
+      vi.spyOn(mockAxios, 'delete').mockRejectedValue({
+        response: { status: 404, data: { error: 'Webhook not found' } },
+      });
+
+      await expect(client.deleteWebhook('nonexistent')).rejects.toMatchObject({
+        response: { status: 404 },
+      });
+    });
+  });
+
+  describe('Contact Management - Additional', () => {
+    it('should create contact', async () => {
+      const newContact = {
+        email: 'new@example.com',
+        name: 'New Contact',
+        portal_role: 'member',
+      };
+
+      const mockResponse = {
+        id: 'contact_new',
+        ...newContact,
+      };
+
+      vi.spyOn(mockAxios, 'post').mockResolvedValue({
+        data: mockResponse,
+        status: 201,
+        statusText: 'Created',
+        headers: {},
+        config: {} as any,
+      });
+
+      const result = await client.createContact(newContact);
+
+      expect(mockAxios.post).toHaveBeenCalledWith('/contacts', newContact);
+      expect(result).toEqual(mockResponse);
+    });
+
+    it('should get contacts with search and limit', async () => {
+      const mockContacts = [{ id: 'contact_1', name: 'Alice', email: 'alice@example.com' }];
+
+      vi.spyOn(mockAxios, 'get').mockResolvedValue({
+        data: mockContacts,
+        status: 200,
+        statusText: 'OK',
+        headers: {},
+        config: {} as any,
+      });
+
+      const result = await client.getContacts({ search: 'alice', limit: 10 });
+
+      expect(mockAxios.get).toHaveBeenCalledWith('/contacts', {
+        params: { search: 'alice', limit: 10 },
+      });
+      expect(result).toEqual(mockContacts);
+    });
+  });
+
+  describe('Issue Messages - Standalone', () => {
+    it('should get issue messages', async () => {
+      const mockMessages = [
+        { id: 'msg_1', content: 'Hello', author_id: 'user_1', issue_id: 'issue_1', created_at: '2024-01-01T00:00:00Z' },
+      ];
+
+      vi.spyOn(mockAxios, 'get').mockResolvedValue({
+        data: mockMessages,
+        status: 200,
+        statusText: 'OK',
+        headers: {},
+        config: {} as any,
+      });
+
+      const result = await client.getIssueMessages('issue_1');
+
+      expect(mockAxios.get).toHaveBeenCalledWith('/issues/issue_1/messages', { params: undefined });
+      expect(result).toEqual(mockMessages);
+    });
   });
 });
