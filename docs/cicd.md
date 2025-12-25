@@ -6,11 +6,11 @@ This repository uses GitHub Actions for CI/CD. All workflows live in `.github/wo
 
 1. `ci.yml`
    - Triggers: push to `main`, all PRs.
-   - Jobs: auth to GCP (gh-actions/auth + setup-gcloud), set `NODE_AUTH_TOKEN` via `gcloud auth print-access-token`, install (`npm ci`), lint, format check, build, test, coverage, upload coverage (artifact + Codecov if token), npm audit (prod deps, high+). Dependency review runs on PRs.
+   - Jobs: install (`npm ci`), lint, format check, build, test, coverage, upload coverage (artifact + Codecov if token), npm audit (prod deps, high+). Dependency review runs on PRs.
 
 2. `release.yml`
    - Trigger: pushing a semver tag `v*.*.*`.
-   - Steps: auth to GCP (gh-actions/auth + setup-gcloud), set `NODE_AUTH_TOKEN` via `gcloud auth print-access-token`, install, lint, format check, build, test, coverage, upload coverage (artifact + Codecov if token), `npm pack`, publish to Artifact Registry, auto-generate release notes, create GitHub release and attach the tarball.
+   - Steps: install, lint, format check, build, test, coverage, upload coverage (artifact + Codecov if token), `npm pack`, publish to npmjs, auto-generate release notes, create GitHub release and attach the tarball.
 
 3. `security.yml`
    - Triggers: scheduled daily at 06:00 UTC, manual dispatch.
@@ -18,8 +18,8 @@ This repository uses GitHub Actions for CI/CD. All workflows live in `.github/wo
 
 ### Required secrets / config
 
-- `GCP_CREDENTIALS`: JSON key for service account `success-admin-service-account@customer-support-success.iam.gserviceaccount.com` (must have artifactregistry.writer; add secretAccessor if fetching secrets).
-- Ensure repository Actions permissions allow `contents: write`, `packages: write`, `id-token: write` for releases.
+- `NPM_TOKEN`: npm auth token with publish rights to `@customer-support-success` scope.
+- Ensure repository Actions permissions allow `contents: write`, `packages: write` for releases.
 - (Optional) `CODECOV_TOKEN` if Codecov is used; CI uploads coverage when present.
 
 ### Release process

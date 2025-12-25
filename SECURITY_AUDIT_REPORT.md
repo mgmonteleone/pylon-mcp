@@ -109,7 +109,7 @@ The Pylon MCP Server codebase has been thoroughly analyzed for security vulnerab
 **Environment Variables:**
 
 - `PYLON_API_TOKEN` - Required for Pylon API access
-- `GCP_CREDENTIALS` - JSON key for CI to mint access tokens for Artifact Registry
+- `NPM_TOKEN` - npm token used by CI for publishing to npmjs
 - `ARTIFACT_REGISTRY_TOKEN` - Local/manual publishing token (derived from `gcloud auth application-default print-access-token`)
 
 **Protection Mechanisms:**

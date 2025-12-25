@@ -112,26 +112,28 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Release Notes Format
 
-### Added
-
-New features and capabilities
-
 ### Changed
 
-Changes to existing functionality
+- Switched publishing target to npmjs (npm registry) and removed Artifact Registry references.
+  - Release workflow now installs and publishes via npmjs using `NPM_TOKEN`.
+  - CI/CD docs, README usage instructions, and security notes updated to reflect npmjs-only publishing.
+
+### Added
+
+- None
 
 ### Deprecated
 
-Features that will be removed in future versions
+- Artifact Registry publishing is deprecated/removed in this release.
 
 ### Removed
 
-Features that have been removed
+- Artifact Registry-specific install/publish instructions and secrets references.
 
 ### Fixed
 
-Bug fixes
+- None
 
 ### Security
 
-Security improvements and vulnerability fixes
+- Clarified required secret: `NPM_TOKEN` for npmjs publishing.
