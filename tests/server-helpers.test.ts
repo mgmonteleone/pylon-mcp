@@ -31,7 +31,7 @@ describe('Server Helpers', () => {
 
     it('should throw error for non-numeric string', () => {
       expect(() => parseCacheTtl('invalid')).toThrow('Invalid PYLON_CACHE_TTL value');
-      expect(() => parseCacheTtl('invalid')).toThrow('Must be a valid number');
+      expect(() => parseCacheTtl('invalid')).toThrow('Must be a valid integer');
     });
 
     it('should throw error for empty string', () => {
@@ -40,6 +40,19 @@ describe('Server Helpers', () => {
 
     it('should throw error for string with spaces', () => {
       expect(() => parseCacheTtl('  ')).toThrow('Invalid PYLON_CACHE_TTL value');
+    });
+
+    it('should throw error for partial numeric prefix like "5000ms"', () => {
+      expect(() => parseCacheTtl('5000ms')).toThrow('Invalid PYLON_CACHE_TTL value');
+      expect(() => parseCacheTtl('5000ms')).toThrow('Must be a valid integer');
+    });
+
+    it('should throw error for floating point numbers', () => {
+      expect(() => parseCacheTtl('5000.5')).toThrow('Invalid PYLON_CACHE_TTL value');
+    });
+
+    it('should handle values with leading/trailing whitespace', () => {
+      expect(parseCacheTtl('  5000  ')).toBe(5000);
     });
   });
 
@@ -122,8 +135,9 @@ describe('Server Helpers', () => {
       expect(jsonResponse(null).content[0].text).toBe('null');
     });
 
-    it('should handle undefined', () => {
-      expect(jsonResponse(undefined).content[0].text).toBeUndefined();
+    it('should handle undefined by returning "null" string', () => {
+      // JSON.stringify(undefined) returns undefined, but we ensure it's always a string
+      expect(jsonResponse(undefined).content[0].text).toBe('null');
     });
 
     it('should handle nested objects', () => {
@@ -194,6 +208,26 @@ describe('Server Helpers', () => {
       const result = processElicitationResult({ action: 'accept' }, originalContent);
       expect(result.confirmed).toBe(false);
       expect(result.reason).toBe('User cancelled the confirmation dialog');
+    });
+
+    it('should handle non-string modified_content gracefully', () => {
+      // modified_content could be a non-string at runtime since content is Record<string, unknown>
+      const result = processElicitationResult(
+        { action: 'accept', content: { confirm_send: true, modified_content: 12345 } },
+        originalContent
+      );
+      expect(result.confirmed).toBe(true);
+      // Should fall back to originalContent when modified_content is not a string
+      expect(result.content).toBe(originalContent);
+    });
+
+    it('should handle null modified_content gracefully', () => {
+      const result = processElicitationResult(
+        { action: 'accept', content: { confirm_send: true, modified_content: null } },
+        originalContent
+      );
+      expect(result.confirmed).toBe(true);
+      expect(result.content).toBe(originalContent);
     });
   });
 

@@ -9,17 +9,20 @@ import { PylonClient } from './pylon-client.js';
  * Parse and validate the PYLON_CACHE_TTL environment variable.
  * @param envValue - The raw environment variable value
  * @returns The parsed TTL value, or undefined if not set
- * @throws Error if the value is set but not a valid number
+ * @throws Error if the value is set but not a valid integer
  */
 export function parseCacheTtl(envValue: string | undefined): number | undefined {
   if (envValue === undefined) {
     return undefined;
   }
-  const parsed = parseInt(envValue, 10);
-  if (isNaN(parsed)) {
-    throw new Error(`Invalid PYLON_CACHE_TTL value: "${envValue}". Must be a valid number.`);
+  // Validate that the value is a pure integer string (with optional leading minus sign)
+  // This prevents parseInt from accepting partial numeric prefixes like "5000ms"
+  if (!/^-?\d+$/.test(envValue.trim())) {
+    throw new Error(
+      `Invalid PYLON_CACHE_TTL value: "${envValue}". Must be a valid integer (e.g., "5000", "0", "-1").`
+    );
   }
-  return parsed;
+  return parseInt(envValue, 10);
 }
 
 /**
@@ -66,10 +69,13 @@ export function ensurePylonClient(client: PylonClient | null): PylonClient {
 /**
  * Helper to create a JSON text response for MCP tools.
  * @param data - The data to serialize
- * @returns MCP tool response with JSON content
+ * @returns MCP tool response with JSON content (text is always a string)
  */
 export function jsonResponse(data: unknown) {
-  return { content: [{ type: 'text' as const, text: JSON.stringify(data, null, 2) }] };
+  // JSON.stringify(undefined) returns undefined, so we need to handle that case
+  // to ensure text is always a string for MCP protocol compliance
+  const text = JSON.stringify(data, null, 2) ?? 'null';
+  return { content: [{ type: 'text' as const, text }] };
 }
 
 /**
@@ -84,7 +90,9 @@ export function processElicitationResult(
 ): { confirmed: boolean; content?: string; reason?: string } {
   if (result.action === 'accept' && result.content) {
     const confirmSend = result.content.confirm_send as boolean;
-    const modifiedContent = result.content.modified_content as string | undefined;
+    const rawModifiedContent = result.content.modified_content;
+    // Guard against non-string values at runtime since content is Record<string, unknown>
+    const modifiedContent = typeof rawModifiedContent === 'string' ? rawModifiedContent : undefined;
 
     if (confirmSend) {
       return {
