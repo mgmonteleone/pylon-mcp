@@ -89,7 +89,11 @@ export function processElicitationResult(
   originalContent: string
 ): { confirmed: boolean; content?: string; reason?: string } {
   if (result.action === 'accept' && result.content) {
-    const confirmSend = result.content.confirm_send as boolean;
+    // Guard against non-boolean values at runtime since content is Record<string, unknown>
+    // A string like 'false' would be truthy, so we require strict boolean true
+    const rawConfirmSend = result.content.confirm_send;
+    const confirmSend = rawConfirmSend === true;
+
     const rawModifiedContent = result.content.modified_content;
     // Guard against non-string values at runtime since content is Record<string, unknown>
     const modifiedContent = typeof rawModifiedContent === 'string' ? rawModifiedContent : undefined;

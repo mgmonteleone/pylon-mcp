@@ -67,12 +67,17 @@ describe('MCP Server Helper Functions', () => {
     });
 
     it('should handle null and undefined', () => {
+      // Note: This tests the raw JSON.stringify behavior pattern.
+      // The production jsonResponse helper in server-helpers.ts normalizes
+      // undefined to 'null' for MCP protocol compliance.
+      // See server-helpers.test.ts for tests of the actual production helper.
       const jsonResponse = (data: unknown) => {
-        return { content: [{ type: 'text' as const, text: JSON.stringify(data, null, 2) }] };
+        const text = JSON.stringify(data, null, 2) ?? 'null';
+        return { content: [{ type: 'text' as const, text }] };
       };
 
       expect(jsonResponse(null).content[0].text).toBe('null');
-      expect(jsonResponse(undefined).content[0].text).toBe(undefined);
+      expect(jsonResponse(undefined).content[0].text).toBe('null');
     });
   });
 });

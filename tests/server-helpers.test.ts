@@ -229,6 +229,35 @@ describe('Server Helpers', () => {
       expect(result.confirmed).toBe(true);
       expect(result.content).toBe(originalContent);
     });
+
+    it('should reject non-boolean confirm_send (string "true")', () => {
+      // A string like 'true' would be truthy but is not a boolean true
+      const result = processElicitationResult(
+        { action: 'accept', content: { confirm_send: 'true', modified_content: '' } },
+        originalContent
+      );
+      expect(result.confirmed).toBe(false);
+      expect(result.reason).toBe('User did not confirm the message send');
+    });
+
+    it('should reject non-boolean confirm_send (string "false")', () => {
+      // A string like 'false' would be truthy but is not a boolean true
+      const result = processElicitationResult(
+        { action: 'accept', content: { confirm_send: 'false', modified_content: '' } },
+        originalContent
+      );
+      expect(result.confirmed).toBe(false);
+      expect(result.reason).toBe('User did not confirm the message send');
+    });
+
+    it('should reject non-boolean confirm_send (number 1)', () => {
+      const result = processElicitationResult(
+        { action: 'accept', content: { confirm_send: 1, modified_content: '' } },
+        originalContent
+      );
+      expect(result.confirmed).toBe(false);
+      expect(result.reason).toBe('User did not confirm the message send');
+    });
   });
 
   describe('buildElicitationMessage', () => {
