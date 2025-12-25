@@ -1,57 +1,43 @@
-# GCP Artifact Registry Setup Guide
+# npm Public Publish Guide
 
-This document explains how the Pylon MCP Server is published to and used from Google Cloud Platform's Artifact Registry.
+This document explains how the Pylon MCP Server is published to and used from the public npm registry using npm Trusted Publishing (OIDC).
 
 ## What Was Set Up
 
-1. **GCP Artifact Registry Repository**
-   - Repository name: `npm-packages`
-   - Location: `us-central1`
-   - Format: npm
-   - Project: `customer-support-success`
+1. **npm Registry (public)**
+   - Registry: `https://registry.npmjs.org/`
+   - Package: `@customer-support-success/pylon-mcp-server`
+   - Access: public
 
-2. **Package Configuration**
-   - Package name: `@customer-support-success/pylon-mcp-server`
-   - Published to: `https://us-central1-npm.pkg.dev/customer-support-success/npm-packages/`
-   - Version: 1.0.0
+2. **Trusted Publisher**
+   - Provider: GitHub
+   - Repository: `mgmonteleone/pylon-mcp`
+   - Workflow: `.github/workflows/publish.yml`
+   - Branch: `main`
 
 ## For Users: Installing and Using the Package
-
-### Prerequisites
-
-You need to have `gcloud` CLI installed and authenticated:
-
-```bash
-# Install gcloud CLI (if not already installed)
-# Visit: https://cloud.google.com/sdk/docs/install
-
-# Authenticate
-gcloud auth application-default login
-```
 
 ### Using with npx (Recommended)
 
 ```bash
-# Run directly with npx
-npx --registry=https://us-central1-npm.pkg.dev/customer-support-success/npm-packages/ @customer-support-success/pylon-mcp-server
+npx @customer-support-success/pylon-mcp-server
 ```
 
 ### Installing Globally
 
 ```bash
-npm install -g --registry=https://us-central1-npm.pkg.dev/customer-support-success/npm-packages/ @customer-support-success/pylon-mcp-server
+npm install -g @customer-support-success/pylon-mcp-server
 ```
 
 ### Using with Augment Code
 
-Add this to your Augment Code MCP configuration:
+Add this to your Augment Code MCP configuration (npm public):
 
 ```json
 {
   "pylon": {
     "command": "npx",
     "args": [
-      "--registry=https://us-central1-npm.pkg.dev/customer-support-success/npm-packages/",
       "@customer-support-success/pylon-mcp-server"
     ],
     "env": {
@@ -71,7 +57,6 @@ Add this to `~/Library/Application Support/Claude/claude_desktop_config.json`:
     "pylon": {
       "command": "npx",
       "args": [
-        "--registry=https://us-central1-npm.pkg.dev/customer-support-success/npm-packages/",
         "@customer-support-success/pylon-mcp-server"
       ],
       "env": {
@@ -97,78 +82,32 @@ Add this to `~/Library/Application Support/Claude/claude_desktop_config.json`:
    npm version patch  # or minor, or major
    ```
 
-2. **Publish (CI is preferred)**:
-   - CI/CD: push a tag `vX.Y.Z` and let `release.yml` build/test/publish using `GCP_CREDENTIALS` (service account key) and a short-lived access token via `gcloud auth print-access-token`.
-   - Local/manual (maintainers only):
+2. **Publish (CI preferred via trusted publisher)**:
+   - Push a tag `vX.Y.Z` and let `.github/workflows/publish.yml` build/test/publish to npmjs with `--provenance`.
+   - Local/manual (maintainers only, if needed):
 
      ```bash
      npm run build
-     export ARTIFACT_REGISTRY_TOKEN=$(gcloud auth application-default print-access-token)
-     npm publish --registry=https://us-central1-npm.pkg.dev/customer-support-success/npm-packages/
+     npm publish --access public
      ```
 
 ### Verifying the Publication
 
 ```bash
-# List packages in the registry
-gcloud artifacts packages list \
-  --repository=npm-packages \
-  --location=us-central1 \
-  --project=customer-support-success
-
-# View package details
-gcloud artifacts versions list \
-  --package=@customer-support-success/pylon-mcp-server \
-  --repository=npm-packages \
-  --location=us-central1 \
-  --project=customer-support-success
+npm view @customer-support-success/pylon-mcp-server version
 ```
 
 ## Troubleshooting
 
 ### Authentication Issues
 
-If you get authentication errors:
-
-```bash
-# Re-authenticate
-gcloud auth application-default login
-
-# Verify authentication
-gcloud auth application-default print-access-token
-```
-
-### Registry Not Found
-
-Make sure you're using the correct registry URL:
-
-```
-https://us-central1-npm.pkg.dev/customer-support-success/npm-packages/
-```
-
-### Permission Denied
-
-Ensure your GCP account has the `Artifact Registry Writer` role:
-
-```bash
-gcloud artifacts repositories add-iam-policy-binding npm-packages \
-  --location=us-central1 \
-  --member=user:your-email@example.com \
-  --role=roles/artifactregistry.writer
-```
+If npm publish fails locally, ensure you use the trusted publisher workflow or a granular access token with publish rights and 2FA bypass. For installs, no auth is required (public package).
 
 ## Files Created/Modified
 
-- `.npmrc` - npm configuration for GCP Artifact Registry
-- `package.json` - Updated with scoped name and publishConfig
-- `.npmignore` - Controls which files are published
-- `publish.sh` - Helper script for publishing
-- `GCP_SETUP.md` - This documentation file
+None (documentation only).
 
-## Benefits of Using GCP Artifact Registry
+## Notes
 
-1. **Private Package Hosting** - Keep your package private within your organization
-2. **Access Control** - Use GCP IAM for fine-grained permissions
-3. **Integration** - Works seamlessly with other GCP services
-4. **Reliability** - Enterprise-grade infrastructure
-5. **Cost-Effective** - Free tier available, pay only for storage and egress
+- Package is public on npm; no auth required for consumers.
+- Publishing is handled by GitHub Actions via npm Trusted Publishing (OIDC). Manual publishes should be rare.

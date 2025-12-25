@@ -1,6 +1,6 @@
 {
   "name": "@customer-support-success/pylon-mcp-server",
-  "version": "1.5.1",
+  "version": "1.5.3",
   "description": "MCP server for Pylon API integration",
   "type": "module",
   "main": "dist/index.js",
@@ -12,7 +12,8 @@
     "url": "git+https://github.com/mgmonteleone/pylon-mcp.git"
   },
   "publishConfig": {
-    "registry": "https://us-central1-npm.pkg.dev/customer-support-success/npm-packages/"
+    "registry": "https://registry.npmjs.org/",
+    "access": "public"
   },
   "scripts": {
     "build": "tsc && chmod +x dist/index.js",

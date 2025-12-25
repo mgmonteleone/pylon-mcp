@@ -21,22 +21,16 @@ Set the following environment variable:
 
 ### Installation
 
-#### Option 1: Using npx from GCP Artifact Registry (Recommended)
+#### Option 1: Install from npm (public)
 
-This package is published to GCP Artifact Registry. You can run it directly with npx:
-
-```bash
-# Set up authentication (one-time setup)
-gcloud auth application-default login
-
-# Run with npx
-npx --registry=https://us-central1-npm.pkg.dev/customer-support-success/npm-packages/ @customer-support-success/pylon-mcp-server
-```
-
-Or install globally:
+This package is published publicly to npm:
 
 ```bash
-npm install -g --registry=https://us-central1-npm.pkg.dev/customer-support-success/npm-packages/ @customer-support-success/pylon-mcp-server
+# Run with npx (no auth required)
+npx @customer-support-success/pylon-mcp-server
+
+# Or install globally
+npm install -g @customer-support-success/pylon-mcp-server
 ```
 
 #### Option 2: Local Development
@@ -48,21 +42,20 @@ npm run build
 
 #### Publishing Updates (for maintainers)
 
-Preferred: tag and let CI publish
+Preferred: tag and let GitHub Actions publish via npm Trusted Publishing (OIDC)
 
 ```bash
 # Update version in package.json, then tag
 git tag vX.Y.Z && git push origin vX.Y.Z
 ```
 
-CI (`release.yml`) will build/test and publish to Artifact Registry using the GCP service account (`GCP_CREDENTIALS`) and a short-lived access token.
+CI (`.github/workflows/publish.yml`) will build/test and publish to npmjs with `--provenance` via trusted publisher.
 
-Manual (maintainers only):
+Manual (maintainers only, if ever needed):
 
 ```bash
 npm run build
-export ARTIFACT_REGISTRY_TOKEN=$(gcloud auth application-default print-access-token)
-npm publish --registry=https://us-central1-npm.pkg.dev/customer-support-success/npm-packages/
+npm publish --access public
 ```
 
 ### Development
