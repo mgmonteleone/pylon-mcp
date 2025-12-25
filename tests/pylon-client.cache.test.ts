@@ -14,21 +14,33 @@ describe('PylonClient - Caching', () => {
   });
 
   afterEach(() => {
+    // Clean up cache intervals to prevent memory leaks
+    if (client) {
+      client.destroy();
+    }
     vi.restoreAllMocks();
   });
 
   describe('Cache Configuration', () => {
-    it('should enable cache by default with 30s TTL', () => {
+    it('should enable cache by default with 30s TTL and 1000 max size', () => {
       client = new PylonClient({ apiToken: 'test-token' });
       const stats = client.getCacheStats();
       expect(stats).not.toBeNull();
       expect(stats?.ttl).toBe(30000);
+      expect(stats?.maxSize).toBe(1000);
     });
 
     it('should allow custom TTL configuration', () => {
       client = new PylonClient({ apiToken: 'test-token', cacheTtl: 60000 });
       const stats = client.getCacheStats();
       expect(stats?.ttl).toBe(60000);
+      expect(stats?.maxSize).toBe(1000);
+    });
+
+    it('should allow custom max cache size configuration', () => {
+      client = new PylonClient({ apiToken: 'test-token', maxCacheSize: 500 });
+      const stats = client.getCacheStats();
+      expect(stats?.maxSize).toBe(500);
     });
 
     it('should disable cache when TTL is 0', () => {
@@ -156,6 +168,145 @@ describe('PylonClient - Caching', () => {
 
       const stats2 = client.getCacheStats();
       expect(stats2?.size).toBe(1);
+    });
+  });
+
+  describe('LRU Eviction', () => {
+    it('should evict least recently used entry when max size is reached', async () => {
+      // Create client with small cache size for testing
+      client = new PylonClient({ apiToken: 'test-token', cacheTtl: 30000, maxCacheSize: 3 });
+
+      const mockIssue1 = {
+        id: '1',
+        title: 'Issue 1',
+        description: 'Desc 1',
+        status: 'open',
+        priority: 'high',
+      };
+      const mockIssue2 = {
+        id: '2',
+        title: 'Issue 2',
+        description: 'Desc 2',
+        status: 'open',
+        priority: 'high',
+      };
+      const mockIssue3 = {
+        id: '3',
+        title: 'Issue 3',
+        description: 'Desc 3',
+        status: 'open',
+        priority: 'high',
+      };
+      const mockIssue4 = {
+        id: '4',
+        title: 'Issue 4',
+        description: 'Desc 4',
+        status: 'open',
+        priority: 'high',
+      };
+
+      mockedAxios.get.mockResolvedValueOnce({ data: mockIssue1 });
+      mockedAxios.get.mockResolvedValueOnce({ data: mockIssue2 });
+      mockedAxios.get.mockResolvedValueOnce({ data: mockIssue3 });
+      mockedAxios.get.mockResolvedValueOnce({ data: mockIssue4 });
+      mockedAxios.get.mockResolvedValueOnce({ data: mockIssue1 }); // For re-fetch after eviction
+
+      // Fill cache to max size (3 entries)
+      // Order: 1 (oldest), 2, 3 (newest)
+      await client.getIssue('1');
+      await client.getIssue('2');
+      await client.getIssue('3');
+
+      expect(client.getCacheStats()?.size).toBe(3);
+      expect(mockedAxios.get).toHaveBeenCalledTimes(3);
+
+      // Add 4th entry - should evict the LRU (issue 1, which is oldest)
+      await client.getIssue('4');
+
+      expect(client.getCacheStats()?.size).toBe(3); // Still 3 entries
+      expect(mockedAxios.get).toHaveBeenCalledTimes(4);
+
+      // Try to get issue 1 again - should hit API (was evicted)
+      await client.getIssue('1');
+      expect(mockedAxios.get).toHaveBeenCalledTimes(5);
+
+      // Get issue 3 again - should use cache (not evicted)
+      await client.getIssue('3');
+      expect(mockedAxios.get).toHaveBeenCalledTimes(5); // No new API call
+    });
+
+    it('should update LRU order when accessing cached entries', async () => {
+      // Use fake timers to control time progression
+      vi.useFakeTimers();
+
+      // Create client with small cache size for testing
+      client = new PylonClient({ apiToken: 'test-token', cacheTtl: 30000, maxCacheSize: 2 });
+
+      const mockIssue1 = {
+        id: '1',
+        title: 'Issue 1',
+        description: 'Desc 1',
+        status: 'open',
+        priority: 'high',
+      };
+      const mockIssue2 = {
+        id: '2',
+        title: 'Issue 2',
+        description: 'Desc 2',
+        status: 'open',
+        priority: 'high',
+      };
+      const mockIssue3 = {
+        id: '3',
+        title: 'Issue 3',
+        description: 'Desc 3',
+        status: 'open',
+        priority: 'high',
+      };
+
+      mockedAxios.get.mockResolvedValueOnce({ data: mockIssue1 });
+      mockedAxios.get.mockResolvedValueOnce({ data: mockIssue2 });
+      mockedAxios.get.mockResolvedValueOnce({ data: mockIssue3 });
+      mockedAxios.get.mockResolvedValueOnce({ data: mockIssue2 }); // For re-fetch after eviction
+
+      // Add issue 1 and 2 (cache: [1, 2])
+      await client.getIssue('1');
+      vi.advanceTimersByTime(10); // Advance time by 10ms
+      await client.getIssue('2');
+      vi.advanceTimersByTime(10); // Advance time by 10ms
+      expect(mockedAxios.get).toHaveBeenCalledTimes(2);
+
+      // Access issue 1 again to make it more recently used (cache: [2, 1])
+      await client.getIssue('1');
+      vi.advanceTimersByTime(10); // Advance time by 10ms
+      expect(mockedAxios.get).toHaveBeenCalledTimes(2); // No new API call (cached)
+
+      // Add issue 3 - should evict issue 2 (least recently used) (cache: [1, 3])
+      await client.getIssue('3');
+      expect(mockedAxios.get).toHaveBeenCalledTimes(3);
+
+      // Get issue 1 - should use cache (not evicted)
+      await client.getIssue('1');
+      expect(mockedAxios.get).toHaveBeenCalledTimes(3); // No new API call
+
+      // Try to get issue 2 - should hit API (was evicted)
+      await client.getIssue('2');
+      expect(mockedAxios.get).toHaveBeenCalledTimes(4);
+
+      vi.useRealTimers();
+    });
+  });
+
+  describe('Cleanup', () => {
+    it('should stop cleanup interval when destroy is called', () => {
+      client = new PylonClient({ apiToken: 'test-token', cacheTtl: 30000 });
+
+      // Destroy should not throw
+      expect(() => client.destroy()).not.toThrow();
+
+      // Cache should be cleared
+      const stats = client.getCacheStats();
+      expect(stats?.size).toBe(0);
     });
   });
 });

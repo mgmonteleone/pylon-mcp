@@ -1,14 +1,28 @@
 import axios, { AxiosInstance, AxiosResponse } from 'axios';
 
 /**
- * Simple in-memory cache with TTL support
+ * Simple in-memory cache with TTL support and LRU eviction
+ *
+ * Features:
+ * - TTL-based expiration
+ * - LRU (Least Recently Used) eviction when max size is reached
+ * - Proactive cleanup of expired entries
+ * - Bounded memory usage
  */
 class SimpleCache {
-  private cache: Map<string, { data: any; timestamp: number }> = new Map();
+  private cache: Map<string, { data: any; timestamp: number; lastAccessed: number }> = new Map();
   private ttl: number;
+  private maxSize: number;
+  private cleanupInterval: NodeJS.Timeout | null = null;
 
-  constructor(ttlMs: number = 30000) {
+  constructor(ttlMs: number = 30000, maxSize: number = 1000) {
     this.ttl = ttlMs;
+    this.maxSize = maxSize;
+
+    // Start periodic cleanup of expired entries (every 60 seconds)
+    this.cleanupInterval = setInterval(() => {
+      this.cleanupExpired();
+    }, 60000);
   }
 
   get(key: string): any | null {
@@ -24,13 +38,23 @@ class SimpleCache {
       return null;
     }
 
+    // Update last accessed time for LRU tracking
+    entry.lastAccessed = now;
     return entry.data;
   }
 
   set(key: string, data: any): void {
+    const now = Date.now();
+
+    // If cache is at max size and key doesn't exist, evict LRU entry
+    if (this.cache.size >= this.maxSize && !this.cache.has(key)) {
+      this.evictLRU();
+    }
+
     this.cache.set(key, {
       data,
-      timestamp: Date.now(),
+      timestamp: now,
+      lastAccessed: now,
     });
   }
 
@@ -39,13 +63,62 @@ class SimpleCache {
   }
 
   /**
+   * Evict the least recently used entry
+   */
+  private evictLRU(): void {
+    let oldestKey: string | null = null;
+    let oldestTime = Infinity;
+
+    for (const [key, entry] of this.cache.entries()) {
+      if (entry.lastAccessed < oldestTime) {
+        oldestTime = entry.lastAccessed;
+        oldestKey = key;
+      }
+    }
+
+    if (oldestKey) {
+      this.cache.delete(oldestKey);
+    }
+  }
+
+  /**
+   * Remove all expired entries from the cache
+   */
+  private cleanupExpired(): void {
+    const now = Date.now();
+    const keysToDelete: string[] = [];
+
+    for (const [key, entry] of this.cache.entries()) {
+      if (now - entry.timestamp > this.ttl) {
+        keysToDelete.push(key);
+      }
+    }
+
+    for (const key of keysToDelete) {
+      this.cache.delete(key);
+    }
+  }
+
+  /**
    * Get cache statistics for monitoring
    */
-  getStats(): { size: number; ttl: number } {
+  getStats(): { size: number; ttl: number; maxSize: number } {
     return {
       size: this.cache.size,
       ttl: this.ttl,
+      maxSize: this.maxSize,
     };
+  }
+
+  /**
+   * Cleanup resources (stop cleanup interval)
+   */
+  destroy(): void {
+    if (this.cleanupInterval) {
+      clearInterval(this.cleanupInterval);
+      this.cleanupInterval = null;
+    }
+    this.clear();
   }
 }
 
@@ -57,6 +130,11 @@ export interface PylonConfig {
    * Default: 30000 (30 seconds)
    */
   cacheTtl?: number;
+  /**
+   * Maximum number of entries in the cache. When exceeded, least recently used entries are evicted.
+   * Default: 1000
+   */
+  maxCacheSize?: number;
 }
 
 export interface PylonUser {
@@ -168,7 +246,8 @@ export class PylonClient {
 
     // Initialize cache if TTL is provided and > 0
     const cacheTtl = config.cacheTtl ?? 30000; // Default 30 seconds
-    this.cache = cacheTtl > 0 ? new SimpleCache(cacheTtl) : null;
+    const maxCacheSize = config.maxCacheSize ?? 1000; // Default 1000 entries
+    this.cache = cacheTtl > 0 ? new SimpleCache(cacheTtl, maxCacheSize) : null;
   }
 
   /**
@@ -210,8 +289,18 @@ export class PylonClient {
   /**
    * Get cache statistics
    */
-  getCacheStats(): { size: number; ttl: number } | null {
+  getCacheStats(): { size: number; ttl: number; maxSize: number } | null {
     return this.cache ? this.cache.getStats() : null;
+  }
+
+  /**
+   * Cleanup resources (stop cache cleanup interval)
+   * Call this when you're done with the client to prevent memory leaks
+   */
+  destroy(): void {
+    if (this.cache) {
+      this.cache.destroy();
+    }
   }
 
   async getMe(): Promise<PylonUser> {
