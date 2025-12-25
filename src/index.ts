@@ -10,6 +10,9 @@ import { PylonClient } from './pylon-client.js';
 const REQUIRE_MESSAGE_CONFIRMATION = process.env.PYLON_REQUIRE_MESSAGE_CONFIRMATION !== 'false';
 
 const PYLON_API_TOKEN = process.env.PYLON_API_TOKEN;
+const PYLON_CACHE_TTL = process.env.PYLON_CACHE_TTL
+  ? parseInt(process.env.PYLON_CACHE_TTL, 10)
+  : undefined;
 
 // Initialize client only when token is available
 let pylonClient: PylonClient | null = null;
@@ -17,6 +20,7 @@ let pylonClient: PylonClient | null = null;
 if (PYLON_API_TOKEN) {
   pylonClient = new PylonClient({
     apiToken: PYLON_API_TOKEN,
+    cacheTtl: PYLON_CACHE_TTL,
   });
 }
 

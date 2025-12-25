@@ -1,8 +1,62 @@
 import axios, { AxiosInstance, AxiosResponse } from 'axios';
 
+/**
+ * Simple in-memory cache with TTL support
+ */
+class SimpleCache {
+  private cache: Map<string, { data: any; timestamp: number }> = new Map();
+  private ttl: number;
+
+  constructor(ttlMs: number = 30000) {
+    this.ttl = ttlMs;
+  }
+
+  get(key: string): any | null {
+    const entry = this.cache.get(key);
+    if (!entry) {
+      return null;
+    }
+
+    const now = Date.now();
+    if (now - entry.timestamp > this.ttl) {
+      // Entry expired
+      this.cache.delete(key);
+      return null;
+    }
+
+    return entry.data;
+  }
+
+  set(key: string, data: any): void {
+    this.cache.set(key, {
+      data,
+      timestamp: Date.now(),
+    });
+  }
+
+  clear(): void {
+    this.cache.clear();
+  }
+
+  /**
+   * Get cache statistics for monitoring
+   */
+  getStats(): { size: number; ttl: number } {
+    return {
+      size: this.cache.size,
+      ttl: this.ttl,
+    };
+  }
+}
+
 export interface PylonConfig {
   apiToken: string;
   baseUrl?: string;
+  /**
+   * Cache TTL in milliseconds. Set to 0 to disable caching.
+   * Default: 30000 (30 seconds)
+   */
+  cacheTtl?: number;
 }
 
 export interface PylonUser {
@@ -93,6 +147,7 @@ export interface PylonWebhook {
 
 export class PylonClient {
   private client: AxiosInstance;
+  private cache: SimpleCache | null;
 
   constructor(config: PylonConfig) {
     const baseUrl = config.baseUrl || process.env.PYLON_BASE_URL || 'https://api.usepylon.com';
@@ -104,16 +159,61 @@ export class PylonClient {
         'Content-Type': 'application/json',
       },
     });
+
+    // Initialize cache if TTL is provided and > 0
+    const cacheTtl = config.cacheTtl ?? 30000; // Default 30 seconds
+    this.cache = cacheTtl > 0 ? new SimpleCache(cacheTtl) : null;
+  }
+
+  /**
+   * Helper method to perform cached GET requests
+   */
+  private async cachedGet<T>(url: string, params?: any): Promise<T> {
+    // Generate cache key from URL and params
+    const cacheKey = `GET:${url}:${JSON.stringify(params || {})}`;
+
+    // Check cache if enabled
+    if (this.cache) {
+      const cached = this.cache.get(cacheKey);
+      if (cached !== null) {
+        return cached;
+      }
+    }
+
+    // Make the actual request
+    const response: AxiosResponse<T> = await this.client.get(url, { params });
+    const data = response.data;
+
+    // Store in cache if enabled
+    if (this.cache) {
+      this.cache.set(cacheKey, data);
+    }
+
+    return data;
+  }
+
+  /**
+   * Clear the cache (useful for testing or manual cache invalidation)
+   */
+  clearCache(): void {
+    if (this.cache) {
+      this.cache.clear();
+    }
+  }
+
+  /**
+   * Get cache statistics
+   */
+  getCacheStats(): { size: number; ttl: number } | null {
+    return this.cache ? this.cache.getStats() : null;
   }
 
   async getMe(): Promise<PylonUser> {
-    const response: AxiosResponse<PylonUser> = await this.client.get('/me');
-    return response.data;
+    return this.cachedGet<PylonUser>('/me');
   }
 
   async getContacts(params?: { search?: string; limit?: number }): Promise<PylonContact[]> {
-    const response: AxiosResponse<PylonContact[]> = await this.client.get('/contacts', { params });
-    return response.data;
+    return this.cachedGet<PylonContact[]>('/contacts', params);
   }
 
   async createContact(contact: Omit<PylonContact, 'id'>): Promise<PylonContact> {
@@ -126,8 +226,7 @@ export class PylonClient {
     status?: string;
     limit?: number;
   }): Promise<PylonIssue[]> {
-    const response: AxiosResponse<PylonIssue[]> = await this.client.get('/issues', { params });
-    return response.data;
+    return this.cachedGet<PylonIssue[]>('/issues', params);
   }
 
   async createIssue(issue: Omit<PylonIssue, 'id'>): Promise<PylonIssue> {
@@ -136,15 +235,11 @@ export class PylonClient {
   }
 
   async getKnowledgeBases(): Promise<PylonKnowledgeBase[]> {
-    const response: AxiosResponse<PylonKnowledgeBase[]> = await this.client.get('/knowledge-bases');
-    return response.data;
+    return this.cachedGet<PylonKnowledgeBase[]>('/knowledge-bases');
   }
 
   async getKnowledgeBaseArticles(knowledgeBaseId: string): Promise<PylonArticle[]> {
-    const response: AxiosResponse<PylonArticle[]> = await this.client.get(
-      `/knowledge-bases/${knowledgeBaseId}/articles`
-    );
-    return response.data;
+    return this.cachedGet<PylonArticle[]>(`/knowledge-bases/${knowledgeBaseId}/articles`);
   }
 
   async createKnowledgeBaseArticle(
@@ -160,13 +255,11 @@ export class PylonClient {
 
   // Teams API
   async getTeams(): Promise<PylonTeam[]> {
-    const response: AxiosResponse<PylonTeam[]> = await this.client.get('/teams');
-    return response.data;
+    return this.cachedGet<PylonTeam[]>('/teams');
   }
 
   async getTeam(teamId: string): Promise<PylonTeam> {
-    const response: AxiosResponse<PylonTeam> = await this.client.get(`/teams/${teamId}`);
-    return response.data;
+    return this.cachedGet<PylonTeam>(`/teams/${teamId}`);
   }
 
   async createTeam(team: Omit<PylonTeam, 'id'>): Promise<PylonTeam> {
@@ -176,13 +269,11 @@ export class PylonClient {
 
   // Accounts API
   async getAccounts(): Promise<PylonAccount[]> {
-    const response: AxiosResponse<PylonAccount[]> = await this.client.get('/accounts');
-    return response.data;
+    return this.cachedGet<PylonAccount[]>('/accounts');
   }
 
   async getAccount(accountId: string): Promise<PylonAccount> {
-    const response: AxiosResponse<PylonAccount> = await this.client.get(`/accounts/${accountId}`);
-    return response.data;
+    return this.cachedGet<PylonAccount>(`/accounts/${accountId}`);
   }
 
   // Users API (search)
@@ -192,8 +283,7 @@ export class PylonClient {
   }
 
   async getUsers(): Promise<PylonUser[]> {
-    const response: AxiosResponse<PylonUser[]> = await this.client.get('/users');
-    return response.data;
+    return this.cachedGet<PylonUser[]>('/users');
   }
 
   // Contacts API (search)
@@ -214,8 +304,7 @@ export class PylonClient {
   }
 
   async getIssue(issueId: string): Promise<PylonIssue> {
-    const response: AxiosResponse<PylonIssue> = await this.client.get(`/issues/${issueId}`);
-    return response.data;
+    return this.cachedGet<PylonIssue>(`/issues/${issueId}`);
   }
 
   async updateIssue(issueId: string, updates: Partial<PylonIssue>): Promise<PylonIssue> {
@@ -232,10 +321,7 @@ export class PylonClient {
 
   // Messages API
   async getIssueMessages(issueId: string): Promise<PylonMessage[]> {
-    const response: AxiosResponse<PylonMessage[]> = await this.client.get(
-      `/issues/${issueId}/messages`
-    );
-    return response.data;
+    return this.cachedGet<PylonMessage[]>(`/issues/${issueId}/messages`);
   }
 
   async createIssueMessage(issueId: string, content: string): Promise<PylonMessage> {
@@ -259,8 +345,7 @@ export class PylonClient {
 
   // Tags API
   async getTags(): Promise<PylonTag[]> {
-    const response: AxiosResponse<PylonTag[]> = await this.client.get('/tags');
-    return response.data;
+    return this.cachedGet<PylonTag[]>('/tags');
   }
 
   async createTag(tag: Omit<PylonTag, 'id'>): Promise<PylonTag> {
@@ -270,8 +355,7 @@ export class PylonClient {
 
   // Ticket Forms API
   async getTicketForms(): Promise<PylonTicketForm[]> {
-    const response: AxiosResponse<PylonTicketForm[]> = await this.client.get('/ticket-forms');
-    return response.data;
+    return this.cachedGet<PylonTicketForm[]>('/ticket-forms');
   }
 
   async createTicketForm(form: Omit<PylonTicketForm, 'id'>): Promise<PylonTicketForm> {
@@ -281,8 +365,7 @@ export class PylonClient {
 
   // Webhooks API
   async getWebhooks(): Promise<PylonWebhook[]> {
-    const response: AxiosResponse<PylonWebhook[]> = await this.client.get('/webhooks');
-    return response.data;
+    return this.cachedGet<PylonWebhook[]>('/webhooks');
   }
 
   async createWebhook(webhook: Omit<PylonWebhook, 'id'>): Promise<PylonWebhook> {
@@ -296,10 +379,7 @@ export class PylonClient {
 
   // Attachments API
   async getAttachment(attachmentId: string): Promise<PylonAttachment> {
-    const response: AxiosResponse<PylonAttachment> = await this.client.get(
-      `/attachments/${attachmentId}`
-    );
-    return response.data;
+    return this.cachedGet<PylonAttachment>(`/attachments/${attachmentId}`);
   }
 
   async createAttachment(file: File | Blob, description?: string): Promise<PylonAttachment> {
