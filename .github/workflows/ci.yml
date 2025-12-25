@@ -59,7 +59,8 @@ jobs:
         run: npm audit --omit=dev --audit-level=high
 
   dependency-review:
-    if: github.event_name == 'pull_request'
+    # Dependency review requires dependency graph; forks often disable it. Skip on forks to avoid hard failures.
+    if: github.event_name == 'pull_request' && github.event.pull_request.base.repo.fork == false && github.event.pull_request.head.repo.fork == false
     runs-on: ubuntu-latest
     permissions:
       contents: read

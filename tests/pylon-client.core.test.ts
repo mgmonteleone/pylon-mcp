@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { PylonClient } from '../src/pylon-client.js';
 import type { AxiosInstance } from 'axios';
 
@@ -9,6 +9,10 @@ describe('PylonClient - Core Functionality', () => {
   beforeEach(() => {
     client = new PylonClient('test-token');
     mockAxios = (client as any).client;
+  });
+
+  afterEach(() => {
+    vi.restoreAllMocks();
   });
 
   describe('User Management', () => {
@@ -29,7 +33,7 @@ describe('PylonClient - Core Functionality', () => {
 
       const result = await client.getMe();
 
-      expect(mockAxios.get).toHaveBeenCalledWith('/me');
+      expect(mockAxios.get).toHaveBeenCalledWith('/me', { params: undefined });
       expect(result).toEqual(mockUser);
     });
 
@@ -154,8 +158,93 @@ describe('PylonClient - Core Functionality', () => {
 
       const result = await client.getIssue('issue_123');
 
-      expect(mockAxios.get).toHaveBeenCalledWith('/issues/issue_123');
+      expect(mockAxios.get).toHaveBeenCalledWith('/issues/issue_123', { params: undefined });
       expect(result).toEqual(mockIssue);
+    });
+
+    it('should search issues with filters', async () => {
+      const mockIssues = [{ id: 'issue_2', title: 'Search result', status: 'pending' }];
+
+      vi.spyOn(mockAxios, 'post').mockResolvedValue({
+        data: mockIssues,
+        status: 200,
+        statusText: 'OK',
+        headers: {},
+        config: {} as any,
+      });
+
+      const result = await client.searchIssues('foo', { status: 'pending', limit: 5 });
+
+      expect(mockAxios.post).toHaveBeenCalledWith('/issues/search', {
+        query: 'foo',
+        status: 'pending',
+        limit: 5,
+      });
+      expect(result).toEqual(mockIssues);
+    });
+
+    it('should update an issue', async () => {
+      const updates = { status: 'closed', priority: 'low' } as const;
+      const updated = { id: 'issue_3', title: 'Done', ...updates };
+
+      vi.spyOn(mockAxios, 'patch').mockResolvedValue({
+        data: updated,
+        status: 200,
+        statusText: 'OK',
+        headers: {},
+        config: {} as any,
+      });
+
+      const result = await client.updateIssue('issue_3', updates);
+
+      expect(mockAxios.patch).toHaveBeenCalledWith('/issues/issue_3', updates);
+      expect(result).toEqual(updated);
+    });
+
+    it('should snooze an issue until a date', async () => {
+      const until = '2025-01-01T00:00:00Z';
+      vi.spyOn(mockAxios, 'post').mockResolvedValue({
+        data: {},
+        status: 204,
+        statusText: 'No Content',
+        headers: {},
+        config: {} as any,
+      });
+
+      await client.snoozeIssue('issue_4', until);
+
+      expect(mockAxios.post).toHaveBeenCalledWith('/issues/issue_4/snooze', { until });
+    });
+
+    it('should create issue message', async () => {
+      const message = { id: 'msg_1', content: 'hello', issue_id: 'issue_5' } as any;
+
+      vi.spyOn(mockAxios, 'post').mockResolvedValue({
+        data: message,
+        status: 201,
+        statusText: 'Created',
+        headers: {},
+        config: {} as any,
+      });
+
+      const result = await client.createIssueMessage('issue_5', 'hello');
+
+      expect(mockAxios.post).toHaveBeenCalledWith('/issues/issue_5/messages', { content: 'hello' });
+      expect(result).toEqual(message);
+    });
+
+    it('should fetch issue with messages using combined method', async () => {
+      const mockIssue = { id: 'issue_6', title: 'Combined' } as any;
+      const mockMessages = [{ id: 'msg_2', content: 'hi' } as any];
+
+      vi.spyOn(client, 'getIssue').mockResolvedValue(mockIssue);
+      vi.spyOn(client, 'getIssueMessages').mockResolvedValue(mockMessages);
+
+      const result = await client.getIssueWithMessages('issue_6');
+
+      expect(client.getIssue).toHaveBeenCalledWith('issue_6');
+      expect(client.getIssueMessages).toHaveBeenCalledWith('issue_6');
+      expect(result).toEqual({ issue: mockIssue, messages: mockMessages });
     });
   });
 
@@ -209,6 +298,288 @@ describe('PylonClient - Core Functionality', () => {
     });
   });
 
+  describe('Knowledge Bases', () => {
+    it('should list knowledge bases', async () => {
+      const mockKbs = [{ id: 'kb1', name: 'General' }];
+
+      vi.spyOn(mockAxios, 'get').mockResolvedValue({
+        data: mockKbs,
+        status: 200,
+        statusText: 'OK',
+        headers: {},
+        config: {} as any,
+      });
+
+      const result = await client.getKnowledgeBases();
+
+      expect(mockAxios.get).toHaveBeenCalledWith('/knowledge-bases', { params: undefined });
+      expect(result).toEqual(mockKbs);
+    });
+
+    it('should list articles for a knowledge base', async () => {
+      const mockArticles = [{ id: 'art1', title: 'How to' }];
+
+      vi.spyOn(mockAxios, 'get').mockResolvedValue({
+        data: mockArticles,
+        status: 200,
+        statusText: 'OK',
+        headers: {},
+        config: {} as any,
+      });
+
+      const result = await client.getKnowledgeBaseArticles('kb1');
+
+      expect(mockAxios.get).toHaveBeenCalledWith('/knowledge-bases/kb1/articles', {
+        params: undefined,
+      });
+      expect(result).toEqual(mockArticles);
+    });
+
+    it('should create an article in a knowledge base', async () => {
+      const newArticle = { title: 'FAQ', content: 'Content' } as any;
+      const created = { id: 'art2', ...newArticle, knowledge_base_id: 'kb1' } as any;
+
+      vi.spyOn(mockAxios, 'post').mockResolvedValue({
+        data: created,
+        status: 201,
+        statusText: 'Created',
+        headers: {},
+        config: {} as any,
+      });
+
+      const result = await client.createKnowledgeBaseArticle('kb1', newArticle);
+
+      expect(mockAxios.post).toHaveBeenCalledWith('/knowledge-bases/kb1/articles', newArticle);
+      expect(result).toEqual(created);
+    });
+  });
+
+  describe('Teams and Accounts', () => {
+    it('should list teams', async () => {
+      const mockTeams = [{ id: 'team1', name: 'Support' }];
+      vi.spyOn(mockAxios, 'get').mockResolvedValue({
+        data: mockTeams,
+        status: 200,
+        statusText: 'OK',
+        headers: {},
+        config: {} as any,
+      });
+
+      const result = await client.getTeams();
+
+      expect(mockAxios.get).toHaveBeenCalledWith('/teams', { params: undefined });
+      expect(result).toEqual(mockTeams);
+    });
+
+    it('should get team by id', async () => {
+      const mockTeam = { id: 'team1', name: 'Support' };
+      vi.spyOn(mockAxios, 'get').mockResolvedValue({
+        data: mockTeam,
+        status: 200,
+        statusText: 'OK',
+        headers: {},
+        config: {} as any,
+      });
+
+      const result = await client.getTeam('team1');
+
+      expect(mockAxios.get).toHaveBeenCalledWith('/teams/team1', { params: undefined });
+      expect(result).toEqual(mockTeam);
+    });
+
+    it('should create a team', async () => {
+      const payload = { name: 'New Team', description: 'desc' };
+      const created = { id: 'team2', ...payload };
+
+      vi.spyOn(mockAxios, 'post').mockResolvedValue({
+        data: created,
+        status: 201,
+        statusText: 'Created',
+        headers: {},
+        config: {} as any,
+      });
+
+      const result = await client.createTeam(payload as any);
+
+      expect(mockAxios.post).toHaveBeenCalledWith('/teams', payload);
+      expect(result).toEqual(created);
+    });
+
+    it('should list accounts', async () => {
+      const mockAccounts = [{ id: 'acc1', name: 'Acme' }];
+      vi.spyOn(mockAxios, 'get').mockResolvedValue({
+        data: mockAccounts,
+        status: 200,
+        statusText: 'OK',
+        headers: {},
+        config: {} as any,
+      });
+
+      const result = await client.getAccounts();
+
+      expect(mockAxios.get).toHaveBeenCalledWith('/accounts', { params: undefined });
+      expect(result).toEqual(mockAccounts);
+    });
+
+    it('should get account by id', async () => {
+      const mockAccount = { id: 'acc2', name: 'Beta' };
+      vi.spyOn(mockAxios, 'get').mockResolvedValue({
+        data: mockAccount,
+        status: 200,
+        statusText: 'OK',
+        headers: {},
+        config: {} as any,
+      });
+
+      const result = await client.getAccount('acc2');
+
+      expect(mockAxios.get).toHaveBeenCalledWith('/accounts/acc2', { params: undefined });
+      expect(result).toEqual(mockAccount);
+    });
+  });
+
+  describe('Tags, Ticket Forms, Webhooks', () => {
+    it('should list tags', async () => {
+      const mockTags = [{ id: 'tag1', name: 'urgent' }];
+      vi.spyOn(mockAxios, 'get').mockResolvedValue({
+        data: mockTags,
+        status: 200,
+        statusText: 'OK',
+        headers: {},
+        config: {} as any,
+      });
+
+      const result = await client.getTags();
+
+      expect(mockAxios.get).toHaveBeenCalledWith('/tags', { params: undefined });
+      expect(result).toEqual(mockTags);
+    });
+
+    it('should create tag', async () => {
+      const payload = { name: 'priority-high', color: '#f00' };
+      const created = { id: 'tag2', ...payload };
+
+      vi.spyOn(mockAxios, 'post').mockResolvedValue({
+        data: created,
+        status: 201,
+        statusText: 'Created',
+        headers: {},
+        config: {} as any,
+      });
+
+      const result = await client.createTag(payload as any);
+
+      expect(mockAxios.post).toHaveBeenCalledWith('/tags', payload);
+      expect(result).toEqual(created);
+    });
+
+    it('should list ticket forms', async () => {
+      const mockForms = [{ id: 'form1', name: 'Bug Report', fields: [] }];
+      vi.spyOn(mockAxios, 'get').mockResolvedValue({
+        data: mockForms,
+        status: 200,
+        statusText: 'OK',
+        headers: {},
+        config: {} as any,
+      });
+
+      const result = await client.getTicketForms();
+
+      expect(mockAxios.get).toHaveBeenCalledWith('/ticket-forms', { params: undefined });
+      expect(result).toEqual(mockForms);
+    });
+
+    it('should create ticket form', async () => {
+      const payload = { name: 'Feedback', description: 'desc', fields: [] } as any;
+      const created = { id: 'form2', ...payload };
+
+      vi.spyOn(mockAxios, 'post').mockResolvedValue({
+        data: created,
+        status: 201,
+        statusText: 'Created',
+        headers: {},
+        config: {} as any,
+      });
+
+      const result = await client.createTicketForm(payload);
+
+      expect(mockAxios.post).toHaveBeenCalledWith('/ticket-forms', payload);
+      expect(result).toEqual(created);
+    });
+
+    it('should list webhooks', async () => {
+      const hooks = [
+        { id: 'wh1', url: 'https://example.com', events: ['issue.created'], active: true },
+      ];
+      vi.spyOn(mockAxios, 'get').mockResolvedValue({
+        data: hooks,
+        status: 200,
+        statusText: 'OK',
+        headers: {},
+        config: {} as any,
+      });
+
+      const result = await client.getWebhooks();
+
+      expect(mockAxios.get).toHaveBeenCalledWith('/webhooks', { params: undefined });
+      expect(result).toEqual(hooks);
+    });
+
+    it('should create webhook', async () => {
+      const payload = {
+        url: 'https://example.com/hook',
+        events: ['issue.updated'],
+        active: true,
+      } as any;
+      const created = { id: 'wh2', ...payload };
+
+      vi.spyOn(mockAxios, 'post').mockResolvedValue({
+        data: created,
+        status: 201,
+        statusText: 'Created',
+        headers: {},
+        config: {} as any,
+      });
+
+      const result = await client.createWebhook(payload);
+
+      expect(mockAxios.post).toHaveBeenCalledWith('/webhooks', payload);
+      expect(result).toEqual(created);
+    });
+
+    it('should delete webhook', async () => {
+      vi.spyOn(mockAxios, 'delete').mockResolvedValue({
+        data: {},
+        status: 204,
+        statusText: 'No Content',
+        headers: {},
+        config: {} as any,
+      });
+
+      await client.deleteWebhook('wh3');
+
+      expect(mockAxios.delete).toHaveBeenCalledWith('/webhooks/wh3');
+    });
+  });
+
+  describe('Users', () => {
+    it('should list users', async () => {
+      const mockUsers = [{ id: 'user_3', name: 'Terry' }];
+      vi.spyOn(mockAxios, 'get').mockResolvedValue({
+        data: mockUsers,
+        status: 200,
+        statusText: 'OK',
+        headers: {},
+        config: {} as any,
+      });
+
+      const result = await client.getUsers();
+
+      expect(mockAxios.get).toHaveBeenCalledWith('/users', { params: undefined });
+      expect(result).toEqual(mockUsers);
+    });
+  });
+
   describe('Message Management', () => {
     it('should get issue messages with attachments', async () => {
       const mockMessages = [
@@ -245,10 +616,272 @@ describe('PylonClient - Core Functionality', () => {
 
       const result = await client.getIssueMessages('issue_123');
 
-      expect(mockAxios.get).toHaveBeenCalledWith('/issues/issue_123/messages');
+      expect(mockAxios.get).toHaveBeenCalledWith('/issues/issue_123/messages', {
+        params: undefined,
+      });
       expect(result).toEqual(mockMessages);
       expect(result[1].attachments).toBeDefined();
       expect(result[1].attachments).toHaveLength(1);
+    });
+  });
+
+  describe('Similar Issues Helper Methods', () => {
+    describe('findSimilarIssuesForRequestor', () => {
+      it('should find similar issues from the same requestor', async () => {
+        const sourceIssue = {
+          id: 'issue_1',
+          title: 'Login problem',
+          description: 'Cannot login',
+          status: 'open',
+          priority: 'high',
+          requestor_id: 'contact_123',
+          account_id: 'account_456',
+        };
+
+        const similarIssues = [
+          { id: 'issue_1', title: 'Login problem', status: 'open' },
+          { id: 'issue_2', title: 'Login issue', status: 'resolved' },
+          { id: 'issue_3', title: 'Password reset', status: 'closed' },
+        ];
+
+        vi.spyOn(mockAxios, 'get').mockResolvedValue({
+          data: sourceIssue,
+          status: 200,
+          statusText: 'OK',
+          headers: {},
+          config: {} as any,
+        });
+
+        vi.spyOn(mockAxios, 'post').mockResolvedValue({
+          data: similarIssues,
+          status: 200,
+          statusText: 'OK',
+          headers: {},
+          config: {} as any,
+        });
+
+        const result = await client.findSimilarIssuesForRequestor('issue_1');
+
+        expect(mockAxios.get).toHaveBeenCalledWith('/issues/issue_1', { params: undefined });
+        expect(mockAxios.post).toHaveBeenCalledWith('/issues/search', {
+          query: 'Login problem',
+          requestor_id: 'contact_123',
+        });
+        expect(result.sourceIssue).toEqual(sourceIssue);
+        // Source issue should be excluded from results
+        expect(result.similarIssues).toHaveLength(2);
+        expect(result.similarIssues.map((i) => i.id)).not.toContain('issue_1');
+      });
+
+      it('should return empty array when requestor_id is missing', async () => {
+        const sourceIssue = {
+          id: 'issue_1',
+          title: 'Login problem',
+          description: 'Cannot login',
+          status: 'open',
+          priority: 'high',
+          // No requestor_id
+        };
+
+        vi.spyOn(mockAxios, 'get').mockResolvedValue({
+          data: sourceIssue,
+          status: 200,
+          statusText: 'OK',
+          headers: {},
+          config: {} as any,
+        });
+
+        const result = await client.findSimilarIssuesForRequestor('issue_1');
+
+        expect(result.sourceIssue).toEqual(sourceIssue);
+        expect(result.similarIssues).toEqual([]);
+      });
+
+      it('should use custom query and limit when provided', async () => {
+        const sourceIssue = {
+          id: 'issue_1',
+          title: 'Login problem',
+          description: 'Cannot login',
+          status: 'open',
+          priority: 'high',
+          requestor_id: 'contact_123',
+        };
+
+        vi.spyOn(mockAxios, 'get').mockResolvedValue({
+          data: sourceIssue,
+          status: 200,
+          statusText: 'OK',
+          headers: {},
+          config: {} as any,
+        });
+
+        vi.spyOn(mockAxios, 'post').mockResolvedValue({
+          data: [],
+          status: 200,
+          statusText: 'OK',
+          headers: {},
+          config: {} as any,
+        });
+
+        await client.findSimilarIssuesForRequestor('issue_1', {
+          query: 'custom search',
+          limit: 5,
+        });
+
+        expect(mockAxios.post).toHaveBeenCalledWith('/issues/search', {
+          query: 'custom search',
+          requestor_id: 'contact_123',
+          limit: 5,
+        });
+      });
+    });
+
+    describe('findSimilarIssuesForAccount', () => {
+      it('should find similar issues from the same account', async () => {
+        const sourceIssue = {
+          id: 'issue_1',
+          title: 'API timeout',
+          description: 'API calls timing out',
+          status: 'open',
+          priority: 'high',
+          requestor_id: 'contact_123',
+          account_id: 'account_456',
+        };
+
+        const similarIssues = [
+          { id: 'issue_1', title: 'API timeout', status: 'open' },
+          { id: 'issue_4', title: 'API slow', status: 'open' },
+        ];
+
+        vi.spyOn(mockAxios, 'get').mockResolvedValue({
+          data: sourceIssue,
+          status: 200,
+          statusText: 'OK',
+          headers: {},
+          config: {} as any,
+        });
+
+        vi.spyOn(mockAxios, 'post').mockResolvedValue({
+          data: similarIssues,
+          status: 200,
+          statusText: 'OK',
+          headers: {},
+          config: {} as any,
+        });
+
+        const result = await client.findSimilarIssuesForAccount('issue_1');
+
+        expect(mockAxios.post).toHaveBeenCalledWith('/issues/search', {
+          query: 'API timeout',
+          account_id: 'account_456',
+        });
+        expect(result.sourceIssue).toEqual(sourceIssue);
+        expect(result.similarIssues).toHaveLength(1);
+        expect(result.similarIssues[0].id).toBe('issue_4');
+      });
+
+      it('should return empty array when account_id is missing', async () => {
+        const sourceIssue = {
+          id: 'issue_1',
+          title: 'API timeout',
+          description: 'API calls timing out',
+          status: 'open',
+          priority: 'high',
+          // No account_id
+        };
+
+        vi.spyOn(mockAxios, 'get').mockResolvedValue({
+          data: sourceIssue,
+          status: 200,
+          statusText: 'OK',
+          headers: {},
+          config: {} as any,
+        });
+
+        const result = await client.findSimilarIssuesForAccount('issue_1');
+
+        expect(result.sourceIssue).toEqual(sourceIssue);
+        expect(result.similarIssues).toEqual([]);
+      });
+    });
+
+    describe('findSimilarIssuesGlobal', () => {
+      it('should find similar issues across all users and accounts', async () => {
+        const sourceIssue = {
+          id: 'issue_1',
+          title: 'Server error 500',
+          description: 'Getting 500 errors',
+          status: 'open',
+          priority: 'urgent',
+        };
+
+        const similarIssues = [
+          { id: 'issue_1', title: 'Server error 500', status: 'open' },
+          { id: 'issue_5', title: 'Server error', status: 'resolved' },
+          { id: 'issue_6', title: '500 error on checkout', status: 'closed' },
+        ];
+
+        vi.spyOn(mockAxios, 'get').mockResolvedValue({
+          data: sourceIssue,
+          status: 200,
+          statusText: 'OK',
+          headers: {},
+          config: {} as any,
+        });
+
+        vi.spyOn(mockAxios, 'post').mockResolvedValue({
+          data: similarIssues,
+          status: 200,
+          statusText: 'OK',
+          headers: {},
+          config: {} as any,
+        });
+
+        const result = await client.findSimilarIssuesGlobal('issue_1');
+
+        expect(mockAxios.post).toHaveBeenCalledWith('/issues/search', {
+          query: 'Server error 500',
+        });
+        expect(result.sourceIssue).toEqual(sourceIssue);
+        expect(result.similarIssues).toHaveLength(2);
+        expect(result.similarIssues.map((i) => i.id)).not.toContain('issue_1');
+      });
+
+      it('should use custom query and limit when provided', async () => {
+        const sourceIssue = {
+          id: 'issue_1',
+          title: 'Server error 500',
+          description: 'Getting 500 errors',
+          status: 'open',
+          priority: 'urgent',
+        };
+
+        vi.spyOn(mockAxios, 'get').mockResolvedValue({
+          data: sourceIssue,
+          status: 200,
+          statusText: 'OK',
+          headers: {},
+          config: {} as any,
+        });
+
+        vi.spyOn(mockAxios, 'post').mockResolvedValue({
+          data: [],
+          status: 200,
+          statusText: 'OK',
+          headers: {},
+          config: {} as any,
+        });
+
+        await client.findSimilarIssuesGlobal('issue_1', {
+          query: 'error 500',
+          limit: 20,
+        });
+
+        expect(mockAxios.post).toHaveBeenCalledWith('/issues/search', {
+          query: 'error 500',
+          limit: 20,
+        });
+      });
     });
   });
 

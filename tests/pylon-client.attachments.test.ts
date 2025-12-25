@@ -31,7 +31,7 @@ describe('PylonClient - Attachments', () => {
 
       const result = await client.getAttachment('att_123');
 
-      expect(mockAxios.get).toHaveBeenCalledWith('/attachments/att_123');
+      expect(mockAxios.get).toHaveBeenCalledWith('/attachments/att_123', { params: undefined });
       expect(result).toEqual(mockAttachment);
     });
 

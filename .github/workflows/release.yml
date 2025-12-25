@@ -17,62 +17,21 @@ jobs:
       CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
     steps:
       - uses: actions/checkout@v4
-
       - uses: actions/setup-node@v4
         with:
-          node-version: 20
+          node-version: 24
           cache: npm
-
-      - name: Configure npm registry for installs
-        run: npm config set registry https://registry.npmjs.org/
-
-      - name: Configure npm auth for publish
-        env:
-          NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
-        run: |
-          if [ -z "$NPM_TOKEN" ]; then
-            echo "NPM_TOKEN not set; assuming npm trusted publishing via OIDC" >&2
-          else
-            npm config set //registry.npmjs.org/:_authToken=$NPM_TOKEN
-          fi
-
+          registry-url: 'https://registry.npmjs.org'
       - name: Install dependencies
         run: npm ci
-
       - name: Lint
         run: npm run lint
-
       - name: Format check
         run: npm run format
-
       - name: Build
-        run: npm run build
-
+        run: npm run build --if-present
       - name: Test
         run: npm test
-
-      - name: Coverage
-        run: npm run coverage
-
-      - name: Upload coverage artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: coverage
-          path: |
-            coverage/lcov.info
-            coverage/
-
-      - name: Upload coverage to Codecov
-        if: env.CODECOV_TOKEN != ''
-        uses: codecov/codecov-action@v4
-        with:
-          token: ${{ env.CODECOV_TOKEN }}
-          files: coverage/lcov.info
-          fail_ci_if_error: true
-
-      - name: Pack npm
-        run: npm pack
-
       - name: Publish to npm
         run: npm publish --provenance --access public
 

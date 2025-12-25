@@ -85,10 +85,46 @@ describe('pylon-mcp functional tools (stdio, mocked HTTP)', () => {
           withJson(res, 405, { message: 'Method Not Allowed' });
         }
       },
+      '/issues/search': async (req, res) => {
+        let body = '';
+        for await (const chunk of req) body += chunk;
+        const parsed = body ? JSON.parse(body) : {};
+        // Return mock similar issues based on filters
+        const issues = [
+          {
+            id: 'issue_similar_1',
+            title: `Similar: ${parsed.query}`,
+            status: 'open',
+            requestor_id: parsed.requestor_id || 'contact_1',
+            account_id: parsed.account_id || 'account_1',
+          },
+          {
+            id: 'issue_similar_2',
+            title: `Related: ${parsed.query}`,
+            status: 'resolved',
+            requestor_id: parsed.requestor_id || 'contact_2',
+            account_id: parsed.account_id || 'account_1',
+          },
+        ];
+        withJson(res, 200, issues);
+      },
       '/issues/ISSUE-5': (_req, res) =>
-        withJson(res, 200, { id: 'ISSUE-5', title: 'Five', status: 'open' }),
+        withJson(res, 200, {
+          id: 'ISSUE-5',
+          title: 'Five',
+          status: 'open',
+          requestor_id: 'contact_5',
+          account_id: 'account_5',
+        }),
       '/issues/ISSUE-5/messages': (_req, res) =>
         withJson(res, 200, [{ id: 'msg_1', content: 'hello' }]),
+      '/issues/ISSUE-NO-REQUESTOR': (_req, res) =>
+        withJson(res, 200, {
+          id: 'ISSUE-NO-REQUESTOR',
+          title: 'No Requestor',
+          status: 'open',
+          // No requestor_id or account_id
+        }),
       '/knowledge-bases': (_req, res) => withJson(res, 200, [{ id: 'kb_1', name: 'KB' }]),
       '/knowledge-bases/kb_1/articles': (_req, res) =>
         withJson(res, 200, [{ id: 'art_1', title: 'Article' }]),
@@ -194,5 +230,89 @@ describe('pylon-mcp functional tools (stdio, mocked HTTP)', () => {
   it('pylon_get_teams', async () => {
     const res = await client.callTool({ name: 'pylon_get_teams', arguments: {} });
     expect(res?.content?.[0]?.text).toContain('team_1');
+  });
+
+  // Similar Issues Helper Tools
+  it('pylon_find_similar_issues_for_requestor', async () => {
+    const res = await client.callTool({
+      name: 'pylon_find_similar_issues_for_requestor',
+      arguments: { issue_id: 'ISSUE-5' },
+    });
+    const text = res?.content?.[0]?.text ?? '';
+    expect(text).toContain('sourceIssue');
+    expect(text).toContain('similarIssues');
+    expect(text).toContain('ISSUE-5');
+  });
+
+  it('pylon_find_similar_issues_for_requestor with custom query', async () => {
+    const res = await client.callTool({
+      name: 'pylon_find_similar_issues_for_requestor',
+      arguments: { issue_id: 'ISSUE-5', query: 'login error', limit: 5 },
+    });
+    const text = res?.content?.[0]?.text ?? '';
+    expect(text).toContain('sourceIssue');
+    expect(text).toContain('similarIssues');
+  });
+
+  it('pylon_find_similar_issues_for_requestor returns empty when no requestor', async () => {
+    const res = await client.callTool({
+      name: 'pylon_find_similar_issues_for_requestor',
+      arguments: { issue_id: 'ISSUE-NO-REQUESTOR' },
+    });
+    const text = res?.content?.[0]?.text ?? '';
+    expect(text).toContain('similarIssues');
+    expect(text).toContain('[]');
+  });
+
+  it('pylon_find_similar_issues_for_account', async () => {
+    const res = await client.callTool({
+      name: 'pylon_find_similar_issues_for_account',
+      arguments: { issue_id: 'ISSUE-5' },
+    });
+    const text = res?.content?.[0]?.text ?? '';
+    expect(text).toContain('sourceIssue');
+    expect(text).toContain('similarIssues');
+    expect(text).toContain('ISSUE-5');
+  });
+
+  it('pylon_find_similar_issues_for_account with custom query', async () => {
+    const res = await client.callTool({
+      name: 'pylon_find_similar_issues_for_account',
+      arguments: { issue_id: 'ISSUE-5', query: 'billing problem', limit: 10 },
+    });
+    const text = res?.content?.[0]?.text ?? '';
+    expect(text).toContain('sourceIssue');
+    expect(text).toContain('similarIssues');
+  });
+
+  it('pylon_find_similar_issues_for_account returns empty when no account', async () => {
+    const res = await client.callTool({
+      name: 'pylon_find_similar_issues_for_account',
+      arguments: { issue_id: 'ISSUE-NO-REQUESTOR' },
+    });
+    const text = res?.content?.[0]?.text ?? '';
+    expect(text).toContain('similarIssues');
+    expect(text).toContain('[]');
+  });
+
+  it('pylon_find_similar_issues_global', async () => {
+    const res = await client.callTool({
+      name: 'pylon_find_similar_issues_global',
+      arguments: { issue_id: 'ISSUE-5' },
+    });
+    const text = res?.content?.[0]?.text ?? '';
+    expect(text).toContain('sourceIssue');
+    expect(text).toContain('similarIssues');
+    expect(text).toContain('ISSUE-5');
+  });
+
+  it('pylon_find_similar_issues_global with custom query and limit', async () => {
+    const res = await client.callTool({
+      name: 'pylon_find_similar_issues_global',
+      arguments: { issue_id: 'ISSUE-5', query: 'API timeout', limit: 20 },
+    });
+    const text = res?.content?.[0]?.text ?? '';
+    expect(text).toContain('sourceIssue');
+    expect(text).toContain('similarIssues');
   });
 });

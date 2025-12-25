@@ -11,6 +11,7 @@ This is an MCP (Model Context Protocol) server that provides comprehensive integ
 - **Language**: TypeScript with Node.js runtime
 - **MCP Framework**: `@modelcontextprotocol/sdk`
 - **HTTP Client**: Axios for API communication
+- **Caching**: In-memory cache with configurable TTL (default 30s)
 - **Build System**: TypeScript compiler
 - **Deployment**: Smithery platform
 
@@ -25,11 +26,26 @@ This is an MCP (Model Context Protocol) server that provides comprehensive integ
 
 The server implements comprehensive Pylon API coverage:
 
-### Authentication
+### Authentication & Configuration
 
 - Base URL: `https://api.usepylon.com`
 - Authentication: Bearer JWT tokens
-- Environment variable: `PYLON_API_TOKEN`
+- Environment variables:
+  - `PYLON_API_TOKEN` (required): API authentication token
+  - `PYLON_CACHE_TTL` (optional): Cache TTL in milliseconds (default: 30000)
+    - Set to `0` to disable caching
+    - Applies only to GET requests
+
+### Caching Strategy
+
+The client implements intelligent caching to minimize API usage:
+
+- **Cached**: All GET requests (users, contacts, issues, teams, accounts, etc.)
+- **Not Cached**: POST, PATCH, DELETE operations
+- **Cache Key**: Generated from endpoint URL + query parameters
+- **TTL**: Configurable via `PYLON_CACHE_TTL` environment variable
+- **Default**: 30 seconds (30000ms)
+- **Manual Control**: `clearCache()` method available for cache invalidation
 
 ### Implemented Endpoints
 

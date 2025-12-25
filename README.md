@@ -10,14 +10,28 @@ This MCP server provides tools to interact with Pylon's API:
 - **Contacts**: List, search, and create contacts
 - **Issues**: List, filter, and create issues
 - **Knowledge Base**: Access and create knowledge base articles
+- **Smart Caching**: Automatic caching of GET requests to minimize API usage
 
 ## Setup
 
 ### Environment Variables
 
-Set the following environment variable:
+Set the following environment variables:
 
 - `PYLON_API_TOKEN`: Your Pylon API token (required)
+- `PYLON_CACHE_TTL`: Cache time-to-live in milliseconds (optional, default: 30000)
+  - Set to `0` to disable caching
+  - Example: `PYLON_CACHE_TTL=60000` for 60-second cache
+
+### Caching Behavior
+
+The server implements intelligent caching to reduce API calls:
+
+- **Cached Operations**: All GET requests (users, contacts, issues, teams, etc.)
+- **Not Cached**: POST, PATCH, DELETE operations (creates, updates, deletes)
+- **Default TTL**: 30 seconds
+- **Cache Key**: Based on endpoint URL and query parameters
+- **Benefits**: Reduces API rate limit usage, improves response times for repeated queries
 
 ### Installation
 
@@ -152,11 +166,14 @@ Augment Code supports MCP servers through its Easy MCP feature in VS Code and Je
        "command": "npx",
        "args": ["@customer-support-success/pylon-mcp-server"],
        "env": {
-         "PYLON_API_TOKEN": "your_pylon_api_token_here"
+         "PYLON_API_TOKEN": "your_pylon_api_token_here",
+         "PYLON_CACHE_TTL": "30000"
        }
      }
    }
    ```
+
+   > **Note**: `PYLON_CACHE_TTL` is optional and defaults to 30000ms (30 seconds). Set to `0` to disable caching.
 
    **Option B: Using local installation**
 
@@ -168,7 +185,8 @@ Augment Code supports MCP servers through its Easy MCP feature in VS Code and Je
        "command": "node",
        "args": ["/absolute/path/to/pylon-mcp-server/dist/index.js"],
        "env": {
-         "PYLON_API_TOKEN": "your_pylon_api_token_here"
+         "PYLON_API_TOKEN": "your_pylon_api_token_here",
+         "PYLON_CACHE_TTL": "30000"
        }
      }
    }
@@ -220,7 +238,8 @@ Add this to your Claude Desktop MCP settings (`~/Library/Application Support/Cla
       "command": "npx",
       "args": ["@customer-support-success/pylon-mcp-server"],
       "env": {
-        "PYLON_API_TOKEN": "your_pylon_api_token_here"
+        "PYLON_API_TOKEN": "your_pylon_api_token_here",
+        "PYLON_CACHE_TTL": "30000"
       }
     }
   }
@@ -236,7 +255,8 @@ Add this to your Claude Desktop MCP settings (`~/Library/Application Support/Cla
       "command": "node",
       "args": ["/path/to/pylon-mcp-server/dist/index.js"],
       "env": {
-        "PYLON_API_TOKEN": "your_pylon_api_token_here"
+        "PYLON_API_TOKEN": "your_pylon_api_token_here",
+        "PYLON_CACHE_TTL": "30000"
       }
     }
   }
