@@ -10,9 +10,18 @@ import { PylonClient } from './pylon-client.js';
 const REQUIRE_MESSAGE_CONFIRMATION = process.env.PYLON_REQUIRE_MESSAGE_CONFIRMATION !== 'false';
 
 const PYLON_API_TOKEN = process.env.PYLON_API_TOKEN;
-const PYLON_CACHE_TTL = process.env.PYLON_CACHE_TTL
-  ? parseInt(process.env.PYLON_CACHE_TTL, 10)
-  : undefined;
+
+// Parse and validate PYLON_CACHE_TTL
+let PYLON_CACHE_TTL: number | undefined = undefined;
+if (process.env.PYLON_CACHE_TTL !== undefined) {
+  const parsed = parseInt(process.env.PYLON_CACHE_TTL, 10);
+  if (isNaN(parsed)) {
+    throw new Error(
+      `Invalid PYLON_CACHE_TTL value: "${process.env.PYLON_CACHE_TTL}". Must be a valid number.`
+    );
+  }
+  PYLON_CACHE_TTL = parsed;
+}
 
 // Initialize client only when token is available
 let pylonClient: PylonClient | null = null;
