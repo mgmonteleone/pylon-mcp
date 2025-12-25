@@ -26,8 +26,6 @@ jobs:
 
       - run: npm run build
 
-      # Uses OIDC + provenance; set NPM_TOKEN if trusted publishing is not yet configured
+      # Uses OIDC + provenance via trusted publishing
       - name: Publish to npm
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
         run: npm publish --provenance --access public
