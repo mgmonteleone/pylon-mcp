@@ -37,9 +37,7 @@ Add this to your Augment Code MCP configuration (npm public):
 {
   "pylon": {
     "command": "npx",
-    "args": [
-      "@customer-support-success/pylon-mcp-server"
-    ],
+    "args": ["@customer-support-success/pylon-mcp-server"],
     "env": {
       "PYLON_API_TOKEN": "your_pylon_api_token_here"
     }
@@ -56,9 +54,7 @@ Add this to `~/Library/Application Support/Claude/claude_desktop_config.json`:
   "mcpServers": {
     "pylon": {
       "command": "npx",
-      "args": [
-        "@customer-support-success/pylon-mcp-server"
-      ],
+      "args": ["@customer-support-success/pylon-mcp-server"],
       "env": {
         "PYLON_API_TOKEN": "your_pylon_api_token_here"
       }

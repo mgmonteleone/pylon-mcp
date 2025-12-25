@@ -142,7 +142,7 @@ Augment Code supports MCP servers through its Easy MCP feature in VS Code and Je
 
 3. **Configure the Server**:
 
-   **Option A: Using npx from GCP Artifact Registry (Recommended)**
+   **Using npx from npmjs (Recommended)**
 
    Add this configuration:
 
@@ -150,10 +150,7 @@ Augment Code supports MCP servers through its Easy MCP feature in VS Code and Je
    {
      "pylon": {
        "command": "npx",
-       "args": [
-         "--registry=https://us-central1-npm.pkg.dev/customer-support-success/npm-packages/",
-         "@customer-support-success/pylon-mcp-server"
-       ],
+       "args": ["@customer-support-success/pylon-mcp-server"],
        "env": {
          "PYLON_API_TOKEN": "your_pylon_api_token_here"
        }
@@ -214,17 +211,14 @@ Augment Code supports MCP servers through its Easy MCP feature in VS Code and Je
 
 Add this to your Claude Desktop MCP settings (`~/Library/Application Support/Claude/claude_desktop_config.json` on macOS):
 
-**Option A: Using npx from GCP Artifact Registry (Recommended)**
+**Using npx from npmjs (Recommended)**
 
 ```json
 {
   "mcpServers": {
     "pylon": {
       "command": "npx",
-      "args": [
-        "--registry=https://us-central1-npm.pkg.dev/customer-support-success/npm-packages/",
-        "@customer-support-success/pylon-mcp-server"
-      ],
+      "args": ["@customer-support-success/pylon-mcp-server"],
       "env": {
         "PYLON_API_TOKEN": "your_pylon_api_token_here"
       }
