@@ -27,16 +27,6 @@ jobs:
       - name: Configure npm registry for installs
         run: npm config set registry https://registry.npmjs.org/
 
-      - name: Configure npm auth for publish
-        env:
-          NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
-        run: |
-          if [ -z "$NPM_TOKEN" ]; then
-            echo "NPM_TOKEN not set; assuming npm trusted publishing via OIDC" >&2
-          else
-            npm config set //registry.npmjs.org/:_authToken=$NPM_TOKEN
-          fi
-
       - name: Install dependencies
         run: npm ci
 
@@ -75,8 +65,6 @@ jobs:
         run: npm pack
 
       - name: Publish to npm
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
         run: npm publish --provenance --access public
 
       - name: Generate release notes
