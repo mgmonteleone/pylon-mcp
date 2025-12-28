@@ -5,6 +5,20 @@ All notable changes to the Pylon MCP Server will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.0.1] - 2025-12-28
+
+### Fixed
+
+- **`getMe()` now correctly unwraps API response** (Issue #10)
+  - The Pylon `/me` endpoint returns a wrapped response: `{ data: { id, name }, request_id }`
+  - The `getMe()` method was returning the entire wrapper instead of just the `data` portion
+  - This caused `(await client.getMe()).id` to return `undefined` instead of the actual user ID
+  - KB article creation now correctly defaults to the authenticated user's ID when `author_user_id` is omitted
+
+### Tests
+
+- Updated mock servers in tests to return the correct wrapped response format, matching actual Pylon API behavior
+
 ## [2.0.0] - 2025-12-28
 
 ### Breaking Changes
