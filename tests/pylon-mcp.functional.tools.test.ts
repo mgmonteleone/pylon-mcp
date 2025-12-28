@@ -126,8 +126,25 @@ describe('pylon-mcp functional tools (stdio, mocked HTTP)', () => {
           // No requestor_id or account_id
         }),
       '/knowledge-bases': (_req, res) => withJson(res, 200, [{ id: 'kb_1', name: 'KB' }]),
-      '/knowledge-bases/kb_1/articles': (_req, res) =>
-        withJson(res, 200, [{ id: 'art_1', title: 'Article' }]),
+      '/knowledge-bases/kb_1/articles': async (req, res) => {
+        if (req.method === 'POST') {
+          let body = '';
+          for await (const chunk of req) body += chunk;
+          const parsed = body ? JSON.parse(body) : {};
+          withJson(res, 201, {
+            data: {
+              id: 'art_new',
+              title: parsed.title,
+              body_html: parsed.body_html,
+              knowledge_base_id: 'kb_1',
+              author_user_id: parsed.author_user_id,
+              is_published: parsed.is_published || false,
+            },
+          });
+        } else {
+          withJson(res, 200, [{ id: 'art_1', title: 'Article' }]);
+        }
+      },
       '/teams': (_req, res) => withJson(res, 200, [{ id: 'team_1', name: 'Support' }]),
       '/teams/team_1': (_req, res) =>
         withJson(res, 200, { id: 'team_1', name: 'Support', members: [] }),
@@ -244,6 +261,39 @@ describe('pylon-mcp functional tools (stdio, mocked HTTP)', () => {
       arguments: { knowledge_base_id: 'kb_1' },
     });
     expect(res?.content?.[0]?.text).toContain('art_1');
+  });
+
+  it('pylon_create_knowledge_base_article', async () => {
+    const res = await client.callTool({
+      name: 'pylon_create_knowledge_base_article',
+      arguments: {
+        knowledge_base_id: 'kb_1',
+        title: 'New Article',
+        body_html: '<p>Article content</p>',
+        author_user_id: 'user_123',
+      },
+    });
+    const text = res?.content?.[0]?.text ?? '';
+    expect(text).toContain('art_new');
+    expect(text).toContain('New Article');
+    expect(text).toContain('body_html');
+  });
+
+  it('pylon_create_knowledge_base_article defaults author_user_id to authenticated user', async () => {
+    const res = await client.callTool({
+      name: 'pylon_create_knowledge_base_article',
+      arguments: {
+        knowledge_base_id: 'kb_1',
+        title: 'Article With Default Author',
+        body_html: '<p>Content</p>',
+        // author_user_id intentionally omitted - should default to authenticated user (user_1)
+      },
+    });
+    const text = res?.content?.[0]?.text ?? '';
+    expect(text).toContain('art_new');
+    expect(text).toContain('Article With Default Author');
+    // The response should include the author_user_id from the request (defaults to user_1 from /me)
+    expect(text).toContain('user_1');
   });
 
   it('pylon_get_teams', async () => {

@@ -175,8 +175,24 @@ export interface PylonKnowledgeBase {
 export interface PylonArticle {
   id: string;
   title: string;
-  content: string;
+  body_html: string;
   knowledge_base_id: string;
+  author_user_id?: string;
+  collection_id?: string;
+  is_published?: boolean;
+  is_unlisted?: boolean;
+  slug?: string;
+  url?: string;
+}
+
+export interface CreateArticleInput {
+  title: string;
+  body_html: string;
+  author_user_id: string;
+  collection_id?: string;
+  is_published?: boolean;
+  is_unlisted?: boolean;
+  slug?: string;
 }
 
 export interface PylonTeam {
@@ -339,13 +355,13 @@ export class PylonClient {
 
   async createKnowledgeBaseArticle(
     knowledgeBaseId: string,
-    article: Omit<PylonArticle, 'id' | 'knowledge_base_id'>
+    article: CreateArticleInput
   ): Promise<PylonArticle> {
-    const response: AxiosResponse<PylonArticle> = await this.client.post(
+    const response: AxiosResponse<{ data: PylonArticle }> = await this.client.post(
       `/knowledge-bases/${knowledgeBaseId}/articles`,
       article
     );
-    return response.data;
+    return response.data.data;
   }
 
   // Teams API

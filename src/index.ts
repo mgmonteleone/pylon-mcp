@@ -537,17 +537,55 @@ mcpServer.registerTool(
         .describe(
           'Article title that clearly describes the topic. Examples: "How to Reset Your Password", "Troubleshooting Login Issues", "Billing FAQ"'
         ),
-      content: z
+      body_html: z
         .string()
         .describe(
-          'Full article content in markdown or HTML format. Include step-by-step instructions, screenshots, and links. Example: "## Steps to Reset Password\\n1. Go to login page\\n2. Click Forgot Password..."'
+          'Full article content in HTML format. Include step-by-step instructions, screenshots, and links. Example: "<h2>Steps to Reset Password</h2><ol><li>Go to login page</li><li>Click Forgot Password...</li></ol>"'
+        ),
+      author_user_id: z
+        .string()
+        .optional()
+        .describe(
+          'Optional ID of the user attributed as the author of the article. If not provided, defaults to the authenticated user. Example: "user_123abc"'
+        ),
+      collection_id: z
+        .string()
+        .optional()
+        .describe('Optional ID of the collection to add the article to. Example: "col_123abc"'),
+      is_published: z
+        .boolean()
+        .optional()
+        .describe('Whether the article should be published immediately. Defaults to false.'),
+      is_unlisted: z
+        .boolean()
+        .optional()
+        .describe(
+          'Whether the article can only be accessed via direct link. Defaults to false.'
+        ),
+      slug: z
+        .string()
+        .optional()
+        .describe(
+          'Custom slug for the article URL. Defaults to a slug based on the title. Example: "reset-password-guide"'
         ),
     },
   },
-  async ({ knowledge_base_id, title, content }) =>
-    jsonResponse(
-      await ensurePylonClient().createKnowledgeBaseArticle(knowledge_base_id, { title, content })
-    )
+  async ({ knowledge_base_id, title, body_html, author_user_id, collection_id, is_published, is_unlisted, slug }) => {
+    const client = ensurePylonClient();
+    // Default author_user_id to the authenticated user if not provided
+    const resolvedAuthorId = author_user_id ?? (await client.getMe()).id;
+    return jsonResponse(
+      await client.createKnowledgeBaseArticle(knowledge_base_id, {
+        title,
+        body_html,
+        author_user_id: resolvedAuthorId,
+        collection_id,
+        is_published,
+        is_unlisted,
+        slug,
+      })
+    );
+  }
 );
 
 // Team Management Tools
