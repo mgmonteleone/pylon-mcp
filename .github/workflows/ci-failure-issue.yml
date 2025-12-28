@@ -36,20 +36,20 @@ jobs:
               '- Rerun CI'
             ].join('\n');
 
-            const search = await github.search.issuesAndPullRequests({
+            const search = await github.rest.search.issuesAndPullRequests({
               q: `${title} repo:${context.repo.owner}/${context.repo.repo} is:open in:title`
             });
 
             if (search.data.items.length) {
               const issue = search.data.items[0];
-              await github.issues.createComment({
+              await github.rest.issues.createComment({
                 owner: context.repo.owner,
                 repo: context.repo.repo,
                 issue_number: issue.number,
                 body: `Still failing: ${run.html_url}`
               });
             } else {
-              await github.issues.create({
+              await github.rest.issues.create({
                 owner: context.repo.owner,
                 repo: context.repo.repo,
                 title,
@@ -69,22 +69,31 @@ jobs:
           script: |
             const run = context.payload.workflow_run;
             const title = `[CI] Failure: ${run.name} @ ${run.head_sha.slice(0, 7)}`;
-            const search = await github.search.issuesAndPullRequests({
-              q: `${title} repo:${context.repo.owner}/${context.repo.repo} is:open in:title`
-            });
 
-            if (search.data.items.length) {
-              const issue = search.data.items[0];
-              await github.issues.createComment({
-                owner: context.repo.owner,
-                repo: context.repo.repo,
-                issue_number: issue.number,
-                body: `CI passed: ${run.html_url}\nClosing.`
+            try {
+              const search = await github.rest.search.issuesAndPullRequests({
+                q: `${title} repo:${context.repo.owner}/${context.repo.repo} is:open in:title`
               });
-              await github.issues.update({
-                owner: context.repo.owner,
-                repo: context.repo.repo,
-                issue_number: issue.number,
-                state: 'closed'
-              });
+
+              if (search.data.items.length) {
+                const issue = search.data.items[0];
+                await github.rest.issues.createComment({
+                  owner: context.repo.owner,
+                  repo: context.repo.repo,
+                  issue_number: issue.number,
+                  body: `CI passed: ${run.html_url}\nClosing.`
+                });
+                await github.rest.issues.update({
+                  owner: context.repo.owner,
+                  repo: context.repo.repo,
+                  issue_number: issue.number,
+                  state: 'closed'
+                });
+                console.log(`Closed issue #${issue.number}`);
+              } else {
+                console.log('No matching CI failure issue found to close - this is expected if CI did not fail previously');
+              }
+            } catch (error) {
+              console.log(`Error searching for or closing CI failure issue: ${error.message}`);
+              // Don't fail the workflow if we can't find/close an issue
             }
