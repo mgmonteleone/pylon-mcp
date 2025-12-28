@@ -559,9 +559,7 @@ mcpServer.registerTool(
       is_unlisted: z
         .boolean()
         .optional()
-        .describe(
-          'Whether the article can only be accessed via direct link. Defaults to false.'
-        ),
+        .describe('Whether the article can only be accessed via direct link. Defaults to false.'),
       slug: z
         .string()
         .optional()
@@ -570,7 +568,16 @@ mcpServer.registerTool(
         ),
     },
   },
-  async ({ knowledge_base_id, title, body_html, author_user_id, collection_id, is_published, is_unlisted, slug }) => {
+  async ({
+    knowledge_base_id,
+    title,
+    body_html,
+    author_user_id,
+    collection_id,
+    is_published,
+    is_unlisted,
+    slug,
+  }) => {
     const client = ensurePylonClient();
     // Default author_user_id to the authenticated user if not provided
     const resolvedAuthorId = author_user_id ?? (await client.getMe()).id;
