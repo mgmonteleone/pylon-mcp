@@ -157,3 +157,93 @@ export function buildElicitationSchema() {
     required: ['confirm_send'] as string[],
   };
 }
+
+/**
+ * Build the elicitation message for KB article confirmation.
+ * @param knowledgeBaseId - The knowledge base ID
+ * @param title - The article title
+ * @param bodyHtml - The article body HTML content
+ * @param isPublished - Whether the article will be published
+ * @returns The formatted elicitation message
+ */
+export function buildKBArticleElicitationMessage(
+  knowledgeBaseId: string,
+  title: string,
+  bodyHtml: string,
+  isPublished?: boolean
+): string {
+  const publishStatus = isPublished
+    ? '🟢 PUBLISHED (visible to customers)'
+    : '🟡 DRAFT (not yet visible)';
+  return `⚠️ KNOWLEDGE BASE ARTICLE CONFIRMATION\n\nYou are about to create the following article in knowledge base ${knowledgeBaseId}:\n\n**Title:** ${title}\n**Status:** ${publishStatus}\n\n---\n${bodyHtml}\n---\n\nPlease review and confirm you want to create this article.`;
+}
+
+/**
+ * Build the elicitation schema for KB article confirmation.
+ * @returns The JSON schema for the elicitation form
+ */
+export function buildKBArticleElicitationSchema() {
+  return {
+    type: 'object' as const,
+    properties: {
+      confirm_create: {
+        type: 'boolean' as const,
+        title: 'Confirm Create',
+        description: 'Check this box to confirm you want to create this knowledge base article',
+        default: false,
+      },
+      modified_title: {
+        type: 'string' as const,
+        title: 'Article Title (optional edit)',
+        description: 'You can modify the article title here. Leave empty to use the original.',
+      },
+      modified_body_html: {
+        type: 'string' as const,
+        title: 'Article Body HTML (optional edit)',
+        description: 'You can modify the article content here. Leave empty to use the original.',
+      },
+    },
+    required: ['confirm_create'] as string[],
+  };
+}
+
+/**
+ * Process elicitation result for KB article confirmation.
+ * @param result - The elicitation result from MCP
+ * @param originalTitle - The original article title
+ * @param originalBodyHtml - The original article body HTML
+ * @returns Confirmation result with confirmed status and content
+ */
+export function processKBArticleElicitationResult(
+  result: { action: string; content?: Record<string, unknown> },
+  originalTitle: string,
+  originalBodyHtml: string
+): { confirmed: boolean; title?: string; bodyHtml?: string; reason?: string } {
+  if (result.action === 'accept' && result.content) {
+    const confirmCreate = result.content.confirm_create;
+    if (confirmCreate !== true) {
+      return { confirmed: false, reason: 'User did not confirm article creation' };
+    }
+
+    const modifiedTitle = result.content.modified_title;
+    const modifiedBodyHtml = result.content.modified_body_html;
+
+    return {
+      confirmed: true,
+      title:
+        typeof modifiedTitle === 'string' && modifiedTitle.trim()
+          ? modifiedTitle.trim()
+          : originalTitle,
+      bodyHtml:
+        typeof modifiedBodyHtml === 'string' && modifiedBodyHtml.trim()
+          ? modifiedBodyHtml.trim()
+          : originalBodyHtml,
+    };
+  }
+
+  if (result.action === 'decline') {
+    return { confirmed: false, reason: 'User declined to create the article' };
+  }
+
+  return { confirmed: false, reason: 'Article creation cancelled' };
+}

@@ -8,6 +8,9 @@ import {
   processElicitationResult,
   buildElicitationMessage,
   buildElicitationSchema,
+  buildKBArticleElicitationMessage,
+  buildKBArticleElicitationSchema,
+  processKBArticleElicitationResult,
 } from '../src/server-helpers.js';
 import { PylonClient } from '../src/pylon-client.js';
 
@@ -296,6 +299,128 @@ describe('Server Helpers', () => {
       const schema = buildElicitationSchema();
       expect(schema.properties.modified_content).toBeDefined();
       expect(schema.properties.modified_content.type).toBe('string');
+    });
+  });
+
+  describe('buildKBArticleElicitationMessage', () => {
+    it('should include knowledge base ID', () => {
+      const message = buildKBArticleElicitationMessage('kb_123', 'Test Title', '<p>Content</p>');
+      expect(message).toContain('kb_123');
+    });
+
+    it('should include article title', () => {
+      const message = buildKBArticleElicitationMessage('kb_123', 'Test Title', '<p>Content</p>');
+      expect(message).toContain('Test Title');
+    });
+
+    it('should include article body HTML', () => {
+      const message = buildKBArticleElicitationMessage('kb_123', 'Test Title', '<p>Content</p>');
+      expect(message).toContain('<p>Content</p>');
+    });
+
+    it('should show PUBLISHED status when is_published is true', () => {
+      const message = buildKBArticleElicitationMessage('kb_123', 'Test', '<p>C</p>', true);
+      expect(message).toContain('PUBLISHED');
+    });
+
+    it('should show DRAFT status when is_published is false', () => {
+      const message = buildKBArticleElicitationMessage('kb_123', 'Test', '<p>C</p>', false);
+      expect(message).toContain('DRAFT');
+    });
+  });
+
+  describe('buildKBArticleElicitationSchema', () => {
+    it('should return valid schema structure', () => {
+      const schema = buildKBArticleElicitationSchema();
+      expect(schema.type).toBe('object');
+      expect(schema.properties).toBeDefined();
+      expect(schema.required).toContain('confirm_create');
+    });
+
+    it('should have confirm_create property', () => {
+      const schema = buildKBArticleElicitationSchema();
+      expect(schema.properties.confirm_create).toBeDefined();
+      expect(schema.properties.confirm_create.type).toBe('boolean');
+      expect(schema.properties.confirm_create.default).toBe(false);
+    });
+
+    it('should have modified_title property', () => {
+      const schema = buildKBArticleElicitationSchema();
+      expect(schema.properties.modified_title).toBeDefined();
+      expect(schema.properties.modified_title.type).toBe('string');
+    });
+
+    it('should have modified_body_html property', () => {
+      const schema = buildKBArticleElicitationSchema();
+      expect(schema.properties.modified_body_html).toBeDefined();
+      expect(schema.properties.modified_body_html.type).toBe('string');
+    });
+  });
+
+  describe('processKBArticleElicitationResult', () => {
+    it('should return confirmed with original content when accepted without modifications', () => {
+      const result = processKBArticleElicitationResult(
+        { action: 'accept', content: { confirm_create: true } },
+        'Original Title',
+        '<p>Original Body</p>'
+      );
+      expect(result.confirmed).toBe(true);
+      expect(result.title).toBe('Original Title');
+      expect(result.bodyHtml).toBe('<p>Original Body</p>');
+    });
+
+    it('should return confirmed with modified content when provided', () => {
+      const result = processKBArticleElicitationResult(
+        {
+          action: 'accept',
+          content: {
+            confirm_create: true,
+            modified_title: 'New Title',
+            modified_body_html: '<p>New Body</p>',
+          },
+        },
+        'Original Title',
+        '<p>Original Body</p>'
+      );
+      expect(result.confirmed).toBe(true);
+      expect(result.title).toBe('New Title');
+      expect(result.bodyHtml).toBe('<p>New Body</p>');
+    });
+
+    it('should return not confirmed when confirm_create is false', () => {
+      const result = processKBArticleElicitationResult(
+        { action: 'accept', content: { confirm_create: false } },
+        'Title',
+        'Body'
+      );
+      expect(result.confirmed).toBe(false);
+      expect(result.reason).toContain('did not confirm');
+    });
+
+    it('should return not confirmed when action is decline', () => {
+      const result = processKBArticleElicitationResult({ action: 'decline' }, 'Title', 'Body');
+      expect(result.confirmed).toBe(false);
+      expect(result.reason).toContain('declined');
+    });
+
+    it('should return not confirmed for other actions', () => {
+      const result = processKBArticleElicitationResult({ action: 'cancel' }, 'Title', 'Body');
+      expect(result.confirmed).toBe(false);
+      expect(result.reason).toContain('cancelled');
+    });
+
+    it('should use original content when modified values are empty strings', () => {
+      const result = processKBArticleElicitationResult(
+        {
+          action: 'accept',
+          content: { confirm_create: true, modified_title: '  ', modified_body_html: '' },
+        },
+        'Original Title',
+        '<p>Original Body</p>'
+      );
+      expect(result.confirmed).toBe(true);
+      expect(result.title).toBe('Original Title');
+      expect(result.bodyHtml).toBe('<p>Original Body</p>');
     });
   });
 });

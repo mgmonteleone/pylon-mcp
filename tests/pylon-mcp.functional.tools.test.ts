@@ -15,6 +15,8 @@ function startServerProcess() {
       ...process.env,
       PYLON_API_TOKEN: 'test-token',
       PYLON_BASE_URL: process.env.PYLON_BASE_URL,
+      // Disable elicitation for tests since test client doesn't support it
+      PYLON_REQUIRE_MESSAGE_CONFIRMATION: 'false',
     },
   });
 }
