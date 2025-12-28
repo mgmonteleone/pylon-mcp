@@ -57,7 +57,8 @@ describe('PylonClient - Caching', () => {
 
     it('should cache GET requests and return cached data on subsequent calls', async () => {
       const mockUser = { id: '1', email: 'test@example.com', name: 'Test User', role: 'admin' };
-      mockedAxios.get.mockResolvedValueOnce({ data: mockUser });
+      // The /me endpoint returns a wrapped response: { data: { ... }, request_id: '...' }
+      mockedAxios.get.mockResolvedValueOnce({ data: { data: mockUser, request_id: 'req_123' } });
 
       // First call - should hit API
       const result1 = await client.getMe();

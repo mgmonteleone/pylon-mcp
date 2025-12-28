@@ -60,7 +60,10 @@ describe('pylon-mcp functional tools (stdio, mocked HTTP)', () => {
   beforeAll(async () => {
     mockServer = makeMockPylonServer({
       '/me': (_req, res) =>
-        withJson(res, 200, { id: 'user_1', email: 'a@example.com', name: 'Ada Lovelace' }),
+        withJson(res, 200, {
+          data: { id: 'user_1', email: 'a@example.com', name: 'Ada Lovelace' },
+          request_id: 'req_123',
+        }),
       '/users': (_req, res) => withJson(res, 200, [{ id: 'user_1', name: 'Ada' }]),
       '/users/search': async (req, res) => {
         let body = '';

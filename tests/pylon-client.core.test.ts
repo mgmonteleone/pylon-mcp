@@ -23,8 +23,9 @@ describe('PylonClient - Core Functionality', () => {
         name: 'Test User',
       };
 
+      // The /me endpoint returns a wrapped response: { data: { ... }, request_id: '...' }
       vi.spyOn(mockAxios, 'get').mockResolvedValue({
-        data: mockUser,
+        data: { data: mockUser, request_id: 'req_123' },
         status: 200,
         statusText: 'OK',
         headers: {},

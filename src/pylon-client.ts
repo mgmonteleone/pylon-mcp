@@ -331,7 +331,9 @@ export class PylonClient {
   }
 
   async getMe(): Promise<PylonUser> {
-    return this.cachedGet<PylonUser>('/me');
+    // The /me endpoint returns a wrapped response: { data: { id, name }, request_id }
+    const response = await this.cachedGet<{ data: PylonUser }>('/me');
+    return response.data;
   }
 
   async getContacts(params?: { search?: string; limit?: number }): Promise<PylonContact[]> {
