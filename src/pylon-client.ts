@@ -172,11 +172,38 @@ export interface PylonKnowledgeBase {
   description?: string;
 }
 
+/**
+ * Represents an article as returned by the Pylon API.
+ * Note: The response format differs from the request format (CreateArticleInput).
+ * Response uses `current_published_content_html` and `identifier`,
+ * while requests use `body_html` and `author_user_id`.
+ */
 export interface PylonArticle {
   id: string;
+  identifier?: string;
   title: string;
-  content: string;
-  knowledge_base_id: string;
+  /** The published HTML content of the article (read-only, from API response) */
+  current_published_content_html?: string;
+  collection_id?: string;
+  is_published?: boolean;
+  last_published_at?: string;
+  slug?: string;
+  url?: string;
+  visibility_config?: {
+    visibility?: string;
+    ai_agent_access?: string;
+    allowed_agent_ids?: string[];
+  };
+}
+
+export interface CreateArticleInput {
+  title: string;
+  body_html: string;
+  author_user_id: string;
+  collection_id?: string;
+  is_published?: boolean;
+  is_unlisted?: boolean;
+  slug?: string;
 }
 
 export interface PylonTeam {
@@ -339,13 +366,13 @@ export class PylonClient {
 
   async createKnowledgeBaseArticle(
     knowledgeBaseId: string,
-    article: Omit<PylonArticle, 'id' | 'knowledge_base_id'>
+    article: CreateArticleInput
   ): Promise<PylonArticle> {
-    const response: AxiosResponse<PylonArticle> = await this.client.post(
+    const response: AxiosResponse<{ data: PylonArticle }> = await this.client.post(
       `/knowledge-bases/${knowledgeBaseId}/articles`,
       article
     );
-    return response.data;
+    return response.data.data;
   }
 
   // Teams API

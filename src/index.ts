@@ -14,12 +14,18 @@ import {
   processElicitationResult,
   buildElicitationMessage,
   buildElicitationSchema,
+  buildKBArticleElicitationMessage,
+  buildKBArticleElicitationSchema,
+  processKBArticleElicitationResult,
 } from './server-helpers.js';
 
-// Environment variable to control whether elicitation is required for customer-facing messages
+// Environment variable to control whether elicitation is required for customer-facing content
 const REQUIRE_MESSAGE_CONFIRMATION = isMessageConfirmationRequired(
   process.env.PYLON_REQUIRE_MESSAGE_CONFIRMATION
 );
+
+// Use the same env var for KB articles (they can also be customer-facing)
+const REQUIRE_KB_ARTICLE_CONFIRMATION = REQUIRE_MESSAGE_CONFIRMATION;
 
 const PYLON_API_TOKEN = process.env.PYLON_API_TOKEN;
 
@@ -64,6 +70,41 @@ async function requestMessageConfirmation(
     console.error('Elicitation not available or failed:', error);
     throw new Error(
       'Message confirmation is required but the MCP client does not support elicitation. ' +
+        'Please use a client that supports MCP elicitation, or set PYLON_REQUIRE_MESSAGE_CONFIRMATION=false to disable this safety feature.'
+    );
+  }
+}
+
+/**
+ * Helper function to request user confirmation before creating KB articles.
+ * Uses MCP elicitation to prompt the user to review and confirm the article content.
+ *
+ * @param knowledgeBaseId - The ID of the knowledge base
+ * @param title - The article title
+ * @param bodyHtml - The article body HTML content
+ * @param isPublished - Whether the article will be published
+ * @returns Object with confirmed: boolean and optionally the confirmed/modified content
+ */
+async function requestKBArticleConfirmation(
+  knowledgeBaseId: string,
+  title: string,
+  bodyHtml: string,
+  isPublished?: boolean
+): Promise<{ confirmed: boolean; title?: string; bodyHtml?: string; reason?: string }> {
+  try {
+    const elicitParams: ElicitRequestFormParams = {
+      mode: 'form',
+      message: buildKBArticleElicitationMessage(knowledgeBaseId, title, bodyHtml, isPublished),
+      requestedSchema: buildKBArticleElicitationSchema(),
+    };
+
+    const result = await mcpServer.server.elicitInput(elicitParams);
+
+    return processKBArticleElicitationResult(result, title, bodyHtml);
+  } catch (error) {
+    console.error('Elicitation not available or failed:', error);
+    throw new Error(
+      'KB article confirmation is required but the MCP client does not support elicitation. ' +
         'Please use a client that supports MCP elicitation, or set PYLON_REQUIRE_MESSAGE_CONFIRMATION=false to disable this safety feature.'
     );
   }
@@ -523,11 +564,12 @@ mcpServer.registerTool(
     jsonResponse(await ensurePylonClient().getKnowledgeBaseArticles(knowledge_base_id))
 );
 
+// KB article creation with elicitation confirmation
 mcpServer.registerTool(
   'pylon_create_knowledge_base_article',
   {
     description:
-      'Create a new help article in a knowledge base. Use this to add new documentation, FAQs, or troubleshooting guides that customers can access for self-service support.',
+      'Create a new help article in a knowledge base. Use this to add new documentation, FAQs, or troubleshooting guides that customers can access for self-service support. ⚠️ IMPORTANT: This tool creates potentially customer-facing content and requires user confirmation before creating.',
     inputSchema: {
       knowledge_base_id: z
         .string()
@@ -537,17 +579,93 @@ mcpServer.registerTool(
         .describe(
           'Article title that clearly describes the topic. Examples: "How to Reset Your Password", "Troubleshooting Login Issues", "Billing FAQ"'
         ),
-      content: z
+      body_html: z
         .string()
         .describe(
-          'Full article content in markdown or HTML format. Include step-by-step instructions, screenshots, and links. Example: "## Steps to Reset Password\\n1. Go to login page\\n2. Click Forgot Password..."'
+          'Full article content in HTML format. Include step-by-step instructions, screenshots, and links. Example: "<h2>Steps to Reset Password</h2><ol><li>Go to login page</li><li>Click Forgot Password...</li></ol>"'
+        ),
+      author_user_id: z
+        .string()
+        .optional()
+        .describe(
+          'Optional ID of the user attributed as the author of the article. If not provided, defaults to the authenticated user. Example: "user_123abc"'
+        ),
+      collection_id: z
+        .string()
+        .optional()
+        .describe('Optional ID of the collection to add the article to. Example: "col_123abc"'),
+      is_published: z
+        .boolean()
+        .optional()
+        .describe('Whether the article should be published immediately. Defaults to false.'),
+      is_unlisted: z
+        .boolean()
+        .optional()
+        .describe('Whether the article can only be accessed via direct link. Defaults to false.'),
+      slug: z
+        .string()
+        .optional()
+        .describe(
+          'Custom slug for the article URL. Defaults to a slug based on the title. Example: "reset-password-guide"'
         ),
     },
   },
-  async ({ knowledge_base_id, title, content }) =>
-    jsonResponse(
-      await ensurePylonClient().createKnowledgeBaseArticle(knowledge_base_id, { title, content })
-    )
+  async ({
+    knowledge_base_id,
+    title,
+    body_html,
+    author_user_id,
+    collection_id,
+    is_published,
+    is_unlisted,
+    slug,
+  }) => {
+    const client = ensurePylonClient();
+    let articleTitle = title;
+    let articleBodyHtml = body_html;
+
+    // Request user confirmation before creating KB articles (they can be customer-facing)
+    if (REQUIRE_KB_ARTICLE_CONFIRMATION) {
+      const confirmation = await requestKBArticleConfirmation(
+        knowledge_base_id,
+        articleTitle,
+        articleBodyHtml,
+        is_published
+      );
+
+      if (!confirmation.confirmed) {
+        return jsonResponse({
+          success: false,
+          message: 'Article not created - user did not confirm',
+          reason: confirmation.reason,
+          knowledge_base_id,
+          original_title: articleTitle,
+        });
+      }
+
+      // Use the potentially modified content from the confirmation
+      if (confirmation.title) {
+        articleTitle = confirmation.title;
+      }
+      if (confirmation.bodyHtml) {
+        articleBodyHtml = confirmation.bodyHtml;
+      }
+    }
+
+    // Default author_user_id to the authenticated user if not provided
+    const resolvedAuthorId = author_user_id ?? (await client.getMe()).id;
+    return jsonResponse(
+      await client.createKnowledgeBaseArticle(knowledge_base_id, {
+        title: articleTitle,
+        body_html: articleBodyHtml,
+        author_user_id: resolvedAuthorId,
+        collection_id,
+        is_published,
+        is_unlisted,
+        slug,
+      })
+    );
+  }
 );
 
 // Team Management Tools

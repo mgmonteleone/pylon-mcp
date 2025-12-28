@@ -336,11 +336,15 @@ describe('PylonClient - Core Functionality', () => {
     });
 
     it('should create an article in a knowledge base', async () => {
-      const newArticle = { title: 'FAQ', content: 'Content' } as any;
-      const created = { id: 'art2', ...newArticle, knowledge_base_id: 'kb1' } as any;
+      const newArticle = {
+        title: 'FAQ',
+        body_html: '<p>Content</p>',
+        author_user_id: 'user_123',
+      };
+      const created = { id: 'art2', ...newArticle, knowledge_base_id: 'kb1' };
 
       vi.spyOn(mockAxios, 'post').mockResolvedValue({
-        data: created,
+        data: { data: created },
         status: 201,
         statusText: 'Created',
         headers: {},
