@@ -269,6 +269,7 @@ export class PylonClient {
         Authorization: `Bearer ${config.apiToken}`,
         'Content-Type': 'application/json',
       },
+      timeout: 30000, // 30 second timeout for all requests
     });
 
     // Initialize cache if TTL is provided and > 0
@@ -543,13 +544,11 @@ export class PylonClient {
     return this.cachedGet<PylonMessage[]>(`/issues/${issueId}/messages`);
   }
 
-  async createIssueMessage(issueId: string, content: string): Promise<PylonMessage> {
-    const response: AxiosResponse<PylonMessage> = await this.client.post(
-      `/issues/${issueId}/messages`,
-      { content }
-    );
-    return response.data;
-  }
+  // Note: The Pylon API does not support creating messages via API.
+  // Messages can only be created through:
+  // 1. The Pylon web UI
+  // 2. Original channels (Slack, email, etc.) for externally-sourced issues
+  // 3. The initial body_html when creating a new issue via POST /issues
 
   // Combined method to get issue with all messages
   async getIssueWithMessages(

@@ -64,8 +64,16 @@ describe('Server Helpers', () => {
       expect(isMessageConfirmationRequired(undefined)).toBe(true);
     });
 
-    it('should return false when env value is "false"', () => {
+    it('should return false when env value is "false" (lowercase)', () => {
       expect(isMessageConfirmationRequired('false')).toBe(false);
+    });
+
+    it('should return false when env value is "FALSE" (uppercase)', () => {
+      expect(isMessageConfirmationRequired('FALSE')).toBe(false);
+    });
+
+    it('should return false when env value is "False" (mixed case)', () => {
+      expect(isMessageConfirmationRequired('False')).toBe(false);
     });
 
     it('should return true for any other value', () => {

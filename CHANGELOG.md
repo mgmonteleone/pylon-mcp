@@ -5,6 +5,33 @@ All notable changes to the Pylon MCP Server will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Breaking Changes
+
+- **Removed `pylon_create_issue_message` tool** (Issue #13)
+  - The Pylon API does not support creating messages via `POST /issues/{id}/messages`
+  - This endpoint does not exist in the official Pylon API documentation
+  - Messages can only be created through:
+    1. The Pylon web UI
+    2. Original channels (Slack, email, etc.) for externally-sourced issues
+    3. The initial `body_html` when creating a new issue via `POST /issues`
+  - Removed `createIssueMessage()` method from `PylonClient` class
+  - Updated documentation to clarify this API limitation
+
+### Added
+
+- **HTTP Request Timeout** - All Pylon API requests now have a 30-second timeout
+  - Prevents indefinite hanging when the Pylon API is slow or unresponsive
+  - Configurable timeout helps identify API performance issues
+  - Requests that exceed 30 seconds will fail with a timeout error
+
+### Fixed
+
+- **Case-insensitive environment variable handling**
+  - `PYLON_REQUIRE_MESSAGE_CONFIRMATION` now accepts any case variation (FALSE, false, False)
+  - Previously only accepted lowercase "false"
+
 ## [2.0.1] - 2025-12-28
 
 ### Fixed
@@ -172,7 +199,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - User Management (`pylon_get_me`, `pylon_get_users`, `pylon_search_users`)
   - Contact Management (`pylon_get_contacts`, `pylon_create_contact`, `pylon_search_contacts`)
   - Issue Management (`pylon_get_issues`, `pylon_create_issue`, `pylon_get_issue`, `pylon_update_issue`, `pylon_snooze_issue`, `pylon_search_issues`)
-  - Message Management (`pylon_get_issue_messages`, `pylon_create_issue_message`)
+  - Message Management (`pylon_get_issue_messages`)
   - Knowledge Base (`pylon_get_knowledge_bases`, `pylon_get_knowledge_base_articles`, `pylon_create_knowledge_base_article`)
   - Team Management (`pylon_get_teams`, `pylon_get_team`, `pylon_create_team`)
   - Account Management (`pylon_get_accounts`, `pylon_get_account`)

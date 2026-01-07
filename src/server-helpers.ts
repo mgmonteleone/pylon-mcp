@@ -31,7 +31,7 @@ export function parseCacheTtl(envValue: string | undefined): number | undefined 
  * @returns true if confirmation is required, false otherwise
  */
 export function isMessageConfirmationRequired(envValue: string | undefined): boolean {
-  return envValue !== 'false';
+  return envValue?.toLowerCase() !== 'false';
 }
 
 /**

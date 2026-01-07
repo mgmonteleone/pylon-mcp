@@ -495,47 +495,13 @@ mcpServer.registerTool(
   async ({ issue_id }) => jsonResponse(await ensurePylonClient().getIssueMessages(issue_id))
 );
 
-// Message creation with elicitation confirmation
-mcpServer.registerTool(
-  'pylon_create_issue_message',
-  {
-    description:
-      'Add a new message/reply to a support issue conversation. Use this to respond to customers, add internal notes, or provide updates on issue progress. ⚠️ IMPORTANT: This tool sends customer-facing messages and requires user confirmation before sending. The user will be prompted to review and approve the message content.',
-    inputSchema: {
-      issue_id: z.string().describe('ID of the issue to add message to. Example: "issue_abc123"'),
-      content: z
-        .string()
-        .describe(
-          'Message text to send. Can include formatting and links. Examples: "Hi John, I\'ve escalated this to our dev team. You should see a fix by tomorrow.", "**Internal note:** This appears to be related to the server migration last week."'
-        ),
-    },
-  },
-  async ({ issue_id, content }) => {
-    let messageContent = content;
-
-    // Request user confirmation before sending customer-facing messages
-    if (REQUIRE_MESSAGE_CONFIRMATION) {
-      const confirmation = await requestMessageConfirmation(issue_id, messageContent);
-
-      if (!confirmation.confirmed) {
-        return jsonResponse({
-          success: false,
-          message: 'Message not sent - user did not confirm',
-          reason: confirmation.reason,
-          issue_id,
-          original_content: messageContent,
-        });
-      }
-
-      // Use the potentially modified content from the confirmation
-      if (confirmation.content) {
-        messageContent = confirmation.content;
-      }
-    }
-
-    return jsonResponse(await ensurePylonClient().createIssueMessage(issue_id, messageContent));
-  }
-);
+// Note: pylon_create_issue_message has been removed because the Pylon API
+// does not support creating messages via API (POST /issues/{id}/messages does not exist).
+// Messages can only be created through:
+// 1. The Pylon web UI
+// 2. Original channels (Slack, email, etc.) for externally-sourced issues
+// 3. The initial body_html when creating a new issue via POST /issues
+// See: https://github.com/mgmonteleone/pylon-mcp/issues/13
 
 // Knowledge Base Tools
 mcpServer.registerTool(

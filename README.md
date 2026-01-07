@@ -22,6 +22,21 @@ Set the following environment variables:
 - `PYLON_CACHE_TTL`: Cache time-to-live in milliseconds (optional, default: 30000)
   - Set to `0` to disable caching
   - Example: `PYLON_CACHE_TTL=60000` for 60-second cache
+- `PYLON_REQUIRE_MESSAGE_CONFIRMATION`: Whether to require user confirmation for certain operations (optional, default: true)
+  - Set to `false` (case-insensitive) to disable confirmation prompts
+  - Example: `PYLON_REQUIRE_MESSAGE_CONFIRMATION=false`
+
+### HTTP Request Timeout
+
+All Pylon API requests have a **30-second timeout** to prevent indefinite hanging. If a request takes longer than 30 seconds, it will fail with a timeout error. This helps identify:
+- Slow API responses
+- Network connectivity issues
+- API performance problems
+
+If you encounter timeout errors, check:
+1. Your network connection
+2. Pylon API status
+3. Whether the operation is legitimately slow (e.g., large data queries)
 
 ### Caching Behavior
 
@@ -123,9 +138,10 @@ npm run test:coverage
 - `pylon_get_issue`: Get details of a specific issue
 - `pylon_get_issue_with_messages`: **NEW** - Get a complete issue with all messages in one call
 - `pylon_get_issue_messages`: Get conversation history for an issue
-- `pylon_create_issue_message`: Add a message/reply to an issue
 - `pylon_update_issue`: Update issue status, priority, assignee, etc.
 - `pylon_snooze_issue`: Temporarily hide an issue until a future date
+
+> **Note:** The Pylon API does not support creating messages programmatically. Messages can only be created through the Pylon web UI or original channels (Slack, email, etc.).
 
 ### Knowledge Base Tools
 
@@ -308,7 +324,6 @@ Once connected, you can use any of the 26+ available tools:
 "Show all open issues" → uses pylon_get_issues
 "Create a new bug report" → uses pylon_create_issue
 "Get issue #123 with all messages" → uses pylon_get_issue_with_messages
-"Add a comment to issue #123" → uses pylon_create_issue_message
 "Update issue status to resolved" → uses pylon_update_issue
 
 # Attachments

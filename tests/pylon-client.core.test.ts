@@ -217,22 +217,9 @@ describe('PylonClient - Core Functionality', () => {
       expect(mockAxios.post).toHaveBeenCalledWith('/issues/issue_4/snooze', { until });
     });
 
-    it('should create issue message', async () => {
-      const message = { id: 'msg_1', content: 'hello', issue_id: 'issue_5' } as any;
-
-      vi.spyOn(mockAxios, 'post').mockResolvedValue({
-        data: message,
-        status: 201,
-        statusText: 'Created',
-        headers: {},
-        config: {} as any,
-      });
-
-      const result = await client.createIssueMessage('issue_5', 'hello');
-
-      expect(mockAxios.post).toHaveBeenCalledWith('/issues/issue_5/messages', { content: 'hello' });
-      expect(result).toEqual(message);
-    });
+    // Test removed: createIssueMessage method removed because the Pylon API
+    // does not support creating messages via POST /issues/{id}/messages
+    // See: https://github.com/mgmonteleone/pylon-mcp/issues/13
 
     it('should fetch issue with messages using combined method', async () => {
       const mockIssue = { id: 'issue_6', title: 'Combined' } as any;
