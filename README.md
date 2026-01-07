@@ -22,6 +22,21 @@ Set the following environment variables:
 - `PYLON_CACHE_TTL`: Cache time-to-live in milliseconds (optional, default: 30000)
   - Set to `0` to disable caching
   - Example: `PYLON_CACHE_TTL=60000` for 60-second cache
+- `PYLON_REQUIRE_MESSAGE_CONFIRMATION`: Whether to require user confirmation for certain operations (optional, default: true)
+  - Set to `false` (case-insensitive) to disable confirmation prompts
+  - Example: `PYLON_REQUIRE_MESSAGE_CONFIRMATION=false`
+
+### HTTP Request Timeout
+
+All Pylon API requests have a **30-second timeout** to prevent indefinite hanging. If a request takes longer than 30 seconds, it will fail with a timeout error. This helps identify:
+- Slow API responses
+- Network connectivity issues
+- API performance problems
+
+If you encounter timeout errors, check:
+1. Your network connection
+2. Pylon API status
+3. Whether the operation is legitimately slow (e.g., large data queries)
 
 ### Caching Behavior
 
