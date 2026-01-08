@@ -32,4 +32,12 @@ describe('Tool descriptions guide ticket-number usage', () => {
       'ID (ticket/issue number) of the issue to get messages for. You can pass the user-provided ticket number directly'
     );
   });
+
+  it('pylon_get_attachment guides how to find attachment_id and download via returned url', () => {
+    expect(indexSource).toContain("'pylon_get_attachment'");
+    expect(indexSource).toContain('attachment_id');
+    expect(indexSource).toContain('pylon_get_issue_messages or pylon_get_issue_with_messages');
+    expect(indexSource).toContain('To download the file contents');
+    expect(indexSource).toContain('signed URLs may expire');
+  });
 });

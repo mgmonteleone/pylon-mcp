@@ -437,7 +437,7 @@ mcpServer.registerTool(
   'pylon_create_knowledge_base_article',
   {
     description:
-			'Create a new help article in a knowledge base. Use this to add new documentation, FAQs, or troubleshooting guides that customers can access for self-service support.',
+      'Create a new help article in a knowledge base. Use this to add new documentation, FAQs, or troubleshooting guides that customers can access for self-service support.',
     inputSchema: {
       knowledge_base_id: z
         .string()
@@ -494,8 +494,8 @@ mcpServer.registerTool(
     const resolvedAuthorId = author_user_id ?? (await client.getMe()).id;
     return jsonResponse(
       await client.createKnowledgeBaseArticle(knowledge_base_id, {
-				title,
-				body_html,
+        title,
+        body_html,
         author_user_id: resolvedAuthorId,
         collection_id,
         is_published,
@@ -640,9 +640,27 @@ mcpServer.registerTool(
 
 // Attachment Management Tools
 
-// Note: pylon_get_attachment has been removed because the authoritative OpenAPI spec does
-// not include GET /attachments/{id}.
+// Note: the authoritative OpenAPI spec previously did not include GET /attachments/{id}.
+// We implement pylon_get_attachment as a best-effort tool because attachments are
+// often referenced by ID in message payloads.
 // See: https://github.com/mgmonteleone/pylon-mcp/issues/24
+
+mcpServer.registerTool(
+  'pylon_get_attachment',
+  {
+    description:
+      'Get details of a specific attachment from Pylon. Returns attachment metadata (id, name, url, description). Use this when you have an attachment_id from an issue message’s attachments array (via pylon_get_issue_messages or pylon_get_issue_with_messages). To download the file contents, fetch the returned url (signed URLs may expire).',
+    inputSchema: {
+      attachment_id: z
+        .string()
+        .describe(
+          'ID of the attachment to retrieve. Get this from an issue message attachments array (from pylon_get_issue_messages or pylon_get_issue_with_messages). Example: "att_abc123"'
+        ),
+    },
+  },
+  async ({ attachment_id }) =>
+    jsonResponse(await ensurePylonClient().getAttachment(attachment_id))
+);
 
 mcpServer.registerTool(
   'pylon_create_attachment_from_url',

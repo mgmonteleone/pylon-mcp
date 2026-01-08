@@ -166,6 +166,4 @@ describe('Tool Handler Patterns', () => {
       expect(response.webhook_id).toBe(webhookId);
     });
   });
-
-
 });

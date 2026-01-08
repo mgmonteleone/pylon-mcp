@@ -108,4 +108,30 @@ describe('PylonClient - Attachments', () => {
       expect(result).toEqual(mockResponse.data);
     });
   });
+
+  describe('getAttachment', () => {
+    it('should get attachment when API returns wrapped data envelope', async () => {
+      const mockAttachment = {
+        id: 'att_123',
+        name: 'logs.zip',
+        url: 'https://assets.usepylon.com/signed-url',
+        description: 'GoLand logs',
+      };
+
+      vi.spyOn(mockAxios, 'get').mockResolvedValue({
+        data: { data: mockAttachment, request_id: 'req_1' },
+        status: 200,
+        statusText: 'OK',
+        headers: {},
+        config: {} as any,
+      });
+
+      const result = await client.getAttachment('att_123');
+
+      expect(mockAxios.get).toHaveBeenCalledWith('/attachments/att_123', {
+        params: undefined,
+      });
+      expect(result).toEqual(mockAttachment);
+    });
+  });
 });

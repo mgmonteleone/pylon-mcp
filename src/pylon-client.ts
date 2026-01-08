@@ -160,11 +160,25 @@ export interface PylonIssue {
   assignee?: string;
   /** The ID of the contact who created the issue */
   requestor_id?: string;
+  /** Canonical requester id (newer API) */
+  requester_id?: string;
+  /** Requester object (newer API) */
+  requester?: { id: string; email?: string };
   /** The ID of the account the requestor belongs to */
   account_id?: string;
+  /** Account object (newer API) */
+  account?: { id: string };
+  /** Issue number (newer API) */
+  number?: number;
   /** The HTML body content of the issue */
   body_html?: string;
 }
+
+type PylonApiResponse<T> = {
+  data: T;
+  request_id?: string;
+  pagination?: unknown;
+};
 
 export interface PylonKnowledgeBase {
   id: string;
@@ -344,12 +358,16 @@ export class PylonClient {
     status?: string;
     limit?: number;
   }): Promise<PylonIssue[]> {
-    return this.cachedGet<PylonIssue[]>('/issues', params);
+    const response = await this.cachedGet<PylonIssue[] | PylonApiResponse<PylonIssue[]>>(
+      '/issues',
+      params
+    );
+    return this.unwrapArray(response);
   }
 
   async createIssue(issue: Omit<PylonIssue, 'id'>): Promise<PylonIssue> {
     const response: AxiosResponse<PylonIssue> = await this.client.post('/issues', issue);
-    return response.data;
+    return this.unwrapData(response.data);
   }
 
   async getKnowledgeBases(): Promise<PylonKnowledgeBase[]> {
@@ -410,15 +428,21 @@ export class PylonClient {
 
   // Issues API (search and additional operations)
   async searchIssues(query: string, filters?: any): Promise<PylonIssue[]> {
-    const response: AxiosResponse<PylonIssue[]> = await this.client.post('/issues/search', {
+    const response: AxiosResponse<PylonIssue[] | PylonApiResponse<PylonIssue[]>> = await this.client.post(
+      '/issues/search',
+      {
       query,
       ...filters,
-    });
-    return response.data;
+      }
+    );
+    return this.unwrapArray(response.data);
   }
 
   async getIssue(issueId: string): Promise<PylonIssue> {
-    return this.cachedGet<PylonIssue>(`/issues/${issueId}`);
+    const response = await this.cachedGet<PylonIssue | PylonApiResponse<PylonIssue>>(
+      `/issues/${issueId}`
+    );
+    return this.unwrapData(response);
   }
 
   async updateIssue(issueId: string, updates: Partial<PylonIssue>): Promise<PylonIssue> {
@@ -426,7 +450,7 @@ export class PylonClient {
       `/issues/${issueId}`,
       updates
     );
-    return response.data;
+    return this.unwrapData(response.data);
   }
 
   async snoozeIssue(issueId: string, until: string): Promise<void> {
@@ -445,15 +469,20 @@ export class PylonClient {
   ): Promise<{ sourceIssue: PylonIssue; similarIssues: PylonIssue[] }> {
     const sourceIssue = await this.getIssue(issueId);
 
-    if (!sourceIssue.requestor_id) {
+    const requestorId =
+      sourceIssue.requestor_id || sourceIssue.requester_id || sourceIssue.requester?.id;
+
+    if (!requestorId) {
       return { sourceIssue, similarIssues: [] };
     }
 
     // Build search query from title or provided query
     const searchQuery = options?.query || sourceIssue.title;
 
+    // Include both legacy + canonical field names for better compatibility
     const filters: Record<string, unknown> = {
-      requestor_id: sourceIssue.requestor_id,
+      requestor_id: requestorId,
+      requester_id: requestorId,
     };
     if (options?.limit) {
       filters.limit = options.limit;
@@ -461,8 +490,11 @@ export class PylonClient {
 
     const results = await this.searchIssues(searchQuery, filters);
 
-    // Exclude the source issue from results
-    const similarIssues = results.filter((issue) => issue.id !== issueId);
+    // Exclude the source issue from results (support both id and number)
+    const issueIdStr = String(issueId);
+    const similarIssues = results.filter(
+      (issue) => issue.id !== issueId && (issue.number == null || String(issue.number) !== issueIdStr)
+    );
 
     return { sourceIssue, similarIssues };
   }
@@ -477,7 +509,9 @@ export class PylonClient {
   ): Promise<{ sourceIssue: PylonIssue; similarIssues: PylonIssue[] }> {
     const sourceIssue = await this.getIssue(issueId);
 
-    if (!sourceIssue.account_id) {
+    const accountId = sourceIssue.account_id || sourceIssue.account?.id;
+
+    if (!accountId) {
       return { sourceIssue, similarIssues: [] };
     }
 
@@ -485,7 +519,7 @@ export class PylonClient {
     const searchQuery = options?.query || sourceIssue.title;
 
     const filters: Record<string, unknown> = {
-      account_id: sourceIssue.account_id,
+      account_id: accountId,
     };
     if (options?.limit) {
       filters.limit = options.limit;
@@ -493,8 +527,11 @@ export class PylonClient {
 
     const results = await this.searchIssues(searchQuery, filters);
 
-    // Exclude the source issue from results
-    const similarIssues = results.filter((issue) => issue.id !== issueId);
+    // Exclude the source issue from results (support both id and number)
+    const issueIdStr = String(issueId);
+    const similarIssues = results.filter(
+      (issue) => issue.id !== issueId && (issue.number == null || String(issue.number) !== issueIdStr)
+    );
 
     return { sourceIssue, similarIssues };
   }
@@ -522,15 +559,36 @@ export class PylonClient {
       Object.keys(filters).length > 0 ? filters : undefined
     );
 
-    // Exclude the source issue from results
-    const similarIssues = results.filter((issue) => issue.id !== issueId);
+    // Exclude the source issue from results (support both id and number)
+    const issueIdStr = String(issueId);
+    const similarIssues = results.filter(
+      (issue) => issue.id !== issueId && (issue.number == null || String(issue.number) !== issueIdStr)
+    );
 
     return { sourceIssue, similarIssues };
   }
 
   // Messages API
   async getIssueMessages(issueId: string): Promise<PylonMessage[]> {
-    return this.cachedGet<PylonMessage[]>(`/issues/${issueId}/messages`);
+    const response = await this.cachedGet<PylonMessage[] | PylonApiResponse<PylonMessage[]>>(
+      `/issues/${issueId}/messages`
+    );
+    return this.unwrapArray(response);
+  }
+
+  private unwrapData<T>(payload: T | PylonApiResponse<T>): T {
+    if (payload && typeof payload === 'object' && 'data' in (payload as any)) {
+      return (payload as any).data as T;
+    }
+    return payload as T;
+  }
+
+  private unwrapArray<T>(payload: unknown): T[] {
+    if (Array.isArray(payload)) return payload as T[];
+    if (payload && typeof payload === 'object' && Array.isArray((payload as any).data)) {
+      return (payload as any).data as T[];
+    }
+    return [];
   }
 
   // Note: The Pylon API does not support creating messages via API.
@@ -563,6 +621,13 @@ export class PylonClient {
   // Ticket Forms API
   async getTicketForms(): Promise<PylonTicketForm[]> {
     return this.cachedGet<PylonTicketForm[]>('/ticket-forms');
+  }
+
+  async getAttachment(attachmentId: string): Promise<PylonAttachment> {
+    const response = await this.cachedGet<PylonAttachment | PylonApiResponse<PylonAttachment>>(
+      `/attachments/${attachmentId}`
+    );
+    return this.unwrapData(response);
   }
 
   async createAttachment(file: File | Blob, description?: string): Promise<PylonAttachment> {

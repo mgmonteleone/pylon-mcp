@@ -26,11 +26,13 @@ Set the following environment variables:
 ### HTTP Request Timeout
 
 All Pylon API requests have a **30-second timeout** to prevent indefinite hanging. If a request takes longer than 30 seconds, it will fail with a timeout error. This helps identify:
+
 - Slow API responses
 - Network connectivity issues
 - API performance problems
 
 If you encounter timeout errors, check:
+
 1. Your network connection
 2. Pylon API status
 3. Whether the operation is legitimately slow (e.g., large data queries)
@@ -147,7 +149,10 @@ npm run test:coverage
 
 ### Attachment Tools
 
+- `pylon_get_attachment`: Get attachment metadata (includes a downloadable URL)
 - `pylon_create_attachment_from_url`: Create an attachment from a URL
+
+> Tip: You usually get `attachment_id` from a message’s `attachments[]` returned by `pylon_get_issue_messages` or `pylon_get_issue_with_messages`. To download the actual file, fetch the returned `url` (signed URLs may expire).
 
 ## Usage Examples
 
@@ -339,7 +344,7 @@ This server is designed to be deployed to Smithery using the included `smithery.
 
 - Install dependencies with `npm install && npm run build`
 - Configure the Node.js runtime with proper entrypoint
-- Expose all 23 Pylon API tools
+- Expose all supported Pylon API tools
 - Require the `PYLON_API_TOKEN` environment variable
 
 ## API Reference
