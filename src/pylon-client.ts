@@ -249,13 +249,6 @@ export interface PylonTicketForm {
   fields: any[];
 }
 
-export interface PylonWebhook {
-  id: string;
-  url: string;
-  events: string[];
-  active: boolean;
-}
-
 export class PylonClient {
   private client: AxiosInstance;
   private cache: SimpleCache | null;
@@ -361,10 +354,6 @@ export class PylonClient {
 
   async getKnowledgeBases(): Promise<PylonKnowledgeBase[]> {
     return this.cachedGet<PylonKnowledgeBase[]>('/knowledge-bases');
-  }
-
-  async getKnowledgeBaseArticles(knowledgeBaseId: string): Promise<PylonArticle[]> {
-    return this.cachedGet<PylonArticle[]>(`/knowledge-bases/${knowledgeBaseId}/articles`);
   }
 
   async createKnowledgeBaseArticle(
@@ -574,30 +563,6 @@ export class PylonClient {
   // Ticket Forms API
   async getTicketForms(): Promise<PylonTicketForm[]> {
     return this.cachedGet<PylonTicketForm[]>('/ticket-forms');
-  }
-
-  async createTicketForm(form: Omit<PylonTicketForm, 'id'>): Promise<PylonTicketForm> {
-    const response: AxiosResponse<PylonTicketForm> = await this.client.post('/ticket-forms', form);
-    return response.data;
-  }
-
-  // Webhooks API
-  async getWebhooks(): Promise<PylonWebhook[]> {
-    return this.cachedGet<PylonWebhook[]>('/webhooks');
-  }
-
-  async createWebhook(webhook: Omit<PylonWebhook, 'id'>): Promise<PylonWebhook> {
-    const response: AxiosResponse<PylonWebhook> = await this.client.post('/webhooks', webhook);
-    return response.data;
-  }
-
-  async deleteWebhook(webhookId: string): Promise<void> {
-    await this.client.delete(`/webhooks/${webhookId}`);
-  }
-
-  // Attachments API
-  async getAttachment(attachmentId: string): Promise<PylonAttachment> {
-    return this.cachedGet<PylonAttachment>(`/attachments/${attachmentId}`);
   }
 
   async createAttachment(file: File | Blob, description?: string): Promise<PylonAttachment> {

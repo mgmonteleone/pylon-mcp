@@ -22,9 +22,6 @@ Set the following environment variables:
 - `PYLON_CACHE_TTL`: Cache time-to-live in milliseconds (optional, default: 30000)
   - Set to `0` to disable caching
   - Example: `PYLON_CACHE_TTL=60000` for 60-second cache
-- `PYLON_REQUIRE_MESSAGE_CONFIRMATION`: Whether to require user confirmation for certain operations (optional, default: true)
-  - Set to `false` (case-insensitive) to disable confirmation prompts
-  - Example: `PYLON_REQUIRE_MESSAGE_CONFIRMATION=false`
 
 ### HTTP Request Timeout
 
@@ -113,7 +110,7 @@ npm run test:coverage
 
 **Test Coverage:**
 
-- ✅ Attachment API (get, create from URL, file upload)
+- ✅ Attachment API (create from URL, file upload)
 - ✅ User Management (get user, search users)
 - ✅ Issue Management (get, create, update, filter)
 - ✅ Contact Management (get, search, create)
@@ -146,12 +143,10 @@ npm run test:coverage
 ### Knowledge Base Tools
 
 - `pylon_get_knowledge_bases`: List all knowledge bases
-- `pylon_get_knowledge_base_articles`: Get articles from a specific knowledge base
 - `pylon_create_knowledge_base_article`: Create a new article in a knowledge base
 
 ### Attachment Tools
 
-- `pylon_get_attachment`: Get details of a specific attachment
 - `pylon_create_attachment_from_url`: Create an attachment from a URL
 
 ## Usage Examples
@@ -313,7 +308,7 @@ Search for contacts with pylon_search_contacts using "customer@example.com"
 
 ### Example Tool Usage
 
-Once connected, you can use any of the 26+ available tools:
+Once connected, you can use the available tools:
 
 ```text
 # User Management
@@ -327,8 +322,7 @@ Once connected, you can use any of the 26+ available tools:
 "Update issue status to resolved" → uses pylon_update_issue
 
 # Attachments
-"Get attachment details for att_123" → uses pylon_get_attachment (NEW!)
-"Create attachment from URL" → uses pylon_create_attachment_from_url (NEW!)
+"Create attachment from URL" → uses pylon_create_attachment_from_url
 
 # Knowledge Base
 "List all knowledge bases" → uses pylon_get_knowledge_bases

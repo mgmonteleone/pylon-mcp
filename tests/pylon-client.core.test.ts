@@ -304,25 +304,6 @@ describe('PylonClient - Core Functionality', () => {
       expect(result).toEqual(mockKbs);
     });
 
-    it('should list articles for a knowledge base', async () => {
-      const mockArticles = [{ id: 'art1', title: 'How to' }];
-
-      vi.spyOn(mockAxios, 'get').mockResolvedValue({
-        data: mockArticles,
-        status: 200,
-        statusText: 'OK',
-        headers: {},
-        config: {} as any,
-      });
-
-      const result = await client.getKnowledgeBaseArticles('kb1');
-
-      expect(mockAxios.get).toHaveBeenCalledWith('/knowledge-bases/kb1/articles', {
-        params: undefined,
-      });
-      expect(result).toEqual(mockArticles);
-    });
-
     it('should create an article in a knowledge base', async () => {
       const newArticle = {
         title: 'FAQ',
@@ -479,78 +460,6 @@ describe('PylonClient - Core Functionality', () => {
 
       expect(mockAxios.get).toHaveBeenCalledWith('/ticket-forms', { params: undefined });
       expect(result).toEqual(mockForms);
-    });
-
-    it('should create ticket form', async () => {
-      const payload = { name: 'Feedback', description: 'desc', fields: [] } as any;
-      const created = { id: 'form2', ...payload };
-
-      vi.spyOn(mockAxios, 'post').mockResolvedValue({
-        data: created,
-        status: 201,
-        statusText: 'Created',
-        headers: {},
-        config: {} as any,
-      });
-
-      const result = await client.createTicketForm(payload);
-
-      expect(mockAxios.post).toHaveBeenCalledWith('/ticket-forms', payload);
-      expect(result).toEqual(created);
-    });
-
-    it('should list webhooks', async () => {
-      const hooks = [
-        { id: 'wh1', url: 'https://example.com', events: ['issue.created'], active: true },
-      ];
-      vi.spyOn(mockAxios, 'get').mockResolvedValue({
-        data: hooks,
-        status: 200,
-        statusText: 'OK',
-        headers: {},
-        config: {} as any,
-      });
-
-      const result = await client.getWebhooks();
-
-      expect(mockAxios.get).toHaveBeenCalledWith('/webhooks', { params: undefined });
-      expect(result).toEqual(hooks);
-    });
-
-    it('should create webhook', async () => {
-      const payload = {
-        url: 'https://example.com/hook',
-        events: ['issue.updated'],
-        active: true,
-      } as any;
-      const created = { id: 'wh2', ...payload };
-
-      vi.spyOn(mockAxios, 'post').mockResolvedValue({
-        data: created,
-        status: 201,
-        statusText: 'Created',
-        headers: {},
-        config: {} as any,
-      });
-
-      const result = await client.createWebhook(payload);
-
-      expect(mockAxios.post).toHaveBeenCalledWith('/webhooks', payload);
-      expect(result).toEqual(created);
-    });
-
-    it('should delete webhook', async () => {
-      vi.spyOn(mockAxios, 'delete').mockResolvedValue({
-        data: {},
-        status: 204,
-        statusText: 'No Content',
-        headers: {},
-        config: {} as any,
-      });
-
-      await client.deleteWebhook('wh3');
-
-      expect(mockAxios.delete).toHaveBeenCalledWith('/webhooks/wh3');
     });
   });
 
@@ -944,16 +853,6 @@ describe('PylonClient - Core Functionality', () => {
 
       await expect(client.updateIssue('issue_1', { status: 'closed' })).rejects.toMatchObject({
         response: { status: 403 },
-      });
-    });
-
-    it('should handle DELETE request errors', async () => {
-      vi.spyOn(mockAxios, 'delete').mockRejectedValue({
-        response: { status: 404, data: { error: 'Webhook not found' } },
-      });
-
-      await expect(client.deleteWebhook('nonexistent')).rejects.toMatchObject({
-        response: { status: 404 },
       });
     });
   });
