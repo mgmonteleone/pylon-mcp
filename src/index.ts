@@ -2,30 +2,14 @@
 
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js';
-import { ElicitRequestFormParams } from '@modelcontextprotocol/sdk/types.js';
 import { z } from 'zod';
 import { PylonClient } from './pylon-client.js';
 import {
   parseCacheTtl,
-  isMessageConfirmationRequired,
   createPylonClient,
   ensurePylonClient as ensureClient,
   jsonResponse,
-  processElicitationResult,
-  buildElicitationMessage,
-  buildElicitationSchema,
-  buildKBArticleElicitationMessage,
-  buildKBArticleElicitationSchema,
-  processKBArticleElicitationResult,
 } from './server-helpers.js';
-
-// Environment variable to control whether elicitation is required for customer-facing content
-const REQUIRE_MESSAGE_CONFIRMATION = isMessageConfirmationRequired(
-  process.env.PYLON_REQUIRE_MESSAGE_CONFIRMATION
-);
-
-// Use the same env var for KB articles (they can also be customer-facing)
-const REQUIRE_KB_ARTICLE_CONFIRMATION = REQUIRE_MESSAGE_CONFIRMATION;
 
 const PYLON_API_TOKEN = process.env.PYLON_API_TOKEN;
 
@@ -40,75 +24,6 @@ const mcpServer = new McpServer({
   name: 'pylon-mcp-server',
   version: '1.4.0',
 });
-
-/**
- * Helper function to request user confirmation before sending customer-facing messages.
- * Uses MCP elicitation to prompt the user to review and confirm the message content.
- *
- * @param issueId - The ID of the issue the message will be sent to
- * @param content - The message content to be confirmed
- * @returns Object with confirmed: boolean and optionally the confirmed/modified content
- */
-async function requestMessageConfirmation(
-  issueId: string,
-  content: string
-): Promise<{ confirmed: boolean; content?: string; reason?: string }> {
-  try {
-    const elicitParams: ElicitRequestFormParams = {
-      mode: 'form',
-      message: buildElicitationMessage(issueId, content),
-      requestedSchema: buildElicitationSchema(),
-    };
-
-    // Access elicitInput via the underlying Server instance
-    const result = await mcpServer.server.elicitInput(elicitParams);
-
-    return processElicitationResult(result, content);
-  } catch (error) {
-    // If elicitation is not supported by the client, log a warning and proceed
-    // This maintains backwards compatibility with clients that don't support elicitation
-    console.error('Elicitation not available or failed:', error);
-    throw new Error(
-      'Message confirmation is required but the MCP client does not support elicitation. ' +
-        'Please use a client that supports MCP elicitation, or set PYLON_REQUIRE_MESSAGE_CONFIRMATION=false to disable this safety feature.'
-    );
-  }
-}
-
-/**
- * Helper function to request user confirmation before creating KB articles.
- * Uses MCP elicitation to prompt the user to review and confirm the article content.
- *
- * @param knowledgeBaseId - The ID of the knowledge base
- * @param title - The article title
- * @param bodyHtml - The article body HTML content
- * @param isPublished - Whether the article will be published
- * @returns Object with confirmed: boolean and optionally the confirmed/modified content
- */
-async function requestKBArticleConfirmation(
-  knowledgeBaseId: string,
-  title: string,
-  bodyHtml: string,
-  isPublished?: boolean
-): Promise<{ confirmed: boolean; title?: string; bodyHtml?: string; reason?: string }> {
-  try {
-    const elicitParams: ElicitRequestFormParams = {
-      mode: 'form',
-      message: buildKBArticleElicitationMessage(knowledgeBaseId, title, bodyHtml, isPublished),
-      requestedSchema: buildKBArticleElicitationSchema(),
-    };
-
-    const result = await mcpServer.server.elicitInput(elicitParams);
-
-    return processKBArticleElicitationResult(result, title, bodyHtml);
-  } catch (error) {
-    console.error('Elicitation not available or failed:', error);
-    throw new Error(
-      'KB article confirmation is required but the MCP client does not support elicitation. ' +
-        'Please use a client that supports MCP elicitation, or set PYLON_REQUIRE_MESSAGE_CONFIRMATION=false to disable this safety feature.'
-    );
-  }
-}
 
 // Helper function to ensure pylonClient is initialized
 function ensurePylonClient(): PylonClient {
@@ -513,29 +428,16 @@ mcpServer.registerTool(
   async () => jsonResponse(await ensurePylonClient().getKnowledgeBases())
 );
 
-mcpServer.registerTool(
-  'pylon_get_knowledge_base_articles',
-  {
-    description:
-      'Get help articles from a specific knowledge base. Use this to find existing documentation that might help resolve customer issues or to see what self-service content is available.',
-    inputSchema: {
-      knowledge_base_id: z
-        .string()
-        .describe(
-          'ID of the knowledge base to get articles from. Get this from pylon_get_knowledge_bases first. Example: "kb_123abc"'
-        ),
-    },
-  },
-  async ({ knowledge_base_id }) =>
-    jsonResponse(await ensurePylonClient().getKnowledgeBaseArticles(knowledge_base_id))
-);
+// Note: pylon_get_knowledge_base_articles has been removed because the authoritative
+// OpenAPI spec does not include GET /knowledge-bases/{id}/articles.
+// See: https://github.com/mgmonteleone/pylon-mcp/issues/19
 
-// KB article creation with elicitation confirmation
+// KB article creation
 mcpServer.registerTool(
   'pylon_create_knowledge_base_article',
   {
     description:
-      'Create a new help article in a knowledge base. Use this to add new documentation, FAQs, or troubleshooting guides that customers can access for self-service support. ⚠️ IMPORTANT: This tool creates potentially customer-facing content and requires user confirmation before creating.',
+      'Create a new help article in a knowledge base. Use this to add new documentation, FAQs, or troubleshooting guides that customers can access for self-service support.',
     inputSchema: {
       knowledge_base_id: z
         .string()
@@ -587,43 +489,13 @@ mcpServer.registerTool(
     slug,
   }) => {
     const client = ensurePylonClient();
-    let articleTitle = title;
-    let articleBodyHtml = body_html;
-
-    // Request user confirmation before creating KB articles (they can be customer-facing)
-    if (REQUIRE_KB_ARTICLE_CONFIRMATION) {
-      const confirmation = await requestKBArticleConfirmation(
-        knowledge_base_id,
-        articleTitle,
-        articleBodyHtml,
-        is_published
-      );
-
-      if (!confirmation.confirmed) {
-        return jsonResponse({
-          success: false,
-          message: 'Article not created - user did not confirm',
-          reason: confirmation.reason,
-          knowledge_base_id,
-          original_title: articleTitle,
-        });
-      }
-
-      // Use the potentially modified content from the confirmation
-      if (confirmation.title) {
-        articleTitle = confirmation.title;
-      }
-      if (confirmation.bodyHtml) {
-        articleBodyHtml = confirmation.bodyHtml;
-      }
-    }
 
     // Default author_user_id to the authenticated user if not provided
     const resolvedAuthorId = author_user_id ?? (await client.getMe()).id;
     return jsonResponse(
       await client.createKnowledgeBaseArticle(knowledge_base_id, {
-        title: articleTitle,
-        body_html: articleBodyHtml,
+        title,
+        body_html,
         author_user_id: resolvedAuthorId,
         collection_id,
         is_published,
@@ -756,106 +628,33 @@ mcpServer.registerTool(
   async () => jsonResponse(await ensurePylonClient().getTicketForms())
 );
 
-mcpServer.registerTool(
-  'pylon_create_ticket_form',
-  {
-    description:
-      'Create a new ticket submission form for customers. Use this to customize what information customers provide when creating different types of support requests (bug reports, feature requests, billing questions).',
-    inputSchema: {
-      name: z
-        .string()
-        .describe(
-          'Form name that describes its purpose. Examples: "Bug Report Form", "Billing Inquiry", "Feature Request", "Technical Support"'
-        ),
-      description: z
-        .string()
-        .optional()
-        .describe(
-          'Description shown to customers explaining when to use this form. Example: "Use this form to report bugs or technical issues with our software."'
-        ),
-      fields: z
-        .array(z.record(z.string(), z.unknown()))
-        .describe(
-          'Array of form field objects defining what information to collect. Example: [{"type": "text", "name": "summary", "required": true}, {"type": "textarea", "name": "steps_to_reproduce"}, {"type": "select", "name": "browser", "options": ["Chrome", "Firefox", "Safari"]}]'
-        ),
-    },
-  },
-  async (args) =>
-    jsonResponse(
-      await ensurePylonClient().createTicketForm(
-        args as { name: string; description?: string; fields: Record<string, unknown>[] }
-      )
-    )
-);
+// Note: pylon_create_ticket_form has been removed because the authoritative OpenAPI spec
+// does not include POST /ticket-forms.
+// See: https://github.com/mgmonteleone/pylon-mcp/issues/20
 
-// Webhook Management Tools
-mcpServer.registerTool(
-  'pylon_get_webhooks',
-  {
-    description:
-      'Get all configured webhooks in Pylon. Webhooks automatically send notifications to external systems when events occur (e.g., new issues created, status changes, messages added).',
-  },
-  async () => jsonResponse(await ensurePylonClient().getWebhooks())
-);
-
-mcpServer.registerTool(
-  'pylon_create_webhook',
-  {
-    description:
-      'Create a new webhook to automatically notify external systems when events occur in Pylon. Use this to integrate with Slack, Discord, email systems, or custom applications.',
-    inputSchema: {
-      url: z
-        .string()
-        .describe(
-          'HTTPS URL where webhook payloads will be sent. Must be publicly accessible. Examples: "https://hooks.slack.com/services/...", "https://api.myapp.com/webhooks/pylon"'
-        ),
-      events: z
-        .array(z.string())
-        .describe(
-          'Array of events to trigger webhook. Examples: ["issue.created", "issue.updated", "issue.resolved"], ["message.created"], ["contact.created", "team.assigned"]'
-        ),
-      active: z
-        .boolean()
-        .optional()
-        .describe(
-          'Whether webhook should start active immediately. Default is true. Example: true'
-        ),
-    },
-  },
-  async (args) =>
-    jsonResponse(await ensurePylonClient().createWebhook({ ...args, active: args.active ?? true }))
-);
-
-mcpServer.registerTool(
-  'pylon_delete_webhook',
-  {
-    description:
-      'Delete an existing webhook to stop sending notifications to an external system. Use this when removing integrations or cleaning up unused webhooks.',
-    inputSchema: {
-      webhook_id: z
-        .string()
-        .describe(
-          'ID of the webhook to delete. Get this from pylon_get_webhooks. Example: "webhook_xyz789"'
-        ),
-    },
-  },
-  async ({ webhook_id }) => {
-    await ensurePylonClient().deleteWebhook(webhook_id);
-    return jsonResponse({ success: true, message: 'Webhook deleted successfully', webhook_id });
-  }
-);
+// Note: Webhook tools have been removed because the authoritative OpenAPI spec does not
+// include any /webhooks endpoints.
+// See: https://github.com/mgmonteleone/pylon-mcp/issues/21
+// See: https://github.com/mgmonteleone/pylon-mcp/issues/22
+// See: https://github.com/mgmonteleone/pylon-mcp/issues/23
 
 // Attachment Management Tools
+
+// Note: the authoritative OpenAPI spec previously did not include GET /attachments/{id}.
+// We implement pylon_get_attachment as a best-effort tool because attachments are
+// often referenced by ID in message payloads.
+// See: https://github.com/mgmonteleone/pylon-mcp/issues/24
+
 mcpServer.registerTool(
   'pylon_get_attachment',
   {
     description:
-      'Get details of a specific attachment from Pylon. Returns attachment metadata including ID, name, URL, and description. Use this to retrieve information about files attached to messages.',
+      'Get details of a specific attachment from Pylon. Returns attachment metadata (id, name, url, description). Use this when you have an attachment_id from an issue message’s attachments array (via pylon_get_issue_messages or pylon_get_issue_with_messages). To download the file contents, fetch the returned url (signed URLs may expire).',
     inputSchema: {
       attachment_id: z
         .string()
         .describe(
-          'ID of the attachment to retrieve. Get this from message attachments array. Example: "att_abc123"'
+          'ID of the attachment to retrieve. Get this from an issue message attachments array (from pylon_get_issue_messages or pylon_get_issue_with_messages). Example: "att_abc123"'
         ),
     },
   },

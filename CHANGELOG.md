@@ -19,6 +19,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Removed `createIssueMessage()` method from `PylonClient` class
   - Updated documentation to clarify this API limitation
 
+- **Removed MCP tools that map to non-existent/undocumented Pylon API endpoints** (Issue #14, #19–#24)
+  - Source of truth: https://static.usepylon.com/openapi.json
+  - Removed tools:
+    - `pylon_get_knowledge_base_articles` (#19)
+    - `pylon_create_ticket_form` (#20)
+    - `pylon_get_webhooks` / `pylon_create_webhook` / `pylon_delete_webhook` (#21–#23)
+  - Removed corresponding `PylonClient` methods
+
+- **Removed `PYLON_REQUIRE_MESSAGE_CONFIRMATION` + elicitation-based confirmation prompts** (Issue #25)
+  - The message tool was removed (Pylon has no message-create endpoint), so the associated confirmation flow is no longer needed
+  - KB article creation no longer prompts for confirmation via MCP elicitation
+  - Removed confirmation helper functions and tests
+
 ### Added
 
 - **HTTP Request Timeout** - All Pylon API requests now have a 30-second timeout
@@ -26,11 +39,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Configurable timeout helps identify API performance issues
   - Requests that exceed 30 seconds will fail with a timeout error
 
+- **Best-effort `pylon_get_attachment` tool**
+  - Returns attachment metadata (including a downloadable `url`) when you have an `attachment_id` from a message `attachments[]`
+  - _Note_: Pylon's OpenAPI spec omits `GET /attachments/{id}`, but attachments are often referenced by ID in message payloads
+
 ### Fixed
 
-- **Case-insensitive environment variable handling**
-  - `PYLON_REQUIRE_MESSAGE_CONFIRMATION` now accepts any case variation (FALSE, false, False)
-  - Previously only accepted lowercase "false"
+- **Normalized wrapped Pylon API response envelopes**
+  - Some endpoints can return responses like `{ data: { data: [...] } }` instead of a raw array/object
+  - Prevents crashes like `results.filter is not a function` in similar-issue helpers
 
 ## [2.0.1] - 2025-12-28
 
@@ -69,8 +86,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - **Elicitation confirmation for KB article creation**
   - KB articles now require user confirmation before creation (similar to messages)
-  - Controlled by `PYLON_REQUIRE_MESSAGE_CONFIRMATION` environment variable
-  - New helper functions in `server-helpers.ts` for KB article elicitation
+  - _Note:_ this confirmation flow was later removed in Issue #25
 - **New `CreateArticleInput` interface** for article creation requests
 - Optional parameters for KB article creation: `collection_id`, `is_published`, `is_unlisted`, `slug`
 

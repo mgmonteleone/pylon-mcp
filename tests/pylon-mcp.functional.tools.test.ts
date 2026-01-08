@@ -15,8 +15,6 @@ function startServerProcess() {
       ...process.env,
       PYLON_API_TOKEN: 'test-token',
       PYLON_BASE_URL: process.env.PYLON_BASE_URL,
-      // Disable elicitation for tests since test client doesn't support it
-      PYLON_REQUIRE_MESSAGE_CONFIRMATION: 'false',
     },
   });
 }
@@ -123,6 +121,16 @@ describe('pylon-mcp functional tools (stdio, mocked HTTP)', () => {
         }),
       '/issues/ISSUE-5/messages': (_req, res) =>
         withJson(res, 200, [{ id: 'msg_1', content: 'hello' }]),
+      '/attachments/att_1': (_req, res) =>
+        withJson(res, 200, {
+          data: {
+            id: 'att_1',
+            name: 'goland-logs.zip',
+            url: 'https://assets.usepylon.com/signed-url',
+            description: 'Sample logs archive',
+          },
+          request_id: 'req_att_1',
+        }),
       '/issues/ISSUE-NO-REQUESTOR': (_req, res) =>
         withJson(res, 200, {
           id: 'ISSUE-NO-REQUESTOR',
@@ -160,12 +168,6 @@ describe('pylon-mcp functional tools (stdio, mocked HTTP)', () => {
         withJson(res, 200, [{ id: 'tag_1', name: 'urgent', color: '#ff0000' }]),
       '/ticket-forms': (_req, res) =>
         withJson(res, 200, [{ id: 'form_1', name: 'Bug Report', fields: [] }]),
-      '/webhooks': (_req, res) =>
-        withJson(res, 200, [
-          { id: 'wh_1', url: 'https://example.com/hook', events: ['issue.created'], active: true },
-        ]),
-      '/attachments/att_1': (_req, res) =>
-        withJson(res, 200, { id: 'att_1', name: 'file.pdf', url: 'https://example.com/file.pdf' }),
       // Error endpoints for testing error handling
       '/issues/ISSUE-NOT-FOUND': (_req, res) => withJson(res, 404, { error: 'Issue not found' }),
       '/issues/ISSUE-SERVER-ERROR': (_req, res) =>
@@ -255,17 +257,19 @@ describe('pylon-mcp functional tools (stdio, mocked HTTP)', () => {
     expect(res?.content?.[0]?.text).toContain('msg_1');
   });
 
+  it('pylon_get_attachment', async () => {
+    const res = await client.callTool({
+      name: 'pylon_get_attachment',
+      arguments: { attachment_id: 'att_1' },
+    });
+    const text = res?.content?.[0]?.text ?? '';
+    expect(text).toContain('att_1');
+    expect(text).toContain('goland-logs.zip');
+  });
+
   it('pylon_get_knowledge_bases', async () => {
     const res = await client.callTool({ name: 'pylon_get_knowledge_bases', arguments: {} });
     expect(res?.content?.[0]?.text).toContain('kb_1');
-  });
-
-  it('pylon_get_knowledge_base_articles', async () => {
-    const res = await client.callTool({
-      name: 'pylon_get_knowledge_base_articles',
-      arguments: { knowledge_base_id: 'kb_1' },
-    });
-    expect(res?.content?.[0]?.text).toContain('art_1');
   });
 
   it('pylon_create_knowledge_base_article', async () => {
@@ -425,21 +429,6 @@ describe('pylon-mcp functional tools (stdio, mocked HTTP)', () => {
     const res = await client.callTool({ name: 'pylon_get_ticket_forms', arguments: {} });
     expect(res?.content?.[0]?.text).toContain('form_1');
     expect(res?.content?.[0]?.text).toContain('Bug Report');
-  });
-
-  it('pylon_get_webhooks', async () => {
-    const res = await client.callTool({ name: 'pylon_get_webhooks', arguments: {} });
-    expect(res?.content?.[0]?.text).toContain('wh_1');
-    expect(res?.content?.[0]?.text).toContain('issue.created');
-  });
-
-  it('pylon_get_attachment', async () => {
-    const res = await client.callTool({
-      name: 'pylon_get_attachment',
-      arguments: { attachment_id: 'att_1' },
-    });
-    expect(res?.content?.[0]?.text).toContain('att_1');
-    expect(res?.content?.[0]?.text).toContain('file.pdf');
   });
 
   it('pylon_search_issues', async () => {

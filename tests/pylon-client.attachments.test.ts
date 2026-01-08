@@ -12,36 +12,6 @@ describe('PylonClient - Attachments', () => {
     mockAxios = (client as any).client;
   });
 
-  describe('getAttachment', () => {
-    it('should fetch attachment by ID', async () => {
-      const mockAttachment = {
-        id: 'att_123',
-        name: 'document.pdf',
-        url: 'https://pylon.com/files/document.pdf',
-        description: 'Test document',
-      };
-
-      vi.spyOn(mockAxios, 'get').mockResolvedValue({
-        data: mockAttachment,
-        status: 200,
-        statusText: 'OK',
-        headers: {},
-        config: {} as any,
-      });
-
-      const result = await client.getAttachment('att_123');
-
-      expect(mockAxios.get).toHaveBeenCalledWith('/attachments/att_123', { params: undefined });
-      expect(result).toEqual(mockAttachment);
-    });
-
-    it('should handle API errors', async () => {
-      vi.spyOn(mockAxios, 'get').mockRejectedValue(new Error('Not found'));
-
-      await expect(client.getAttachment('invalid_id')).rejects.toThrow('Not found');
-    });
-  });
-
   describe('createAttachmentFromUrl', () => {
     it('should create attachment from URL', async () => {
       const mockResponse = {
@@ -136,6 +106,32 @@ describe('PylonClient - Attachments', () => {
         })
       );
       expect(result).toEqual(mockResponse.data);
+    });
+  });
+
+  describe('getAttachment', () => {
+    it('should get attachment when API returns wrapped data envelope', async () => {
+      const mockAttachment = {
+        id: 'att_123',
+        name: 'logs.zip',
+        url: 'https://assets.usepylon.com/signed-url',
+        description: 'GoLand logs',
+      };
+
+      vi.spyOn(mockAxios, 'get').mockResolvedValue({
+        data: { data: mockAttachment, request_id: 'req_1' },
+        status: 200,
+        statusText: 'OK',
+        headers: {},
+        config: {} as any,
+      });
+
+      const result = await client.getAttachment('att_123');
+
+      expect(mockAxios.get).toHaveBeenCalledWith('/attachments/att_123', {
+        params: undefined,
+      });
+      expect(result).toEqual(mockAttachment);
     });
   });
 });

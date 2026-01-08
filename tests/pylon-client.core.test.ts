@@ -163,11 +163,57 @@ describe('PylonClient - Core Functionality', () => {
       expect(result).toEqual(mockIssue);
     });
 
+    it('should get single issue when API returns wrapped data envelope', async () => {
+      const mockIssue = {
+        id: 'issue_123',
+        title: 'Test issue',
+        status: 'open',
+      };
+
+      vi.spyOn(mockAxios, 'get').mockResolvedValue({
+        data: { data: mockIssue, request_id: 'req_1' },
+        status: 200,
+        statusText: 'OK',
+        headers: {},
+        config: {} as any,
+      });
+
+      const result = await client.getIssue('issue_123');
+
+      expect(mockAxios.get).toHaveBeenCalledWith('/issues/issue_123', { params: undefined });
+      expect(result).toEqual(mockIssue);
+    });
+
     it('should search issues with filters', async () => {
       const mockIssues = [{ id: 'issue_2', title: 'Search result', status: 'pending' }];
 
       vi.spyOn(mockAxios, 'post').mockResolvedValue({
         data: mockIssues,
+        status: 200,
+        statusText: 'OK',
+        headers: {},
+        config: {} as any,
+      });
+
+      const result = await client.searchIssues('foo', { status: 'pending', limit: 5 });
+
+      expect(mockAxios.post).toHaveBeenCalledWith('/issues/search', {
+        query: 'foo',
+        status: 'pending',
+        limit: 5,
+      });
+      expect(result).toEqual(mockIssues);
+    });
+
+    it('should search issues when API returns wrapped data envelope', async () => {
+      const mockIssues = [{ id: 'issue_2', title: 'Search result', status: 'pending' }];
+
+      vi.spyOn(mockAxios, 'post').mockResolvedValue({
+        data: {
+          data: mockIssues,
+          request_id: 'req_1',
+          pagination: { next: null },
+        },
         status: 200,
         statusText: 'OK',
         headers: {},
@@ -302,25 +348,6 @@ describe('PylonClient - Core Functionality', () => {
 
       expect(mockAxios.get).toHaveBeenCalledWith('/knowledge-bases', { params: undefined });
       expect(result).toEqual(mockKbs);
-    });
-
-    it('should list articles for a knowledge base', async () => {
-      const mockArticles = [{ id: 'art1', title: 'How to' }];
-
-      vi.spyOn(mockAxios, 'get').mockResolvedValue({
-        data: mockArticles,
-        status: 200,
-        statusText: 'OK',
-        headers: {},
-        config: {} as any,
-      });
-
-      const result = await client.getKnowledgeBaseArticles('kb1');
-
-      expect(mockAxios.get).toHaveBeenCalledWith('/knowledge-bases/kb1/articles', {
-        params: undefined,
-      });
-      expect(result).toEqual(mockArticles);
     });
 
     it('should create an article in a knowledge base', async () => {
@@ -480,78 +507,6 @@ describe('PylonClient - Core Functionality', () => {
       expect(mockAxios.get).toHaveBeenCalledWith('/ticket-forms', { params: undefined });
       expect(result).toEqual(mockForms);
     });
-
-    it('should create ticket form', async () => {
-      const payload = { name: 'Feedback', description: 'desc', fields: [] } as any;
-      const created = { id: 'form2', ...payload };
-
-      vi.spyOn(mockAxios, 'post').mockResolvedValue({
-        data: created,
-        status: 201,
-        statusText: 'Created',
-        headers: {},
-        config: {} as any,
-      });
-
-      const result = await client.createTicketForm(payload);
-
-      expect(mockAxios.post).toHaveBeenCalledWith('/ticket-forms', payload);
-      expect(result).toEqual(created);
-    });
-
-    it('should list webhooks', async () => {
-      const hooks = [
-        { id: 'wh1', url: 'https://example.com', events: ['issue.created'], active: true },
-      ];
-      vi.spyOn(mockAxios, 'get').mockResolvedValue({
-        data: hooks,
-        status: 200,
-        statusText: 'OK',
-        headers: {},
-        config: {} as any,
-      });
-
-      const result = await client.getWebhooks();
-
-      expect(mockAxios.get).toHaveBeenCalledWith('/webhooks', { params: undefined });
-      expect(result).toEqual(hooks);
-    });
-
-    it('should create webhook', async () => {
-      const payload = {
-        url: 'https://example.com/hook',
-        events: ['issue.updated'],
-        active: true,
-      } as any;
-      const created = { id: 'wh2', ...payload };
-
-      vi.spyOn(mockAxios, 'post').mockResolvedValue({
-        data: created,
-        status: 201,
-        statusText: 'Created',
-        headers: {},
-        config: {} as any,
-      });
-
-      const result = await client.createWebhook(payload);
-
-      expect(mockAxios.post).toHaveBeenCalledWith('/webhooks', payload);
-      expect(result).toEqual(created);
-    });
-
-    it('should delete webhook', async () => {
-      vi.spyOn(mockAxios, 'delete').mockResolvedValue({
-        data: {},
-        status: 204,
-        statusText: 'No Content',
-        headers: {},
-        config: {} as any,
-      });
-
-      await client.deleteWebhook('wh3');
-
-      expect(mockAxios.delete).toHaveBeenCalledWith('/webhooks/wh3');
-    });
   });
 
   describe('Users', () => {
@@ -658,6 +613,7 @@ describe('PylonClient - Core Functionality', () => {
         expect(mockAxios.post).toHaveBeenCalledWith('/issues/search', {
           query: 'Login problem',
           requestor_id: 'contact_123',
+          requester_id: 'contact_123',
         });
         expect(result.sourceIssue).toEqual(sourceIssue);
         // Source issue should be excluded from results
@@ -723,6 +679,7 @@ describe('PylonClient - Core Functionality', () => {
         expect(mockAxios.post).toHaveBeenCalledWith('/issues/search', {
           query: 'custom search',
           requestor_id: 'contact_123',
+          requester_id: 'contact_123',
           limit: 5,
         });
       });
@@ -946,16 +903,6 @@ describe('PylonClient - Core Functionality', () => {
         response: { status: 403 },
       });
     });
-
-    it('should handle DELETE request errors', async () => {
-      vi.spyOn(mockAxios, 'delete').mockRejectedValue({
-        response: { status: 404, data: { error: 'Webhook not found' } },
-      });
-
-      await expect(client.deleteWebhook('nonexistent')).rejects.toMatchObject({
-        response: { status: 404 },
-      });
-    });
   });
 
   describe('Contact Management - Additional', () => {
@@ -1019,6 +966,31 @@ describe('PylonClient - Core Functionality', () => {
 
       vi.spyOn(mockAxios, 'get').mockResolvedValue({
         data: mockMessages,
+        status: 200,
+        statusText: 'OK',
+        headers: {},
+        config: {} as any,
+      });
+
+      const result = await client.getIssueMessages('issue_1');
+
+      expect(mockAxios.get).toHaveBeenCalledWith('/issues/issue_1/messages', { params: undefined });
+      expect(result).toEqual(mockMessages);
+    });
+
+    it('should get issue messages when API returns wrapped data envelope', async () => {
+      const mockMessages = [
+        {
+          id: 'msg_1',
+          content: 'Hello',
+          author_id: 'user_1',
+          issue_id: 'issue_1',
+          created_at: '2024-01-01T00:00:00Z',
+        },
+      ];
+
+      vi.spyOn(mockAxios, 'get').mockResolvedValue({
+        data: { data: mockMessages, request_id: 'req_1', pagination: { next: null } },
         status: 200,
         statusText: 'OK',
         headers: {},
