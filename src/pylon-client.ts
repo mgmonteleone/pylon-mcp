@@ -428,13 +428,11 @@ export class PylonClient {
 
   // Issues API (search and additional operations)
   async searchIssues(query: string, filters?: any): Promise<PylonIssue[]> {
-    const response: AxiosResponse<PylonIssue[] | PylonApiResponse<PylonIssue[]>> = await this.client.post(
-      '/issues/search',
-      {
-      query,
-      ...filters,
-      }
-    );
+    const response: AxiosResponse<PylonIssue[] | PylonApiResponse<PylonIssue[]>> =
+      await this.client.post('/issues/search', {
+        query,
+        ...filters,
+      });
     return this.unwrapArray(response.data);
   }
 
@@ -493,7 +491,8 @@ export class PylonClient {
     // Exclude the source issue from results (support both id and number)
     const issueIdStr = String(issueId);
     const similarIssues = results.filter(
-      (issue) => issue.id !== issueId && (issue.number == null || String(issue.number) !== issueIdStr)
+      (issue) =>
+        issue.id !== issueId && (issue.number == null || String(issue.number) !== issueIdStr)
     );
 
     return { sourceIssue, similarIssues };
@@ -530,7 +529,8 @@ export class PylonClient {
     // Exclude the source issue from results (support both id and number)
     const issueIdStr = String(issueId);
     const similarIssues = results.filter(
-      (issue) => issue.id !== issueId && (issue.number == null || String(issue.number) !== issueIdStr)
+      (issue) =>
+        issue.id !== issueId && (issue.number == null || String(issue.number) !== issueIdStr)
     );
 
     return { sourceIssue, similarIssues };
@@ -562,7 +562,8 @@ export class PylonClient {
     // Exclude the source issue from results (support both id and number)
     const issueIdStr = String(issueId);
     const similarIssues = results.filter(
-      (issue) => issue.id !== issueId && (issue.number == null || String(issue.number) !== issueIdStr)
+      (issue) =>
+        issue.id !== issueId && (issue.number == null || String(issue.number) !== issueIdStr)
     );
 
     return { sourceIssue, similarIssues };

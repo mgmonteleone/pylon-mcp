@@ -658,8 +658,7 @@ mcpServer.registerTool(
         ),
     },
   },
-  async ({ attachment_id }) =>
-    jsonResponse(await ensurePylonClient().getAttachment(attachment_id))
+  async ({ attachment_id }) => jsonResponse(await ensurePylonClient().getAttachment(attachment_id))
 );
 
 mcpServer.registerTool(

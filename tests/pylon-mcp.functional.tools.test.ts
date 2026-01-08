@@ -121,16 +121,16 @@ describe('pylon-mcp functional tools (stdio, mocked HTTP)', () => {
         }),
       '/issues/ISSUE-5/messages': (_req, res) =>
         withJson(res, 200, [{ id: 'msg_1', content: 'hello' }]),
-	      '/attachments/att_1': (_req, res) =>
-	        withJson(res, 200, {
-	          data: {
-	            id: 'att_1',
-	            name: 'goland-logs.zip',
-	            url: 'https://assets.usepylon.com/signed-url',
-	            description: 'Sample logs archive',
-	          },
-	          request_id: 'req_att_1',
-	        }),
+      '/attachments/att_1': (_req, res) =>
+        withJson(res, 200, {
+          data: {
+            id: 'att_1',
+            name: 'goland-logs.zip',
+            url: 'https://assets.usepylon.com/signed-url',
+            description: 'Sample logs archive',
+          },
+          request_id: 'req_att_1',
+        }),
       '/issues/ISSUE-NO-REQUESTOR': (_req, res) =>
         withJson(res, 200, {
           id: 'ISSUE-NO-REQUESTOR',
@@ -257,15 +257,15 @@ describe('pylon-mcp functional tools (stdio, mocked HTTP)', () => {
     expect(res?.content?.[0]?.text).toContain('msg_1');
   });
 
-	  it('pylon_get_attachment', async () => {
-	    const res = await client.callTool({
-	      name: 'pylon_get_attachment',
-	      arguments: { attachment_id: 'att_1' },
-	    });
-	    const text = res?.content?.[0]?.text ?? '';
-	    expect(text).toContain('att_1');
-	    expect(text).toContain('goland-logs.zip');
-	  });
+  it('pylon_get_attachment', async () => {
+    const res = await client.callTool({
+      name: 'pylon_get_attachment',
+      arguments: { attachment_id: 'att_1' },
+    });
+    const text = res?.content?.[0]?.text ?? '';
+    expect(text).toContain('att_1');
+    expect(text).toContain('goland-logs.zip');
+  });
 
   it('pylon_get_knowledge_bases', async () => {
     const res = await client.callTool({ name: 'pylon_get_knowledge_bases', arguments: {} });

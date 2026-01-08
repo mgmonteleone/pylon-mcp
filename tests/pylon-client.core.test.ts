@@ -163,26 +163,26 @@ describe('PylonClient - Core Functionality', () => {
       expect(result).toEqual(mockIssue);
     });
 
-	    it('should get single issue when API returns wrapped data envelope', async () => {
-	      const mockIssue = {
-	        id: 'issue_123',
-	        title: 'Test issue',
-	        status: 'open',
-	      };
+    it('should get single issue when API returns wrapped data envelope', async () => {
+      const mockIssue = {
+        id: 'issue_123',
+        title: 'Test issue',
+        status: 'open',
+      };
 
-	      vi.spyOn(mockAxios, 'get').mockResolvedValue({
-	        data: { data: mockIssue, request_id: 'req_1' },
-	        status: 200,
-	        statusText: 'OK',
-	        headers: {},
-	        config: {} as any,
-	      });
+      vi.spyOn(mockAxios, 'get').mockResolvedValue({
+        data: { data: mockIssue, request_id: 'req_1' },
+        status: 200,
+        statusText: 'OK',
+        headers: {},
+        config: {} as any,
+      });
 
-	      const result = await client.getIssue('issue_123');
+      const result = await client.getIssue('issue_123');
 
-	      expect(mockAxios.get).toHaveBeenCalledWith('/issues/issue_123', { params: undefined });
-	      expect(result).toEqual(mockIssue);
-	    });
+      expect(mockAxios.get).toHaveBeenCalledWith('/issues/issue_123', { params: undefined });
+      expect(result).toEqual(mockIssue);
+    });
 
     it('should search issues with filters', async () => {
       const mockIssues = [{ id: 'issue_2', title: 'Search result', status: 'pending' }];
@@ -205,30 +205,30 @@ describe('PylonClient - Core Functionality', () => {
       expect(result).toEqual(mockIssues);
     });
 
-	    it('should search issues when API returns wrapped data envelope', async () => {
-	      const mockIssues = [{ id: 'issue_2', title: 'Search result', status: 'pending' }];
+    it('should search issues when API returns wrapped data envelope', async () => {
+      const mockIssues = [{ id: 'issue_2', title: 'Search result', status: 'pending' }];
 
-	      vi.spyOn(mockAxios, 'post').mockResolvedValue({
-	        data: {
-	          data: mockIssues,
-	          request_id: 'req_1',
-	          pagination: { next: null },
-	        },
-	        status: 200,
-	        statusText: 'OK',
-	        headers: {},
-	        config: {} as any,
-	      });
+      vi.spyOn(mockAxios, 'post').mockResolvedValue({
+        data: {
+          data: mockIssues,
+          request_id: 'req_1',
+          pagination: { next: null },
+        },
+        status: 200,
+        statusText: 'OK',
+        headers: {},
+        config: {} as any,
+      });
 
-	      const result = await client.searchIssues('foo', { status: 'pending', limit: 5 });
+      const result = await client.searchIssues('foo', { status: 'pending', limit: 5 });
 
-	      expect(mockAxios.post).toHaveBeenCalledWith('/issues/search', {
-	        query: 'foo',
-	        status: 'pending',
-	        limit: 5,
-	      });
-	      expect(result).toEqual(mockIssues);
-	    });
+      expect(mockAxios.post).toHaveBeenCalledWith('/issues/search', {
+        query: 'foo',
+        status: 'pending',
+        limit: 5,
+      });
+      expect(result).toEqual(mockIssues);
+    });
 
     it('should update an issue', async () => {
       const updates = { status: 'closed', priority: 'low' } as const;
@@ -612,8 +612,8 @@ describe('PylonClient - Core Functionality', () => {
         expect(mockAxios.get).toHaveBeenCalledWith('/issues/issue_1', { params: undefined });
         expect(mockAxios.post).toHaveBeenCalledWith('/issues/search', {
           query: 'Login problem',
-	    	  requestor_id: 'contact_123',
-	    	  requester_id: 'contact_123',
+          requestor_id: 'contact_123',
+          requester_id: 'contact_123',
         });
         expect(result.sourceIssue).toEqual(sourceIssue);
         // Source issue should be excluded from results
@@ -678,8 +678,8 @@ describe('PylonClient - Core Functionality', () => {
 
         expect(mockAxios.post).toHaveBeenCalledWith('/issues/search', {
           query: 'custom search',
-	    	  requestor_id: 'contact_123',
-	    	  requester_id: 'contact_123',
+          requestor_id: 'contact_123',
+          requester_id: 'contact_123',
           limit: 5,
         });
       });
@@ -978,29 +978,29 @@ describe('PylonClient - Core Functionality', () => {
       expect(result).toEqual(mockMessages);
     });
 
-	    it('should get issue messages when API returns wrapped data envelope', async () => {
-	      const mockMessages = [
-	        {
-	          id: 'msg_1',
-	          content: 'Hello',
-	          author_id: 'user_1',
-	          issue_id: 'issue_1',
-	          created_at: '2024-01-01T00:00:00Z',
-	        },
-	      ];
+    it('should get issue messages when API returns wrapped data envelope', async () => {
+      const mockMessages = [
+        {
+          id: 'msg_1',
+          content: 'Hello',
+          author_id: 'user_1',
+          issue_id: 'issue_1',
+          created_at: '2024-01-01T00:00:00Z',
+        },
+      ];
 
-	      vi.spyOn(mockAxios, 'get').mockResolvedValue({
-	        data: { data: mockMessages, request_id: 'req_1', pagination: { next: null } },
-	        status: 200,
-	        statusText: 'OK',
-	        headers: {},
-	        config: {} as any,
-	      });
+      vi.spyOn(mockAxios, 'get').mockResolvedValue({
+        data: { data: mockMessages, request_id: 'req_1', pagination: { next: null } },
+        status: 200,
+        statusText: 'OK',
+        headers: {},
+        config: {} as any,
+      });
 
-	      const result = await client.getIssueMessages('issue_1');
+      const result = await client.getIssueMessages('issue_1');
 
-	      expect(mockAxios.get).toHaveBeenCalledWith('/issues/issue_1/messages', { params: undefined });
-	      expect(result).toEqual(mockMessages);
-	    });
+      expect(mockAxios.get).toHaveBeenCalledWith('/issues/issue_1/messages', { params: undefined });
+      expect(result).toEqual(mockMessages);
+    });
   });
 });
