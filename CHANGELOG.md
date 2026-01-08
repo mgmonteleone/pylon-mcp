@@ -9,6 +9,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Breaking Changes
 
+### Added
+
+### Fixed
+
+## [3.0.0] - 2026-01-08
+
+### Breaking Changes
+
 - **Removed `pylon_create_issue_message` tool** (Issue #13)
   - The Pylon API does not support creating messages via `POST /issues/{id}/messages`
   - This endpoint does not exist in the official Pylon API documentation
