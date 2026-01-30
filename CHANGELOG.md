@@ -20,6 +20,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **New `pylon_search_issues_by_status` tool** (Issue #30)
+  - Simplified interface for searching by custom status name
+  - Automatically maps status names to underlying state + tag combinations
+  - Supports built-in states: `new`, `waiting_on_you`, `waiting_on_customer`, `on_hold`, `closed`
+  - Common custom status mappings included:
+    - "Waiting on Eng Input" → state: `on_hold` + tag: `waiting on eng`
+    - "Waiting on Product" → state: `on_hold` + tag: `waiting on product`
+    - "Escalated" → state: `on_hold` + tag: `escalated`
+    - "In Progress" → state: `waiting_on_you` + tag: `in progress`
+    - "Blocked" → state: `on_hold` + tag: `blocked`
+  - Unknown status names are treated as tags with `on_hold` state
+  - Returns resolved status metadata with each response
+
 - **Custom status filtering support** (Issue #30)
   - `pylon_search_issues` now supports filtering by `state` and `tag` parameters
   - Custom statuses like "Waiting on Eng Input" can be searched using:

@@ -558,6 +558,116 @@ export class PylonClient {
     return this.unwrapArray(response.data);
   }
 
+  /**
+   * Common custom status mappings.
+   * Maps friendly status names to their underlying state + tag representation.
+   * This makes it easier for LLMs to understand and use custom statuses.
+   */
+  private static readonly CUSTOM_STATUS_MAPPINGS: Record<
+    string,
+    { state: string; tag?: string }
+  > = {
+    // Built-in states (no tag required)
+    new: { state: 'new' },
+    waiting_on_you: { state: 'waiting_on_you' },
+    waiting_on_customer: { state: 'waiting_on_customer' },
+    on_hold: { state: 'on_hold' },
+    closed: { state: 'closed' },
+
+    // Common custom statuses (state + tag combinations)
+    'waiting on eng input': { state: 'on_hold', tag: 'waiting on eng' },
+    'waiting on eng': { state: 'on_hold', tag: 'waiting on eng' },
+    'waiting on engineering': { state: 'on_hold', tag: 'waiting on eng' },
+    'waiting on product': { state: 'on_hold', tag: 'waiting on product' },
+    'waiting on product input': { state: 'on_hold', tag: 'waiting on product' },
+    'waiting on customer response': { state: 'waiting_on_customer', tag: 'waiting on customer' },
+    escalated: { state: 'on_hold', tag: 'escalated' },
+    'needs review': { state: 'on_hold', tag: 'needs review' },
+    'in progress': { state: 'waiting_on_you', tag: 'in progress' },
+    pending: { state: 'on_hold', tag: 'pending' },
+    blocked: { state: 'on_hold', tag: 'blocked' },
+  };
+
+  /**
+   * Get the list of known custom status names.
+   * Useful for displaying available options to users.
+   */
+  static getKnownCustomStatuses(): string[] {
+    return Object.keys(PylonClient.CUSTOM_STATUS_MAPPINGS);
+  }
+
+  /**
+   * Search for issues by custom status name.
+   * This method abstracts the state + tag combination, making it easier to search
+   * by custom status names like "Waiting on Eng Input".
+   *
+   * @param status - Status name (e.g., "on_hold", "Waiting on Eng Input", "escalated")
+   * @param options - Additional search options (limit, additional filters)
+   * @returns Array of matching issues with metadata about the resolved status
+   *
+   * @example
+   * // Search by built-in state
+   * const issues = await client.searchIssuesByStatus('on_hold');
+   *
+   * @example
+   * // Search by custom status name
+   * const issues = await client.searchIssuesByStatus('Waiting on Eng Input');
+   */
+  async searchIssuesByStatus(
+    status: string,
+    options?: { limit?: number; additionalFilters?: PylonIssueSearchFilter }
+  ): Promise<{
+    issues: PylonIssue[];
+    resolvedStatus: { state: string; tag?: string; isCustom: boolean };
+  }> {
+    // Normalize the status name for lookup
+    const normalizedStatus = status.toLowerCase().trim();
+
+    // Look up the status mapping
+    const mapping = PylonClient.CUSTOM_STATUS_MAPPINGS[normalizedStatus];
+
+    let resolvedState: string;
+    let resolvedTag: string | undefined;
+    let isCustom: boolean;
+
+    if (mapping) {
+      // Known status found
+      resolvedState = mapping.state;
+      resolvedTag = mapping.tag;
+      isCustom = !!mapping.tag;
+    } else {
+      // Not a known mapping - treat as a plain state or tag
+      // Check if it looks like a built-in state
+      const builtInStates = ['new', 'waiting_on_you', 'waiting_on_customer', 'on_hold', 'closed'];
+      if (builtInStates.includes(normalizedStatus)) {
+        resolvedState = normalizedStatus;
+        isCustom = false;
+      } else {
+        // Assume it's a tag name - use on_hold as default state for custom statuses
+        resolvedState = 'on_hold';
+        resolvedTag = normalizedStatus;
+        isCustom = true;
+      }
+    }
+
+    // Build the filter
+    const filter: PylonIssueSearchFilter = {
+      state: { operator: 'equals', value: resolvedState },
+      ...options?.additionalFilters,
+    };
+
+    if (resolvedTag) {
+      filter.tags = { operator: 'contains', value: resolvedTag };
+    }
+
+    const issues = await this.searchIssues({ filter, limit: options?.limit });
+
+    return {
+      issues,
+      resolvedStatus: { state: resolvedState, tag: resolvedTag, isCustom },
+    };
+  }
+
   async getIssue(issueId: string): Promise<PylonIssue> {
     const response = await this.cachedGet<PylonIssue | PylonApiResponse<PylonIssue>>(
       `/issues/${issueId}`

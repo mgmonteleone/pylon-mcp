@@ -503,4 +503,60 @@ describe('pylon-mcp functional tools (stdio, mocked HTTP)', () => {
     expect(res?.content?.[0]?.text).toContain('on_hold');
     expect(res?.content?.[0]?.text).toContain('waiting on eng');
   });
+
+  // pylon_search_issues_by_status tool tests
+  it('pylon_search_issues_by_status - searches by built-in state name', async () => {
+    const res = await client.callTool({
+      name: 'pylon_search_issues_by_status',
+      arguments: { status: 'on_hold' },
+    });
+    const text = res?.content?.[0]?.text;
+    expect(text).toContain('status_resolved');
+    expect(text).toContain('"state": "on_hold"');
+    expect(text).toContain('"isCustom": false');
+    expect(text).toContain('issues');
+  });
+
+  it('pylon_search_issues_by_status - searches by custom status name', async () => {
+    const res = await client.callTool({
+      name: 'pylon_search_issues_by_status',
+      arguments: { status: 'Waiting on Eng Input' },
+    });
+    const text = res?.content?.[0]?.text;
+    expect(text).toContain('status_resolved');
+    expect(text).toContain('"state": "on_hold"');
+    expect(text).toContain('"tag": "waiting on eng"');
+    expect(text).toContain('"isCustom": true');
+  });
+
+  it('pylon_search_issues_by_status - case insensitive lookup', async () => {
+    const res = await client.callTool({
+      name: 'pylon_search_issues_by_status',
+      arguments: { status: 'WAITING ON ENG' },
+    });
+    const text = res?.content?.[0]?.text;
+    expect(text).toContain('"state": "on_hold"');
+    expect(text).toContain('"tag": "waiting on eng"');
+    expect(text).toContain('"isCustom": true');
+  });
+
+  it('pylon_search_issues_by_status - unknown status treated as tag', async () => {
+    const res = await client.callTool({
+      name: 'pylon_search_issues_by_status',
+      arguments: { status: 'custom-unknown-status' },
+    });
+    const text = res?.content?.[0]?.text;
+    expect(text).toContain('"state": "on_hold"');
+    expect(text).toContain('"tag": "custom-unknown-status"');
+    expect(text).toContain('"isCustom": true');
+  });
+
+  it('pylon_search_issues_by_status - includes issue count in response', async () => {
+    const res = await client.callTool({
+      name: 'pylon_search_issues_by_status',
+      arguments: { status: 'on_hold', limit: 10 },
+    });
+    const text = res?.content?.[0]?.text;
+    expect(text).toContain('issue_count');
+  });
 });

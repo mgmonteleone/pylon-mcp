@@ -342,6 +342,46 @@ mcpServer.registerTool(
   }
 );
 
+mcpServer.registerTool(
+  'pylon_search_issues_by_status',
+  {
+    description: `Search for issues by status name, including custom statuses. This tool automatically handles the mapping between custom status names (like "Waiting on Eng Input") and their underlying state + tag representation.
+
+**Built-in States:** new, waiting_on_you, waiting_on_customer, on_hold, closed
+
+**Common Custom Statuses (automatically mapped):**
+- "Waiting on Eng Input" → state: on_hold + tag: waiting on eng
+- "Waiting on Product" → state: on_hold + tag: waiting on product
+- "Escalated" → state: on_hold + tag: escalated
+- "In Progress" → state: waiting_on_you + tag: in progress
+- "Blocked" → state: on_hold + tag: blocked
+- "Pending" → state: on_hold + tag: pending
+
+If a status name is not recognized, it will be treated as a tag name with state "on_hold".
+
+Returns both the matching issues and information about how the status was resolved.`,
+    inputSchema: {
+      status: z
+        .string()
+        .describe(
+          'Status name to search for. Can be a built-in state (e.g., "on_hold", "closed") or a custom status name (e.g., "Waiting on Eng Input", "Escalated"). Case-insensitive.'
+        ),
+      limit: z
+        .number()
+        .optional()
+        .describe('Maximum number of issues to return (1-100). Default: 50. Example: 25'),
+    },
+  },
+  async ({ status, limit }) => {
+    const result = await ensurePylonClient().searchIssuesByStatus(status, { limit });
+    return jsonResponse({
+      status_resolved: result.resolvedStatus,
+      issue_count: result.issues.length,
+      issues: result.issues,
+    });
+  }
+);
+
 // Similar Issues Helper Tools
 mcpServer.registerTool(
   'pylon_find_similar_issues_for_requestor',

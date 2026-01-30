@@ -133,7 +133,8 @@ npm run test:coverage
 ### Issue Tools
 
 - `pylon_get_issues`: List issues within a time range (uses start_time/end_time parameters)
-- `pylon_search_issues`: **ENHANCED** - Search and filter issues by state, tags, assignee, account, and more
+- `pylon_search_issues`: Search and filter issues by state, tags, assignee, account, and more
+- `pylon_search_issues_by_status`: **NEW** - Search by status name (handles custom status mapping automatically)
 - `pylon_create_issue`: Create a new issue
 - `pylon_get_issue`: Get details of a specific issue
 - `pylon_get_issue_with_messages`: Get a complete issue with all messages in one call
@@ -141,20 +142,36 @@ npm run test:coverage
 - `pylon_update_issue`: Update issue status, priority, assignee, etc.
 - `pylon_snooze_issue`: Temporarily hide an issue until a future date
 
-#### Filtering by Custom Status
+#### Searching by Custom Status
 
-Pylon represents custom statuses (like "Waiting on Eng Input") as a combination of **state** and **tag**. To filter by a custom status:
+Pylon represents custom statuses (like "Waiting on Eng Input") as a combination of **state** and **tag**. We provide two ways to search by status:
+
+**Option 1: Use `pylon_search_issues_by_status` (Recommended)**
+
+This tool automatically maps status names to the correct state + tag combination:
 
 ```
-# Example: Find issues in "Waiting on Eng Input" status
-# This custom status = state "on_hold" + tag "waiting on eng"
+# Just use the status name directly:
+pylon_search_issues_by_status with status: "Waiting on Eng Input"
 
-Use pylon_search_issues with:
+# Built-in mappings include:
+- "Waiting on Eng Input" → state: on_hold + tag: waiting on eng
+- "Waiting on Product" → state: on_hold + tag: waiting on product
+- "Escalated" → state: on_hold + tag: escalated
+- "In Progress" → state: waiting_on_you + tag: in progress
+- "Blocked" → state: on_hold + tag: blocked
+```
+
+**Option 2: Use `pylon_search_issues` with explicit state + tag**
+
+```
+# Manually specify the combination:
+pylon_search_issues with:
   - state: "on_hold"
   - tag: "waiting on eng"
 ```
 
-**Available States:**
+**Available Built-in States:**
 - `new` - New/unread issues
 - `waiting_on_you` - Waiting for your response
 - `waiting_on_customer` - Waiting for customer response
