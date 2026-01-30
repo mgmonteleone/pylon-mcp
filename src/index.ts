@@ -816,6 +816,151 @@ mcpServer.registerTool(
   async ({ file_url, description }) =>
     jsonResponse(await ensurePylonClient().createAttachmentFromUrl(file_url, description))
 );
+
+// External Issue Linking Tools
+
+mcpServer.registerTool(
+  'pylon_link_external_issue',
+  {
+    description:
+      'Link an external issue from a ticketing system (Linear, Jira, GitHub, or Asana) to a Pylon support issue. Use this to connect customer support tickets with engineering issues for tracking and visibility. Returns the updated issue with the linked external issues.',
+    inputSchema: {
+      issue_id: z
+        .string()
+        .describe('ID of the Pylon issue to link an external issue to. Example: "issue_abc123"'),
+      external_issue_id: z
+        .string()
+        .describe(
+          'ID of the external issue in the source system. Examples: "ABC-123" (Linear), "PROJ-456" (Jira), "123" (GitHub issue number), "1234567890" (Asana task ID)'
+        ),
+      source: z
+        .enum(['linear', 'jira', 'github', 'asana'])
+        .describe(
+          'The source ticketing system. Must be one of: "linear", "jira", "github", "asana"'
+        ),
+    },
+  },
+  async ({ issue_id, external_issue_id, source }) =>
+    jsonResponse(await ensurePylonClient().linkExternalIssue(issue_id, external_issue_id, source))
+);
+
+mcpServer.registerTool(
+  'pylon_unlink_external_issue',
+  {
+    description:
+      'Unlink an external issue from a Pylon support issue. Use this to remove the connection between a customer support ticket and an engineering issue. Returns the updated issue with the remaining linked external issues.',
+    inputSchema: {
+      issue_id: z
+        .string()
+        .describe(
+          'ID of the Pylon issue to unlink an external issue from. Example: "issue_abc123"'
+        ),
+      external_issue_id: z
+        .string()
+        .describe('ID of the external issue to unlink. Example: "ABC-123"'),
+      source: z
+        .enum(['linear', 'jira', 'github', 'asana'])
+        .describe(
+          'The source ticketing system of the external issue. Must be one of: "linear", "jira", "github", "asana"'
+        ),
+    },
+  },
+  async ({ issue_id, external_issue_id, source }) =>
+    jsonResponse(await ensurePylonClient().unlinkExternalIssue(issue_id, external_issue_id, source))
+);
+
+// Issue Followers Management Tools
+
+mcpServer.registerTool(
+  'pylon_get_issue_followers',
+  {
+    description:
+      'Get the list of followers for a Pylon issue. Returns all users (team members) and contacts (customers) who are following the issue and will receive updates about its progress.',
+    inputSchema: {
+      issue_id: z
+        .string()
+        .describe('ID of the issue to get followers for. Example: "issue_abc123"'),
+    },
+  },
+  async ({ issue_id }) => jsonResponse(await ensurePylonClient().getIssueFollowers(issue_id))
+);
+
+mcpServer.registerTool(
+  'pylon_add_issue_followers',
+  {
+    description:
+      'Add followers to a Pylon issue. Followers receive updates and notifications about the issue. You can add team members (users) and/or customers (contacts) as followers.',
+    inputSchema: {
+      issue_id: z.string().describe('ID of the issue to add followers to. Example: "issue_abc123"'),
+      user_ids: z
+        .array(z.string())
+        .optional()
+        .describe(
+          'Array of user IDs (team members) to add as followers. Example: ["user_123", "user_456"]'
+        ),
+      contact_ids: z
+        .array(z.string())
+        .optional()
+        .describe(
+          'Array of contact IDs (customers) to add as followers. Example: ["contact_789", "contact_012"]'
+        ),
+    },
+  },
+  async ({ issue_id, user_ids, contact_ids }) =>
+    jsonResponse(await ensurePylonClient().addIssueFollowers(issue_id, user_ids, contact_ids))
+);
+
+mcpServer.registerTool(
+  'pylon_remove_issue_followers',
+  {
+    description:
+      'Remove followers from a Pylon issue. Removed followers will no longer receive updates or notifications about the issue.',
+    inputSchema: {
+      issue_id: z
+        .string()
+        .describe('ID of the issue to remove followers from. Example: "issue_abc123"'),
+      user_ids: z
+        .array(z.string())
+        .optional()
+        .describe(
+          'Array of user IDs (team members) to remove as followers. Example: ["user_123", "user_456"]'
+        ),
+      contact_ids: z
+        .array(z.string())
+        .optional()
+        .describe(
+          'Array of contact IDs (customers) to remove as followers. Example: ["contact_789", "contact_012"]'
+        ),
+    },
+  },
+  async ({ issue_id, user_ids, contact_ids }) =>
+    jsonResponse(await ensurePylonClient().removeIssueFollowers(issue_id, user_ids, contact_ids))
+);
+
+// Issue Deletion Tool
+
+mcpServer.registerTool(
+  'pylon_delete_issue',
+  {
+    description: `⚠️ DESTRUCTIVE OPERATION: Permanently delete a Pylon issue. This action cannot be undone.
+
+Use this tool with extreme caution. Deleted issues cannot be recovered. Before deleting:
+- Verify you have the correct issue ID
+- Confirm the issue should be permanently removed (not just closed)
+- Consider if the issue history needs to be preserved for compliance/audit purposes
+
+Returns confirmation of the deletion with the deleted issue ID.`,
+    inputSchema: {
+      issue_id: z
+        .string()
+        .describe(
+          'ID of the issue to permanently delete. Example: "issue_abc123". Double-check this is the correct issue before proceeding.'
+        ),
+    },
+  },
+  async ({ issue_id }) => jsonResponse(await ensurePylonClient().deleteIssue(issue_id))
+);
+
 // Main function to start the server
 async function main() {
   const transport = new StdioServerTransport();
