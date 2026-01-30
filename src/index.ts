@@ -153,7 +153,25 @@ mcpServer.registerTool(
         ),
     },
   },
-  async (args) => jsonResponse(await ensurePylonClient().getIssues(args as any))
+  async (args) => {
+    const { start_time, end_time } = args;
+
+    // Validate that both start_time and end_time are provided together, or neither
+    if ((start_time && !end_time) || (!start_time && end_time)) {
+      return {
+        content: [
+          {
+            type: 'text',
+            text: JSON.stringify({
+              error: 'Both start_time and end_time must be provided together, or neither.',
+            }),
+          },
+        ],
+      };
+    }
+
+    return jsonResponse(await ensurePylonClient().getIssues(args as any));
+  }
 );
 
 mcpServer.registerTool(

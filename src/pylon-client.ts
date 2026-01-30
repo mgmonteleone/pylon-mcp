@@ -652,8 +652,8 @@ export class PylonClient {
 
     // Build the filter
     const filter: PylonIssueSearchFilter = {
-      state: { operator: 'equals', value: resolvedState },
       ...options?.additionalFilters,
+      state: { operator: 'equals', value: resolvedState },
     };
 
     if (resolvedTag) {
@@ -710,13 +710,15 @@ export class PylonClient {
     const searchOptions: PylonIssueSearchOptions = {
       filter: {
         requester_id: { operator: 'equals', value: requestorId },
-        // Also search by title content if query provided
-        ...(options?.query && {
-          title: { operator: 'string_contains', value: options.query },
-        }),
       },
       limit: options?.limit,
     };
+
+    // Add title-based criteria for similarity matching
+    const searchQuery = options?.query || sourceIssue.title;
+    if (searchQuery) {
+      searchOptions.filter!.title = { operator: 'string_contains', value: searchQuery };
+    }
 
     const results = await this.searchIssues(searchOptions);
 
@@ -750,13 +752,15 @@ export class PylonClient {
     const searchOptions: PylonIssueSearchOptions = {
       filter: {
         account_id: { operator: 'equals', value: accountId },
-        // Also search by title content if query provided
-        ...(options?.query && {
-          title: { operator: 'string_contains', value: options.query },
-        }),
       },
       limit: options?.limit,
     };
+
+    // Add title-based criteria for similarity matching
+    const searchQuery = options?.query || sourceIssue.title;
+    if (searchQuery) {
+      searchOptions.filter!.title = { operator: 'string_contains', value: searchQuery };
+    }
 
     const results = await this.searchIssues(searchOptions);
 

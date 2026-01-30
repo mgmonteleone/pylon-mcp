@@ -259,6 +259,35 @@ describe('pylon-mcp functional tools (stdio, mocked HTTP)', () => {
     expect(res?.content?.[0]?.text).toContain('issue_1');
   });
 
+  it('pylon_get_issues validates start_time and end_time are provided together', async () => {
+    // Test with only start_time
+    const res1 = await client.callTool({
+      name: 'pylon_get_issues',
+      arguments: { start_time: '2024-01-01T00:00:00Z' },
+    });
+    expect(res1?.content?.[0]?.text).toContain('error');
+    expect(res1?.content?.[0]?.text).toContain(
+      'Both start_time and end_time must be provided together'
+    );
+
+    // Test with only end_time
+    const res2 = await client.callTool({
+      name: 'pylon_get_issues',
+      arguments: { end_time: '2024-01-31T23:59:59Z' },
+    });
+    expect(res2?.content?.[0]?.text).toContain('error');
+    expect(res2?.content?.[0]?.text).toContain(
+      'Both start_time and end_time must be provided together'
+    );
+
+    // Test with both (should succeed)
+    const res3 = await client.callTool({
+      name: 'pylon_get_issues',
+      arguments: { start_time: '2024-01-01T00:00:00Z', end_time: '2024-01-31T23:59:59Z' },
+    });
+    expect(res3?.content?.[0]?.text).not.toContain('error');
+  });
+
   it('pylon_create_issue', async () => {
     const res = await client.callTool({
       name: 'pylon_create_issue',
