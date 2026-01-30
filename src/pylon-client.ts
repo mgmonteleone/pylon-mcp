@@ -172,6 +172,84 @@ export interface PylonIssue {
   number?: number;
   /** The HTML body content of the issue */
   body_html?: string;
+  /**
+   * Issue state - can be one of: "new", "waiting_on_you", "waiting_on_customer", "on_hold", "closed"
+   * or a custom status slug
+   */
+  state?: string;
+  /** Tags associated with the issue */
+  tags?: string[];
+}
+
+/**
+ * Filter operator for issue search.
+ * Different fields support different operators:
+ * - state: equals, in, not_in
+ * - tags: contains, does_not_contain, in, not_in
+ * - created_at: time_is_after, time_is_before, time_range
+ * - requester_id, account_id, assignee_id, team_id: equals, in, not_in, is_set, is_unset
+ */
+export interface PylonSearchFilterCondition {
+  operator:
+    | 'equals'
+    | 'in'
+    | 'not_in'
+    | 'contains'
+    | 'does_not_contain'
+    | 'is_set'
+    | 'is_unset'
+    | 'time_is_after'
+    | 'time_is_before'
+    | 'time_range'
+    | 'string_contains'
+    | 'string_does_not_contain';
+  value?: string | string[];
+  /** For time_range operator */
+  start?: string;
+  end?: string;
+}
+
+/**
+ * Search filter for the /issues/search endpoint.
+ * Each key is a field name, and the value is a filter condition.
+ */
+export interface PylonIssueSearchFilter {
+  /** Filter by state: "new", "waiting_on_you", "waiting_on_customer", "on_hold", "closed", or custom status slug */
+  state?: PylonSearchFilterCondition;
+  /** Filter by tags (tag names) */
+  tags?: PylonSearchFilterCondition;
+  /** Filter by requester ID */
+  requester_id?: PylonSearchFilterCondition;
+  /** Filter by account ID */
+  account_id?: PylonSearchFilterCondition;
+  /** Filter by assignee ID */
+  assignee_id?: PylonSearchFilterCondition;
+  /** Filter by team ID */
+  team_id?: PylonSearchFilterCondition;
+  /** Filter by created_at timestamp (RFC3339) */
+  created_at?: PylonSearchFilterCondition;
+  /** Filter by title content */
+  title?: PylonSearchFilterCondition;
+  /** Filter by body_html content */
+  body_html?: PylonSearchFilterCondition;
+  /** Filter by ticket form ID */
+  ticket_form_id?: PylonSearchFilterCondition;
+  /** Filter by issue type: "Conversation" or "Ticket" */
+  issue_type?: PylonSearchFilterCondition;
+  /** Custom field filters (use the custom field slug as key) */
+  [customField: string]: PylonSearchFilterCondition | undefined;
+}
+
+/**
+ * Options for searching issues.
+ */
+export interface PylonIssueSearchOptions {
+  /** Structured filter object for the Pylon API */
+  filter?: PylonIssueSearchFilter;
+  /** Maximum number of issues to return (1-1000, default 100) */
+  limit?: number;
+  /** Cursor for pagination */
+  cursor?: string;
 }
 
 type PylonApiResponse<T> = {
@@ -353,10 +431,16 @@ export class PylonClient {
     return response.data;
   }
 
+  /**
+   * Get issues within a time range.
+   * Note: The GET /issues endpoint requires start_time and end_time parameters.
+   * For filtering by state, tags, or other criteria, use searchIssues() instead.
+   */
   async getIssues(params?: {
-    assignee?: string;
-    status?: string;
-    limit?: number;
+    /** Start time (RFC3339) - required, max 30 days range with end_time */
+    start_time?: string;
+    /** End time (RFC3339) - required, max 30 days range with start_time */
+    end_time?: string;
   }): Promise<PylonIssue[]> {
     const response = await this.cachedGet<PylonIssue[] | PylonApiResponse<PylonIssue[]>>(
       '/issues',
@@ -427,7 +511,45 @@ export class PylonClient {
   }
 
   // Issues API (search and additional operations)
-  async searchIssues(query: string, filters?: any): Promise<PylonIssue[]> {
+
+  /**
+   * Search for issues using the Pylon API's structured filter format.
+   *
+   * @param options - Search options including filter, limit, and cursor
+   * @returns Array of matching issues
+   *
+   * @example
+   * // Search for issues with state "on_hold" and tag "waiting on eng"
+   * const issues = await client.searchIssues({
+   *   filter: {
+   *     state: { operator: 'equals', value: 'on_hold' },
+   *     tags: { operator: 'contains', value: 'waiting on eng' }
+   *   }
+   * });
+   */
+  async searchIssues(options?: PylonIssueSearchOptions): Promise<PylonIssue[]> {
+    const body: Record<string, unknown> = {};
+
+    if (options?.filter) {
+      body.filter = options.filter;
+    }
+    if (options?.limit) {
+      body.limit = options.limit;
+    }
+    if (options?.cursor) {
+      body.cursor = options.cursor;
+    }
+
+    const response: AxiosResponse<PylonIssue[] | PylonApiResponse<PylonIssue[]>> =
+      await this.client.post('/issues/search', body);
+    return this.unwrapArray(response.data);
+  }
+
+  /**
+   * @deprecated Use searchIssues(options) with PylonIssueSearchOptions instead.
+   * This method is kept for backward compatibility but will be removed in a future version.
+   */
+  async searchIssuesLegacy(query: string, filters?: Record<string, unknown>): Promise<PylonIssue[]> {
     const response: AxiosResponse<PylonIssue[] | PylonApiResponse<PylonIssue[]>> =
       await this.client.post('/issues/search', {
         query,
@@ -474,19 +596,19 @@ export class PylonClient {
       return { sourceIssue, similarIssues: [] };
     }
 
-    // Build search query from title or provided query
-    const searchQuery = options?.query || sourceIssue.title;
-
-    // Include both legacy + canonical field names for better compatibility
-    const filters: Record<string, unknown> = {
-      requestor_id: requestorId,
-      requester_id: requestorId,
+    // Use the new structured filter format
+    const searchOptions: PylonIssueSearchOptions = {
+      filter: {
+        requester_id: { operator: 'equals', value: requestorId },
+        // Also search by title content if query provided
+        ...(options?.query && {
+          title: { operator: 'string_contains', value: options.query },
+        }),
+      },
+      limit: options?.limit,
     };
-    if (options?.limit) {
-      filters.limit = options.limit;
-    }
 
-    const results = await this.searchIssues(searchQuery, filters);
+    const results = await this.searchIssues(searchOptions);
 
     // Exclude the source issue from results (support both id and number)
     const issueIdStr = String(issueId);
@@ -514,17 +636,19 @@ export class PylonClient {
       return { sourceIssue, similarIssues: [] };
     }
 
-    // Build search query from title or provided query
-    const searchQuery = options?.query || sourceIssue.title;
-
-    const filters: Record<string, unknown> = {
-      account_id: accountId,
+    // Use the new structured filter format
+    const searchOptions: PylonIssueSearchOptions = {
+      filter: {
+        account_id: { operator: 'equals', value: accountId },
+        // Also search by title content if query provided
+        ...(options?.query && {
+          title: { operator: 'string_contains', value: options.query },
+        }),
+      },
+      limit: options?.limit,
     };
-    if (options?.limit) {
-      filters.limit = options.limit;
-    }
 
-    const results = await this.searchIssues(searchQuery, filters);
+    const results = await this.searchIssues(searchOptions);
 
     // Exclude the source issue from results (support both id and number)
     const issueIdStr = String(issueId);
@@ -549,15 +673,15 @@ export class PylonClient {
     // Build search query from title or provided query
     const searchQuery = options?.query || sourceIssue.title;
 
-    const filters: Record<string, unknown> = {};
-    if (options?.limit) {
-      filters.limit = options.limit;
-    }
+    // Use the new structured filter format - search by title content
+    const searchOptions: PylonIssueSearchOptions = {
+      filter: {
+        title: { operator: 'string_contains', value: searchQuery },
+      },
+      limit: options?.limit,
+    };
 
-    const results = await this.searchIssues(
-      searchQuery,
-      Object.keys(filters).length > 0 ? filters : undefined
-    );
+    const results = await this.searchIssues(searchOptions);
 
     // Exclude the source issue from results (support both id and number)
     const issueIdStr = String(issueId);

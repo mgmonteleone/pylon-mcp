@@ -132,13 +132,34 @@ npm run test:coverage
 
 ### Issue Tools
 
-- `pylon_get_issues`: List issues with optional filtering by assignee, status, and limit
+- `pylon_get_issues`: List issues within a time range (uses start_time/end_time parameters)
+- `pylon_search_issues`: **ENHANCED** - Search and filter issues by state, tags, assignee, account, and more
 - `pylon_create_issue`: Create a new issue
 - `pylon_get_issue`: Get details of a specific issue
-- `pylon_get_issue_with_messages`: **NEW** - Get a complete issue with all messages in one call
+- `pylon_get_issue_with_messages`: Get a complete issue with all messages in one call
 - `pylon_get_issue_messages`: Get conversation history for an issue
 - `pylon_update_issue`: Update issue status, priority, assignee, etc.
 - `pylon_snooze_issue`: Temporarily hide an issue until a future date
+
+#### Filtering by Custom Status
+
+Pylon represents custom statuses (like "Waiting on Eng Input") as a combination of **state** and **tag**. To filter by a custom status:
+
+```
+# Example: Find issues in "Waiting on Eng Input" status
+# This custom status = state "on_hold" + tag "waiting on eng"
+
+Use pylon_search_issues with:
+  - state: "on_hold"
+  - tag: "waiting on eng"
+```
+
+**Available States:**
+- `new` - New/unread issues
+- `waiting_on_you` - Waiting for your response
+- `waiting_on_customer` - Waiting for customer response
+- `on_hold` - On hold (often used with custom status tags)
+- `closed` - Closed/resolved issues
 
 > **Note:** The Pylon API does not support creating messages programmatically. Messages can only be created through the Pylon web UI or original channels (Slack, email, etc.).
 

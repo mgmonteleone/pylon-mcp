@@ -3,7 +3,11 @@
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js';
 import { z } from 'zod';
-import { PylonClient } from './pylon-client.js';
+import {
+  PylonClient,
+  PylonIssueSearchFilter,
+  PylonSearchFilterCondition,
+} from './pylon-client.js';
 import {
   parseCacheTtl,
   createPylonClient,
@@ -133,27 +137,23 @@ mcpServer.registerTool(
   'pylon_get_issues',
   {
     description:
-      'Get support issues/tickets from Pylon. Returns a list of customer support requests with details like title, status, priority, and assigned team member. Use this to see your workload or find specific issues.',
+      'Get support issues/tickets from Pylon within a time range. Returns a list of customer support requests with details like title, state, priority, tags, and assigned team member. For filtering by state, tags, or custom statuses, use pylon_search_issues instead.',
     inputSchema: {
-      assignee: z
+      start_time: z
         .string()
         .optional()
         .describe(
-          'Filter by assigned team member. Use email or user ID. Examples: "john@support.com", "user_123"'
+          'Start time (RFC3339 format) of the time range. Required if end_time is provided. Max 30 days range. Example: "2024-01-01T00:00:00Z"'
         ),
-      status: z
+      end_time: z
         .string()
         .optional()
         .describe(
-          'Filter by issue status. Options: "open", "in_progress", "pending", "resolved", "closed". Example: "open"'
+          'End time (RFC3339 format) of the time range. Required if start_time is provided. Max 30 days range. Example: "2024-01-31T23:59:59Z"'
         ),
-      limit: z
-        .number()
-        .optional()
-        .describe('Maximum number of issues to return (1-100). Default is 50. Example: 25'),
     },
   },
-  async (args) => jsonResponse(await ensurePylonClient().getIssues(args))
+  async (args) => jsonResponse(await ensurePylonClient().getIssues(args as any))
 );
 
 mcpServer.registerTool(
@@ -248,25 +248,98 @@ mcpServer.registerTool(
   'pylon_search_issues',
   {
     description:
-      'Search for support issues/tickets in Pylon by keywords, customer name, or issue content. Use this to find related issues, check for duplicates, or research similar problems.',
+      'Search for support issues/tickets in Pylon using structured filters. Supports filtering by state (including custom statuses), tags, assignee, account, and more. Custom statuses like "Waiting on Eng Input" are represented as state + tag combinations (e.g., state="on_hold" + tag="waiting on eng").',
     inputSchema: {
-      query: z
+      state: z
         .string()
-        .describe(
-          'Search term to find issues. Can search in titles, descriptions, and customer names. Examples: "login error", "billing question", "API timeout", "John Smith"'
-        ),
-      filters: z
-        .record(z.string(), z.unknown())
         .optional()
         .describe(
-          'Additional filters as key-value pairs. Examples: {"status": "open", "priority": "high"}, {"assignee": "john@company.com", "created_after": "2024-01-01"}'
+          'Filter by issue state. Built-in values: "new", "waiting_on_you", "waiting_on_customer", "on_hold", "closed". Can also use custom status slugs. Example: "on_hold"'
         ),
+      tag: z
+        .string()
+        .optional()
+        .describe(
+          'Filter by tag name. Use this with state to filter by custom statuses. Example: "waiting on eng" (combined with state="on_hold" for "Waiting on Eng Input" status)'
+        ),
+      tags: z
+        .array(z.string())
+        .optional()
+        .describe(
+          'Filter by multiple tags (issues must have ALL specified tags). Example: ["urgent", "billing"]'
+        ),
+      title_contains: z
+        .string()
+        .optional()
+        .describe('Search for issues with titles containing this text. Example: "login error"'),
+      assignee_id: z
+        .string()
+        .optional()
+        .describe('Filter by assignee user ID. Example: "user_abc123"'),
+      account_id: z
+        .string()
+        .optional()
+        .describe('Filter by account/company ID. Example: "acc_xyz789"'),
+      requester_id: z
+        .string()
+        .optional()
+        .describe('Filter by requester/contact ID. Example: "contact_123"'),
+      team_id: z.string().optional().describe('Filter by team ID. Example: "team_456"'),
+      limit: z
+        .number()
+        .optional()
+        .describe('Maximum number of issues to return (1-1000). Default is 100. Example: 50'),
     },
   },
-  async ({ query, filters }) =>
-    jsonResponse(
-      await ensurePylonClient().searchIssues(query, filters as Record<string, unknown> | undefined)
-    )
+  async (args) => {
+    const {
+      state,
+      tag,
+      tags,
+      title_contains,
+      assignee_id,
+      account_id,
+      requester_id,
+      team_id,
+      limit,
+    } = args;
+
+    // Build the structured filter object with proper types
+    const filter: PylonIssueSearchFilter = {};
+
+    if (state) {
+      filter.state = { operator: 'equals', value: state } as PylonSearchFilterCondition;
+    }
+    if (tag) {
+      filter.tags = { operator: 'contains', value: tag } as PylonSearchFilterCondition;
+    } else if (tags && tags.length > 0) {
+      filter.tags = { operator: 'in', value: tags } as PylonSearchFilterCondition;
+    }
+    if (title_contains) {
+      filter.title = { operator: 'string_contains', value: title_contains } as PylonSearchFilterCondition;
+    }
+    if (assignee_id) {
+      filter.assignee_id = { operator: 'equals', value: assignee_id } as PylonSearchFilterCondition;
+    }
+    if (account_id) {
+      filter.account_id = { operator: 'equals', value: account_id } as PylonSearchFilterCondition;
+    }
+    if (requester_id) {
+      filter.requester_id = { operator: 'equals', value: requester_id } as PylonSearchFilterCondition;
+    }
+    if (team_id) {
+      filter.team_id = { operator: 'equals', value: team_id } as PylonSearchFilterCondition;
+    }
+
+    const hasFilters = Object.keys(filter).length > 0;
+
+    return jsonResponse(
+      await ensurePylonClient().searchIssues({
+        filter: hasFilters ? filter : undefined,
+        limit,
+      })
+    );
+  }
 );
 
 // Similar Issues Helper Tools

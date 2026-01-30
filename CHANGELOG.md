@@ -9,9 +9,35 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Breaking Changes
 
+- **`pylon_search_issues` tool completely redesigned** (Issue #30)
+  - Now uses Pylon's structured filter format with explicit operators
+  - Old signature `searchIssues(query, filters)` replaced with `searchIssues(options: PylonIssueSearchOptions)`
+  - Legacy method `searchIssuesLegacy()` available for backward compatibility (deprecated)
+
+- **`pylon_get_issues` parameters changed**
+  - Now accepts `start_time` and `end_time` (RFC3339 format) instead of `assignee`, `status`, `limit`
+  - For filtering by status/state, use `pylon_search_issues` instead
+
 ### Added
 
+- **Custom status filtering support** (Issue #30)
+  - `pylon_search_issues` now supports filtering by `state` and `tag` parameters
+  - Custom statuses like "Waiting on Eng Input" can be searched using:
+    - `state: "on_hold"` + `tag: "waiting on eng"`
+  - New filter parameters: `state`, `tag`, `tags`, `title_contains`, `assignee_id`, `account_id`, `requester_id`, `team_id`, `limit`
+
+- **New TypeScript interfaces for structured search**
+  - `PylonSearchFilterCondition` - defines filter operators (equals, in, contains, etc.)
+  - `PylonIssueSearchFilter` - defines filterable fields
+  - `PylonIssueSearchOptions` - search options including filter, limit, cursor
+
+- **Issue state and tags fields**
+  - `PylonIssue` interface now includes `state` and `tags` properties
+
 ### Fixed
+
+- **Similar issues helper methods updated**
+  - `findSimilarIssuesForRequestor`, `findSimilarIssuesForAccount`, `findSimilarIssuesGlobal` now use structured filter format
 
 ## [3.0.0] - 2026-01-08
 
