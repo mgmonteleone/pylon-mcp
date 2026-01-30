@@ -549,7 +549,10 @@ export class PylonClient {
    * @deprecated Use searchIssues(options) with PylonIssueSearchOptions instead.
    * This method is kept for backward compatibility but will be removed in a future version.
    */
-  async searchIssuesLegacy(query: string, filters?: Record<string, unknown>): Promise<PylonIssue[]> {
+  async searchIssuesLegacy(
+    query: string,
+    filters?: Record<string, unknown>
+  ): Promise<PylonIssue[]> {
     const response: AxiosResponse<PylonIssue[] | PylonApiResponse<PylonIssue[]>> =
       await this.client.post('/issues/search', {
         query,
@@ -563,30 +566,28 @@ export class PylonClient {
    * Maps friendly status names to their underlying state + tag representation.
    * This makes it easier for LLMs to understand and use custom statuses.
    */
-  private static readonly CUSTOM_STATUS_MAPPINGS: Record<
-    string,
-    { state: string; tag?: string }
-  > = {
-    // Built-in states (no tag required)
-    new: { state: 'new' },
-    waiting_on_you: { state: 'waiting_on_you' },
-    waiting_on_customer: { state: 'waiting_on_customer' },
-    on_hold: { state: 'on_hold' },
-    closed: { state: 'closed' },
+  private static readonly CUSTOM_STATUS_MAPPINGS: Record<string, { state: string; tag?: string }> =
+    {
+      // Built-in states (no tag required)
+      new: { state: 'new' },
+      waiting_on_you: { state: 'waiting_on_you' },
+      waiting_on_customer: { state: 'waiting_on_customer' },
+      on_hold: { state: 'on_hold' },
+      closed: { state: 'closed' },
 
-    // Common custom statuses (state + tag combinations)
-    'waiting on eng input': { state: 'on_hold', tag: 'waiting on eng' },
-    'waiting on eng': { state: 'on_hold', tag: 'waiting on eng' },
-    'waiting on engineering': { state: 'on_hold', tag: 'waiting on eng' },
-    'waiting on product': { state: 'on_hold', tag: 'waiting on product' },
-    'waiting on product input': { state: 'on_hold', tag: 'waiting on product' },
-    'waiting on customer response': { state: 'waiting_on_customer', tag: 'waiting on customer' },
-    escalated: { state: 'on_hold', tag: 'escalated' },
-    'needs review': { state: 'on_hold', tag: 'needs review' },
-    'in progress': { state: 'waiting_on_you', tag: 'in progress' },
-    pending: { state: 'on_hold', tag: 'pending' },
-    blocked: { state: 'on_hold', tag: 'blocked' },
-  };
+      // Common custom statuses (state + tag combinations)
+      'waiting on eng input': { state: 'on_hold', tag: 'waiting on eng' },
+      'waiting on eng': { state: 'on_hold', tag: 'waiting on eng' },
+      'waiting on engineering': { state: 'on_hold', tag: 'waiting on eng' },
+      'waiting on product': { state: 'on_hold', tag: 'waiting on product' },
+      'waiting on product input': { state: 'on_hold', tag: 'waiting on product' },
+      'waiting on customer response': { state: 'waiting_on_customer', tag: 'waiting on customer' },
+      escalated: { state: 'on_hold', tag: 'escalated' },
+      'needs review': { state: 'on_hold', tag: 'needs review' },
+      'in progress': { state: 'waiting_on_you', tag: 'in progress' },
+      pending: { state: 'on_hold', tag: 'pending' },
+      blocked: { state: 'on_hold', tag: 'blocked' },
+    };
 
   /**
    * Get the list of known custom status names.

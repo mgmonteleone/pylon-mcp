@@ -172,6 +172,7 @@ pylon_search_issues with:
 ```
 
 **Available Built-in States:**
+
 - `new` - New/unread issues
 - `waiting_on_you` - Waiting for your response
 - `waiting_on_customer` - Waiting for customer response

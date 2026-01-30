@@ -3,11 +3,7 @@
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js';
 import { z } from 'zod';
-import {
-  PylonClient,
-  PylonIssueSearchFilter,
-  PylonSearchFilterCondition,
-} from './pylon-client.js';
+import { PylonClient, PylonIssueSearchFilter, PylonSearchFilterCondition } from './pylon-client.js';
 import {
   parseCacheTtl,
   createPylonClient,
@@ -334,7 +330,10 @@ mcpServer.registerTool(
       filter.tags = { operator: 'in', value: tags } as PylonSearchFilterCondition;
     }
     if (title_contains) {
-      filter.title = { operator: 'string_contains', value: title_contains } as PylonSearchFilterCondition;
+      filter.title = {
+        operator: 'string_contains',
+        value: title_contains,
+      } as PylonSearchFilterCondition;
     }
     if (assignee_id) {
       filter.assignee_id = { operator: 'equals', value: assignee_id } as PylonSearchFilterCondition;
@@ -343,7 +342,10 @@ mcpServer.registerTool(
       filter.account_id = { operator: 'equals', value: account_id } as PylonSearchFilterCondition;
     }
     if (requester_id) {
-      filter.requester_id = { operator: 'equals', value: requester_id } as PylonSearchFilterCondition;
+      filter.requester_id = {
+        operator: 'equals',
+        value: requester_id,
+      } as PylonSearchFilterCondition;
     }
     if (team_id) {
       filter.team_id = { operator: 'equals', value: team_id } as PylonSearchFilterCondition;
