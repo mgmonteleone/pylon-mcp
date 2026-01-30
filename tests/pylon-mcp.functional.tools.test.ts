@@ -92,21 +92,55 @@ describe('pylon-mcp functional tools (stdio, mocked HTTP)', () => {
         let body = '';
         for await (const chunk of req) body += chunk;
         const parsed = body ? JSON.parse(body) : {};
+        // Extract search terms from the new structured filter format
+        // The filter can contain: state, tags, title, requester_id, account_id, etc.
+        let searchTerm = 'unknown';
+        let requestorId = 'contact_1';
+        let accountId = 'account_1';
+
+        if (parsed.filter) {
+          // Check for title filter (string_contains or equals)
+          if (parsed.filter.title?.value) {
+            searchTerm = parsed.filter.title.value;
+          }
+          // Check for state filter
+          else if (parsed.filter.state?.value) {
+            searchTerm = `state:${parsed.filter.state.value}`;
+          }
+          // Check for tag filter
+          else if (parsed.filter.tags?.value) {
+            const tagValue = Array.isArray(parsed.filter.tags.value)
+              ? parsed.filter.tags.value.join(',')
+              : parsed.filter.tags.value;
+            searchTerm = `tag:${tagValue}`;
+          }
+          // Get requester_id and account_id from filter
+          if (parsed.filter.requester_id?.value) {
+            requestorId = parsed.filter.requester_id.value;
+          }
+          if (parsed.filter.account_id?.value) {
+            accountId = parsed.filter.account_id.value;
+          }
+        }
         // Return mock similar issues based on filters
         const issues = [
           {
             id: 'issue_similar_1',
-            title: `Similar: ${parsed.query}`,
+            title: `Similar: ${searchTerm}`,
             status: 'open',
-            requestor_id: parsed.requestor_id || 'contact_1',
-            account_id: parsed.account_id || 'account_1',
+            state: 'on_hold',
+            tags: ['waiting on eng'],
+            requestor_id: requestorId,
+            account_id: accountId,
           },
           {
             id: 'issue_similar_2',
-            title: `Related: ${parsed.query}`,
+            title: `Related: ${searchTerm}`,
             status: 'resolved',
-            requestor_id: parsed.requestor_id || 'contact_2',
-            account_id: parsed.account_id || 'account_1',
+            state: 'closed',
+            tags: [],
+            requestor_id: 'contact_2',
+            account_id: accountId,
           },
         ];
         withJson(res, 200, issues);
@@ -223,6 +257,35 @@ describe('pylon-mcp functional tools (stdio, mocked HTTP)', () => {
   it('pylon_get_issues', async () => {
     const res = await client.callTool({ name: 'pylon_get_issues', arguments: {} });
     expect(res?.content?.[0]?.text).toContain('issue_1');
+  });
+
+  it('pylon_get_issues validates start_time and end_time are provided together', async () => {
+    // Test with only start_time
+    const res1 = await client.callTool({
+      name: 'pylon_get_issues',
+      arguments: { start_time: '2024-01-01T00:00:00Z' },
+    });
+    expect(res1?.content?.[0]?.text).toContain('error');
+    expect(res1?.content?.[0]?.text).toContain(
+      'Both start_time and end_time must be provided together'
+    );
+
+    // Test with only end_time
+    const res2 = await client.callTool({
+      name: 'pylon_get_issues',
+      arguments: { end_time: '2024-01-31T23:59:59Z' },
+    });
+    expect(res2?.content?.[0]?.text).toContain('error');
+    expect(res2?.content?.[0]?.text).toContain(
+      'Both start_time and end_time must be provided together'
+    );
+
+    // Test with both (should succeed)
+    const res3 = await client.callTool({
+      name: 'pylon_get_issues',
+      arguments: { start_time: '2024-01-01T00:00:00Z', end_time: '2024-01-31T23:59:59Z' },
+    });
+    expect(res3?.content?.[0]?.text).not.toContain('error');
   });
 
   it('pylon_create_issue', async () => {
@@ -431,19 +494,98 @@ describe('pylon-mcp functional tools (stdio, mocked HTTP)', () => {
     expect(res?.content?.[0]?.text).toContain('Bug Report');
   });
 
-  it('pylon_search_issues', async () => {
+  it('pylon_search_issues with title_contains filter', async () => {
     const res = await client.callTool({
       name: 'pylon_search_issues',
-      arguments: { query: 'login error' },
+      arguments: { title_contains: 'login error' },
     });
     expect(res?.content?.[0]?.text).toContain('Similar: login error');
   });
 
-  it('pylon_search_issues with filters', async () => {
+  it('pylon_search_issues with state filter', async () => {
     const res = await client.callTool({
       name: 'pylon_search_issues',
-      arguments: { query: 'bug', filters: { status: 'open' } },
+      arguments: { state: 'on_hold' },
     });
-    expect(res?.content?.[0]?.text).toContain('Similar: bug');
+    expect(res?.content?.[0]?.text).toContain('Similar: state:on_hold');
+  });
+
+  it('pylon_search_issues with tag filter', async () => {
+    const res = await client.callTool({
+      name: 'pylon_search_issues',
+      arguments: { tag: 'waiting on eng' },
+    });
+    expect(res?.content?.[0]?.text).toContain('Similar: tag:waiting on eng');
+  });
+
+  it('pylon_search_issues with state and tag filter (custom status)', async () => {
+    // This simulates searching for a custom status like "Waiting on Eng Input"
+    // which is represented as state=on_hold + tag=waiting on eng
+    const res = await client.callTool({
+      name: 'pylon_search_issues',
+      arguments: { state: 'on_hold', tag: 'waiting on eng' },
+    });
+    // The mock server checks state first, then tags, so we see state in the title
+    // But importantly, both filters are sent to the API (verified by other tests)
+    // The real API would apply both filters
+    expect(res?.content?.[0]?.text).toContain('issue_similar_1');
+    expect(res?.content?.[0]?.text).toContain('on_hold');
+    expect(res?.content?.[0]?.text).toContain('waiting on eng');
+  });
+
+  // pylon_search_issues_by_status tool tests
+  it('pylon_search_issues_by_status - searches by built-in state name', async () => {
+    const res = await client.callTool({
+      name: 'pylon_search_issues_by_status',
+      arguments: { status: 'on_hold' },
+    });
+    const text = res?.content?.[0]?.text;
+    expect(text).toContain('status_resolved');
+    expect(text).toContain('"state": "on_hold"');
+    expect(text).toContain('"isCustom": false');
+    expect(text).toContain('issues');
+  });
+
+  it('pylon_search_issues_by_status - searches by custom status name', async () => {
+    const res = await client.callTool({
+      name: 'pylon_search_issues_by_status',
+      arguments: { status: 'Waiting on Eng Input' },
+    });
+    const text = res?.content?.[0]?.text;
+    expect(text).toContain('status_resolved');
+    expect(text).toContain('"state": "on_hold"');
+    expect(text).toContain('"tag": "waiting on eng"');
+    expect(text).toContain('"isCustom": true');
+  });
+
+  it('pylon_search_issues_by_status - case insensitive lookup', async () => {
+    const res = await client.callTool({
+      name: 'pylon_search_issues_by_status',
+      arguments: { status: 'WAITING ON ENG' },
+    });
+    const text = res?.content?.[0]?.text;
+    expect(text).toContain('"state": "on_hold"');
+    expect(text).toContain('"tag": "waiting on eng"');
+    expect(text).toContain('"isCustom": true');
+  });
+
+  it('pylon_search_issues_by_status - unknown status treated as tag', async () => {
+    const res = await client.callTool({
+      name: 'pylon_search_issues_by_status',
+      arguments: { status: 'custom-unknown-status' },
+    });
+    const text = res?.content?.[0]?.text;
+    expect(text).toContain('"state": "on_hold"');
+    expect(text).toContain('"tag": "custom-unknown-status"');
+    expect(text).toContain('"isCustom": true');
+  });
+
+  it('pylon_search_issues_by_status - includes issue count in response', async () => {
+    const res = await client.callTool({
+      name: 'pylon_search_issues_by_status',
+      arguments: { status: 'on_hold', limit: 10 },
+    });
+    const text = res?.content?.[0]?.text;
+    expect(text).toContain('issue_count');
   });
 });

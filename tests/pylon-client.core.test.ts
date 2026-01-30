@@ -195,11 +195,17 @@ describe('PylonClient - Core Functionality', () => {
         config: {} as any,
       });
 
-      const result = await client.searchIssues('foo', { status: 'pending', limit: 5 });
+      const result = await client.searchIssues({
+        filter: {
+          state: { operator: 'equals', value: 'pending' },
+        },
+        limit: 5,
+      });
 
       expect(mockAxios.post).toHaveBeenCalledWith('/issues/search', {
-        query: 'foo',
-        status: 'pending',
+        filter: {
+          state: { operator: 'equals', value: 'pending' },
+        },
         limit: 5,
       });
       expect(result).toEqual(mockIssues);
@@ -220,11 +226,17 @@ describe('PylonClient - Core Functionality', () => {
         config: {} as any,
       });
 
-      const result = await client.searchIssues('foo', { status: 'pending', limit: 5 });
+      const result = await client.searchIssues({
+        filter: {
+          state: { operator: 'equals', value: 'pending' },
+        },
+        limit: 5,
+      });
 
       expect(mockAxios.post).toHaveBeenCalledWith('/issues/search', {
-        query: 'foo',
-        status: 'pending',
+        filter: {
+          state: { operator: 'equals', value: 'pending' },
+        },
         limit: 5,
       });
       expect(result).toEqual(mockIssues);
@@ -611,9 +623,10 @@ describe('PylonClient - Core Functionality', () => {
 
         expect(mockAxios.get).toHaveBeenCalledWith('/issues/issue_1', { params: undefined });
         expect(mockAxios.post).toHaveBeenCalledWith('/issues/search', {
-          query: 'Login problem',
-          requestor_id: 'contact_123',
-          requester_id: 'contact_123',
+          filter: {
+            requester_id: { operator: 'equals', value: 'contact_123' },
+            title: { operator: 'string_contains', value: 'Login problem' },
+          },
         });
         expect(result.sourceIssue).toEqual(sourceIssue);
         // Source issue should be excluded from results
@@ -677,9 +690,10 @@ describe('PylonClient - Core Functionality', () => {
         });
 
         expect(mockAxios.post).toHaveBeenCalledWith('/issues/search', {
-          query: 'custom search',
-          requestor_id: 'contact_123',
-          requester_id: 'contact_123',
+          filter: {
+            requester_id: { operator: 'equals', value: 'contact_123' },
+            title: { operator: 'string_contains', value: 'custom search' },
+          },
           limit: 5,
         });
       });
@@ -721,8 +735,10 @@ describe('PylonClient - Core Functionality', () => {
         const result = await client.findSimilarIssuesForAccount('issue_1');
 
         expect(mockAxios.post).toHaveBeenCalledWith('/issues/search', {
-          query: 'API timeout',
-          account_id: 'account_456',
+          filter: {
+            account_id: { operator: 'equals', value: 'account_456' },
+            title: { operator: 'string_contains', value: 'API timeout' },
+          },
         });
         expect(result.sourceIssue).toEqual(sourceIssue);
         expect(result.similarIssues).toHaveLength(1);
@@ -789,7 +805,9 @@ describe('PylonClient - Core Functionality', () => {
         const result = await client.findSimilarIssuesGlobal('issue_1');
 
         expect(mockAxios.post).toHaveBeenCalledWith('/issues/search', {
-          query: 'Server error 500',
+          filter: {
+            title: { operator: 'string_contains', value: 'Server error 500' },
+          },
         });
         expect(result.sourceIssue).toEqual(sourceIssue);
         expect(result.similarIssues).toHaveLength(2);
@@ -827,7 +845,9 @@ describe('PylonClient - Core Functionality', () => {
         });
 
         expect(mockAxios.post).toHaveBeenCalledWith('/issues/search', {
-          query: 'error 500',
+          filter: {
+            title: { operator: 'string_contains', value: 'error 500' },
+          },
           limit: 20,
         });
       });
