@@ -114,9 +114,11 @@ npm run test:coverage
 
 - ✅ Attachment API (create from URL, file upload)
 - ✅ User Management (get user, search users)
-- ✅ Issue Management (get, create, update, filter)
+- ✅ Issue Management (get, create, update, filter, delete)
 - ✅ Contact Management (get, search, create)
 - ✅ Message Management (get messages with attachments)
+- ✅ External Issue Linking (link/unlink Linear, Jira, GitHub, Asana)
+- ✅ Issue Followers (get, add, remove followers)
 - ✅ Error Handling (404, network errors)
 
 ## Available Tools
@@ -134,13 +136,25 @@ npm run test:coverage
 
 - `pylon_get_issues`: List issues within a time range (uses start_time/end_time parameters)
 - `pylon_search_issues`: Search and filter issues by state, tags, assignee, account, and more
-- `pylon_search_issues_by_status`: **NEW** - Search by status name (handles custom status mapping automatically)
+- `pylon_search_issues_by_status`: Search by status name (handles custom status mapping automatically)
 - `pylon_create_issue`: Create a new issue
 - `pylon_get_issue`: Get details of a specific issue
 - `pylon_get_issue_with_messages`: Get a complete issue with all messages in one call
 - `pylon_get_issue_messages`: Get conversation history for an issue
 - `pylon_update_issue`: Update issue status, priority, assignee, etc.
 - `pylon_snooze_issue`: Temporarily hide an issue until a future date
+- `pylon_delete_issue`: **NEW** - Permanently delete an issue (⚠️ destructive operation)
+
+### External Issue Linking Tools
+
+- `pylon_link_external_issue`: **NEW** - Link an external issue (Linear, Jira, GitHub, Asana) to a Pylon issue
+- `pylon_unlink_external_issue`: **NEW** - Unlink an external issue from a Pylon issue
+
+### Issue Followers Tools
+
+- `pylon_get_issue_followers`: **NEW** - Get the list of followers for an issue
+- `pylon_add_issue_followers`: **NEW** - Add users and/or contacts as followers to an issue
+- `pylon_remove_issue_followers`: **NEW** - Remove followers from an issue
 
 #### Searching by Custom Status
 
