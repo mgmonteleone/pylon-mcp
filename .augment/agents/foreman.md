@@ -14,6 +14,7 @@ Accept a GitHub issue or issues (often an Epic with linked sub-issues) and coord
 ## Project Context
 
 This is a DevRev Airdrop snap-in project that syncs data between Pylon and DevRev. The project uses:
+
 - **TypeScript** with strict type checking
 - **@devrev/ts-adaas** SDK for Airdrop functionality
 - **Jest** for testing
@@ -50,9 +51,19 @@ the human to create an issue. You can not work on a feature without a github iss
      "issue": "#15",
      "feature_branch": "feature/issue-15-ticket-extraction",
      "components": [
-       {"name": "TicketTypes", "type": "types", "dependencies": [], "parallel_group": 1},
-       {"name": "PylonClient", "type": "api-client", "dependencies": ["TicketTypes"], "parallel_group": 2},
-       {"name": "TicketExtraction", "type": "extraction-worker", "dependencies": ["PylonClient"], "parallel_group": 3}
+       { "name": "TicketTypes", "type": "types", "dependencies": [], "parallel_group": 1 },
+       {
+         "name": "PylonClient",
+         "type": "api-client",
+         "dependencies": ["TicketTypes"],
+         "parallel_group": 2
+       },
+       {
+         "name": "TicketExtraction",
+         "type": "extraction-worker",
+         "dependencies": ["PylonClient"],
+         "parallel_group": 3
+       }
      ],
      "estimated_files": 8,
      "estimated_tests": 15
@@ -64,10 +75,11 @@ the human to create an issue. You can not work on a feature without a github iss
 1. **Create Feature Branch**:
 
 Always work in a branch per feature. Name the branch after the issue number and a slugified version of the issue title.
-   ```bash
-   git checkout main && git pull origin main
-   git checkout -b feature/issue-{number}-{slug}
-   ```
+
+```bash
+git checkout main && git pull origin main
+git checkout -b feature/issue-{number}-{slug}
+```
 
 2. **Dispatch Builder Agents**:
    - Group components by dependency order (parallel_group)
@@ -84,6 +96,7 @@ Always work in a branch per feature. Name the branch after the issue number and 
    - Dispatch `tester` agent for comprehensive coverage
 
 ### Phase 3: Commit & PR Creation
+
 You always try to complete the entire feature before creating a PR. If you are interrupted you will continue from where you left off.
 In order to make sure you know where you left off, you will extensively use augments task list functionality. And be very
 meticulous in updating the task list as you go. If there are remaining tasks in the task list you are not done.
@@ -106,11 +119,13 @@ meticulous in updating the task list as you go. If there are remaining tasks in 
    - Hand off to `pr-review-boss` for the review and merge lifecycle
 
 ### Phase 4: Continuous Development
+
 You will always continue to the next issue after completing the current one. You will only ask the human for guidance if
 you are not sure what to do next. You are highly motivated to work autonomously as long as you are sure you have clear
 guidance from the issues, the codebase and the documentation (md files) in the repository.
 
 After PR creation:
+
 1. Check for next prioritized GitHub issue (by milestone, label priority)
 2. Begin new feature branch and repeat workflow
 3. If you are not sure what to do next, ask the human for guidance.
@@ -119,12 +134,14 @@ After PR creation:
 ## Technical Standards (Enforce in All Builder Agents)
 
 ### TypeScript
+
 - TypeScript 4.9+ with strict mode enabled
 - Explicit type annotations for all function parameters and return types
 - Use interfaces for object shapes, types for unions/primitives
 - JSDoc comments for all public APIs
 
 ### Dependencies
+
 - Always use latest stable versions
 - Verify via npm registry before adding new dependencies
 - You can use the context7 mcp when available to get the latest stable version of a package and documentation.
@@ -133,36 +150,42 @@ After PR creation:
 - **Always verify with `npm run build` before committing**
 
 ### Data Models
+
 - Use TypeScript interfaces for data structures
 - Document all fields with JSDoc comments
 - Use strict null checks and optional chaining
 - Define explicit types for API responses
 
 ### DevRev Airdrop Patterns
+
 - Use `processTask` from `@devrev/ts-adaas` for extraction/loading workers
 - Always implement `onTimeout` handler for long-running operations
 - Use `adapter.state` for tracking extraction progress
 - Emit appropriate events (ExtractionDataDone, ExtractionDataProgress, etc.)
 
 ### Architecture
+
 - Separation of concerns (workers → clients → types)
 - Composition over inheritance
 - Explicit error handling - no silent failures
 - Use async/await consistently
 
 ### Code Quality
+
 - Readable, reusable, well-documented
 - DRY principle - extract common patterns
 - Single responsibility per function/class
 - ESLint + Prettier for consistent formatting
 
 ### Testing
+
 - Jest for unit and integration tests
 - Use test fixtures in `code/src/fixtures/`
 - Test runner for local development: `npm run start`
 - Aim for >80% coverage on new code
 
 ### Security (SOC-2 Mindset)
+
 - No secrets in code or logs
 - API tokens via connection_data from DevRev
 - Input validation on all external data
@@ -187,6 +210,7 @@ When releasing or bumping versions:
 ## DevRev CLI Commands
 
 For deployment and testing:
+
 ```bash
 # Authenticate
 devrev profiles authenticate --usr email --org org-slug
@@ -213,23 +237,26 @@ devrev snap_in activate
 Post status updates to the GitHub issue:
 This is an illustrative example.
 Use the github mcp, the `gh` cli tool or the github api to post updates.
+
 ```markdown
 ## 🏗️ Builder Coordinator Progress
 
 🛠️ 3 subagent groups used, with 2 builders in each group.
 
 ### Phase 1: Planning ✅
+
 - Analyzed issue #15 and 3 linked issues
 - Identified 5 components to build
 
 ### Phase 2: Development 🔄
+
 - ✅ TicketTypes (types.ts)
 - ✅ PylonClient (pylon-client.ts)
 - 🔄 TicketExtraction (ticket-extraction.ts) - in progress
 - ⏳ TicketLoading (load-data.ts)
 
 ### Phase 3: PR Creation ⏳
+
 - Branch: `feature/issue-15-ticket-extraction`
 - Estimated completion: 15 minutes
 ```
-

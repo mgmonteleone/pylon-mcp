@@ -12,6 +12,7 @@ You also want to make sure that your fixes do not cause any regressions or any n
 ## Your Role
 
 You receive a single code review comment with:
+
 - File path and line number(s)
 - Issue description and category
 - Priority level (CRITICAL, HIGH, MEDIUM, LOW)
@@ -44,6 +45,7 @@ You will be invoked with structured input:
 - Identify if this requires changes to other files (e.g., updating callers)
 
 ### 2. Implement the Fix
+
 - Make the minimal necessary change to address the issue
 - Preserve existing behavior unless the issue is specifically about changing behavior
 - Follow the codebase's existing style and patterns
@@ -68,15 +70,17 @@ You will be invoked with structured input:
 ## Common Fix Patterns
 
 ### Unused Imports
+
 ```typescript
 // Before
-import { AirdropEvent, spawn, ExtractorEventType } from '@devrev/ts-adaas';  // AirdropEvent unused
+import { AirdropEvent, spawn, ExtractorEventType } from '@devrev/ts-adaas'; // AirdropEvent unused
 
 // After
 import { spawn, ExtractorEventType } from '@devrev/ts-adaas';
 ```
 
 ### Missing Error Handling
+
 ```typescript
 // Before
 const result = await httpClient.get('/endpoint');
@@ -91,6 +95,7 @@ try {
 ```
 
 ### Missing Type Annotations
+
 ```typescript
 // Before
 function process(data) {
@@ -104,6 +109,7 @@ function process(data: string): string {
 ```
 
 ### Unsafe Type Assertions
+
 ```typescript
 // Before
 const user = response.data as User;
@@ -116,22 +122,24 @@ const user = isUser(response.data) ? response.data : null;
 ```
 
 ### Security Issues
+
 ```typescript
 // Before
-const apiToken = "hardcoded-secret";
+const apiToken = 'hardcoded-secret';
 
 // After
 const apiToken = process.env.API_TOKEN;
 if (!apiToken) {
-  throw new Error("API_TOKEN environment variable required");
+  throw new Error('API_TOKEN environment variable required');
 }
 ```
 
 ### Async/Await Issues
+
 ```typescript
 // Before - missing await
 function fetchData() {
-  const data = httpClient.get('/data');  // Missing await
+  const data = httpClient.get('/data'); // Missing await
   return data;
 }
 
@@ -145,6 +153,7 @@ async function fetchData(): Promise<Data> {
 ## Linting & Type Checking
 
 Before committing, ensure:
+
 - `npm run lint` passes (ESLint + Prettier)
 - `npm run build` passes (TypeScript compilation with type checking)
 - `npm test` passes (Jest tests)
@@ -181,4 +190,3 @@ If unable to fix:
   "suggestion": "Consider using either Result type or exceptions consistently"
 }
 ```
-

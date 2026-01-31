@@ -37,11 +37,11 @@ Commands are defined in `.augment/commands/` and use the [Augment CLI custom com
 
 ### Available Commands
 
-| Command | Description |
-|---------|-------------|
-| `/foreman` | Orchestrate complete feature development from GitHub issue to PR |
-| `/pr-review-boss` | Review pull requests for code quality and correctness |
-| `/devrev-expert` | Get DevRev Airdrop and Pylon integration expert help |
+| Command           | Description                                                      |
+| ----------------- | ---------------------------------------------------------------- |
+| `/foreman`        | Orchestrate complete feature development from GitHub issue to PR |
+| `/pr-review-boss` | Review pull requests for code quality and correctness            |
+| `/devrev-expert`  | Get DevRev Airdrop and Pylon integration expert help             |
 
 ## Primary Workflow: Foreman-Driven Development
 
@@ -63,6 +63,7 @@ The **Foreman** is the primary orchestrator. You give it a feature request or ta
 ```
 
 The Foreman will automatically delegate to:
+
 - **Builder** - For implementing components
 - **Tester** - For writing tests
 - **Documentation** - For adding docs
@@ -113,15 +114,15 @@ cd airdrop-pylon-pr-review
 
 ## Available Agents
 
-| Agent | Role | Called By |
-|-------|------|-----------|
-| **Foreman** | Orchestrates feature development | You (directly via `/foreman`) |
-| **PR Review Boss** | Reviews PRs | You (via `/pr-review-boss` on separate checkout) |
-| **Builder** | Implements components with DevRev/Pylon expertise | Foreman |
-| **Tester** | Writes tests | Foreman |
-| **Bug Fixer** | Diagnoses and fixes bugs | Foreman |
-| **Simplifier** | Refactors for clarity | Foreman |
-| **Documentation** | Adds/updates docs | Foreman |
+| Agent              | Role                                              | Called By                                        |
+| ------------------ | ------------------------------------------------- | ------------------------------------------------ |
+| **Foreman**        | Orchestrates feature development                  | You (directly via `/foreman`)                    |
+| **PR Review Boss** | Reviews PRs                                       | You (via `/pr-review-boss` on separate checkout) |
+| **Builder**        | Implements components with DevRev/Pylon expertise | Foreman                                          |
+| **Tester**         | Writes tests                                      | Foreman                                          |
+| **Bug Fixer**      | Diagnoses and fixes bugs                          | Foreman                                          |
+| **Simplifier**     | Refactors for clarity                             | Foreman                                          |
+| **Documentation**  | Adds/updates docs                                 | Foreman                                          |
 
 ## Quick DevRev/Pylon Help
 
@@ -152,12 +153,12 @@ npm run start -- --fixturePath=positive-case.json --functionName=extraction
 
 ## File Locations
 
-| Path | Contents |
-|------|----------|
-| `.augment/agents/` | Agent definitions (subagent configs) |
-| `.augment/commands/` | Custom slash commands |
-| `.augment/rules/` | Project-specific rules |
-| `CLAUDE.md` | Base project instructions |
+| Path                 | Contents                             |
+| -------------------- | ------------------------------------ |
+| `.augment/agents/`   | Agent definitions (subagent configs) |
+| `.augment/commands/` | Custom slash commands                |
+| `.augment/rules/`    | Project-specific rules               |
+| `CLAUDE.md`          | Base project instructions            |
 
 ## Command Format Reference
 
@@ -173,4 +174,3 @@ Your prompt here with $ARGUMENTS where user input goes.
 ```
 
 See [Augment CLI Custom Commands Documentation](https://docs.augmentcode.com/cli/custom-commands) for more details.
-

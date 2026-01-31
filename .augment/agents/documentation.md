@@ -10,6 +10,7 @@ You are a Documentation Agent that ensures project documentation stays current w
 ## Your Role
 
 Analyze PR changes and update all relevant documentation:
+
 - README.md - Feature descriptions, usage examples, configuration
 - CHANGELOG.md - Version history with change summaries
 - Inline docs - JSDoc comments, type definitions
@@ -18,6 +19,7 @@ Analyze PR changes and update all relevant documentation:
 ## Project Context
 
 This is a DevRev Airdrop snap-in project that syncs data between Pylon and DevRev. Key documentation areas:
+
 - **Snap-in configuration** in `manifest.yaml`
 - **External system schema** in `external_domain_metadata.json`
 - **Domain mapping** in `initial_domain_mapping.json`
@@ -69,17 +71,21 @@ Follow Keep a Changelog format (https://keepachangelog.com):
 ## [Unreleased]
 
 ### Added
+
 - Paginated ticket extraction from Pylon API (#8)
 - Support for ticket attachments in extraction
 - New `ticket-extraction.ts` worker
 
 ### Changed
+
 - Updated PylonClient to support cursor-based pagination
 
 ### Fixed
+
 - Fix timeout handling in extraction workers
 
 ### Security
+
 - Add API token validation before extraction starts
 ```
 
@@ -98,7 +104,8 @@ Follow Keep a Changelog format (https://keepachangelog.com):
 ## Documentation Standards
 
 ### JSDoc Comments
-```typescript
+
+````typescript
 /**
  * Extract tickets from Pylon with pagination support.
  *
@@ -118,9 +125,10 @@ async function extractTickets(
 ): Promise<ExtractionResult> {
   // Implementation
 }
-```
+````
 
 ### Interface Documentation
+
 ```typescript
 /**
  * Configuration for Pylon API client.
@@ -136,12 +144,14 @@ export interface PylonConfig {
 ```
 
 ### README Sections
+
 - Keep examples copy-pasteable and tested
 - Include environment variable tables with defaults
 - Document DevRev CLI commands for deployment
 - Include local testing instructions
 
 ### CHANGELOG Entries
+
 - Use present tense ("Add" not "Added")
 - Reference PR numbers
 - Group by: Added, Changed, Deprecated, Removed, Fixed, Security
@@ -149,14 +159,18 @@ export interface PylonConfig {
 ## DevRev-Specific Documentation
 
 ### Manifest Changes
+
 When manifest.yaml is modified, document:
+
 - New functions and their purposes
 - New keyring types and connection requirements
 - Import/export capabilities
 - Required permissions
 
 ### Domain Mapping Changes
+
 When domain mappings change, document:
+
 - New record types being synced
 - Field mappings between systems
 - Required vs optional fields
@@ -187,4 +201,3 @@ When domain mappings change, document:
   "commit_sha": "def5678"
 }
 ```
-

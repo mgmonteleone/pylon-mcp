@@ -14,6 +14,7 @@ Analyze code (typically recently modified) and apply refinements that improve qu
 ## Project Context
 
 This is a DevRev Airdrop snap-in project that syncs data between Pylon and DevRev. The project uses:
+
 - **TypeScript** with strict type checking
 - **@devrev/ts-adaas** SDK for Airdrop functionality
 - **Jest** for testing
@@ -35,6 +36,7 @@ You receive scope context:
 ```
 
 Scope options:
+
 - `"recent"` - Files modified in recent commits
 - `"staged"` - Currently staged changes
 - `"pr"` - Files changed in current PR/branch
@@ -53,6 +55,7 @@ Scope options:
 ### 2. Analyze Code
 
 For each file, identify opportunities:
+
 - Dead code (unused imports, unreachable code, commented-out code)
 - Deep nesting that can be flattened with early returns
 - Redundant logic that can be consolidated
@@ -63,16 +66,18 @@ For each file, identify opportunities:
 ### 3. Apply Refinements
 
 **Remove Dead Code**
+
 ```typescript
 // Before
-import { AirdropEvent, spawn, ExtractorEventType } from '@devrev/ts-adaas';  // AirdropEvent unused
-import axios from 'axios';  // unused
+import { AirdropEvent, spawn, ExtractorEventType } from '@devrev/ts-adaas'; // AirdropEvent unused
+import axios from 'axios'; // unused
 
 // After
 import { spawn, ExtractorEventType } from '@devrev/ts-adaas';
 ```
 
 **Reduce Nesting**
+
 ```typescript
 // Before
 function process(data: Data | null): Result | null {
@@ -96,6 +101,7 @@ function process(data: Data | null): Result | null {
 ```
 
 **Use Optional Chaining**
+
 ```typescript
 // Before
 const email = user && user.contact && user.contact.email;
@@ -105,6 +111,7 @@ const email = user?.contact?.email;
 ```
 
 **Use Nullish Coalescing**
+
 ```typescript
 // Before
 const limit = options.limit !== undefined && options.limit !== null ? options.limit : 100;
@@ -114,6 +121,7 @@ const limit = options.limit ?? 100;
 ```
 
 **Consolidate Logic**
+
 ```typescript
 // Before
 if (user.role === 'admin') {
@@ -129,6 +137,7 @@ const canEdit = ['admin', 'editor'].includes(user.role);
 ```
 
 **Improve Naming**
+
 ```typescript
 // Before
 function proc(d: unknown, f: Function): unknown {
@@ -142,6 +151,7 @@ function applyTransform<T, R>(data: T, transformFn: (input: T) => R): R {
 ```
 
 **Use Array Methods**
+
 ```typescript
 // Before
 const result: string[] = [];
@@ -152,7 +162,7 @@ for (const item of items) {
 }
 
 // After
-const result = items.filter(item => item.isActive).map(item => item.name);
+const result = items.filter((item) => item.isActive).map((item) => item.name);
 ```
 
 ### 4. Verify Changes
@@ -168,29 +178,34 @@ Provide summary of changes made.
 ## Technical Standards (TypeScript)
 
 ### TypeScript Version
+
 - Use TypeScript 4.9+ features
 - Use strict mode with all strict checks enabled
 - Use modern ES2020+ syntax
 
 ### Type Annotations
+
 - Add explicit type annotations to all function parameters and return types
 - Use interfaces for object shapes, types for unions/primitives
 - Prefer specific types over `any` or `unknown`
 - Use generics for reusable type-safe functions
 
 ### Modern Syntax
+
 - Use optional chaining (`?.`) instead of nested conditionals
 - Use nullish coalescing (`??`) instead of `||` for defaults
 - Use template literals for string interpolation
 - Use destructuring for cleaner parameter handling
 
 ### JSDoc Comments
+
 - Add JSDoc comments for all public functions
 - Include @param and @returns documentation
 - Add @throws for functions that throw errors
 - Include usage examples for complex functions
 
 ### Code Style
+
 - Follow ESLint + Prettier formatting
 - Use explicit conditionals over nested ternaries
 - Prefer early returns to reduce nesting
@@ -220,6 +235,7 @@ Apply in order of impact:
 ## Anti-Patterns to Avoid
 
 Do NOT create:
+
 - Nested ternary operators
 - Dense one-liners that sacrifice readability
 - Overly clever solutions that are hard to understand
