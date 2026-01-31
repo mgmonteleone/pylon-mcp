@@ -151,6 +151,30 @@ export interface PylonContact {
   portal_role?: string;
 }
 
+/**
+ * Represents an external issue linked to a Pylon issue.
+ * External issues come from ticketing systems like Linear, Jira, GitHub, and Asana.
+ */
+export interface PylonExternalIssue {
+  /** The ID of the external issue in the source system */
+  external_id: string;
+  /** URL link to the external issue */
+  link: string;
+  /** The source system: "linear", "jira", "github", or "asana" */
+  source: 'linear' | 'jira' | 'github' | 'asana';
+}
+
+/**
+ * Represents a follower of a Pylon issue.
+ * Followers can be either users (team members) or contacts (customers).
+ */
+export interface PylonFollower {
+  /** The ID of the follower */
+  id: string;
+  /** The type of follower: "user" for team members, "contact" for customers */
+  type: 'user' | 'contact';
+}
+
 export interface PylonIssue {
   id: string;
   title: string;
@@ -179,6 +203,8 @@ export interface PylonIssue {
   state?: string;
   /** Tags associated with the issue */
   tags?: string[];
+  /** External issues linked to this issue (Linear, Jira, GitHub, Asana) */
+  external_issues?: PylonExternalIssue[];
 }
 
 /**
@@ -900,5 +926,127 @@ export class PylonClient {
       payload
     );
     return response.data.data;
+  }
+
+  // External Issues API
+
+  /**
+   * Link an external issue to a Pylon issue.
+   * Supports linking issues from Linear, Jira, GitHub, and Asana.
+   *
+   * @param issueId - The Pylon issue ID
+   * @param externalIssueId - The ID of the external issue in the source system
+   * @param source - The source system: "linear", "jira", "github", or "asana"
+   * @returns The updated issue with external_issues array
+   */
+  async linkExternalIssue(
+    issueId: string,
+    externalIssueId: string,
+    source: 'linear' | 'jira' | 'github' | 'asana'
+  ): Promise<PylonIssue> {
+    const response: AxiosResponse<PylonIssue | PylonApiResponse<PylonIssue>> =
+      await this.client.post(`/issues/${issueId}/external-issues`, {
+        external_issue_id: externalIssueId,
+        source,
+        operation: 'link',
+      });
+    return this.unwrapData(response.data);
+  }
+
+  /**
+   * Unlink an external issue from a Pylon issue.
+   *
+   * @param issueId - The Pylon issue ID
+   * @param externalIssueId - The ID of the external issue to unlink
+   * @param source - The source system: "linear", "jira", "github", or "asana"
+   * @returns The updated issue with external_issues array
+   */
+  async unlinkExternalIssue(
+    issueId: string,
+    externalIssueId: string,
+    source: 'linear' | 'jira' | 'github' | 'asana'
+  ): Promise<PylonIssue> {
+    const response: AxiosResponse<PylonIssue | PylonApiResponse<PylonIssue>> =
+      await this.client.post(`/issues/${issueId}/external-issues`, {
+        external_issue_id: externalIssueId,
+        source,
+        operation: 'unlink',
+      });
+    return this.unwrapData(response.data);
+  }
+
+  // Issue Followers API
+
+  /**
+   * Get the list of followers for an issue.
+   *
+   * @param issueId - The Pylon issue ID
+   * @returns Array of followers (users and/or contacts)
+   */
+  async getIssueFollowers(issueId: string): Promise<PylonFollower[]> {
+    const response = await this.cachedGet<PylonFollower[] | PylonApiResponse<PylonFollower[]>>(
+      `/issues/${issueId}/followers`
+    );
+    return this.unwrapArray(response);
+  }
+
+  /**
+   * Add followers to an issue.
+   *
+   * @param issueId - The Pylon issue ID
+   * @param userIds - Array of user IDs to add as followers (optional)
+   * @param contactIds - Array of contact IDs to add as followers (optional)
+   * @returns The updated list of followers
+   */
+  async addIssueFollowers(
+    issueId: string,
+    userIds?: string[],
+    contactIds?: string[]
+  ): Promise<PylonFollower[]> {
+    const response: AxiosResponse<PylonFollower[] | PylonApiResponse<PylonFollower[]>> =
+      await this.client.post(`/issues/${issueId}/followers`, {
+        user_ids: userIds,
+        contact_ids: contactIds,
+        operation: 'add',
+      });
+    return this.unwrapArray(response.data);
+  }
+
+  /**
+   * Remove followers from an issue.
+   *
+   * @param issueId - The Pylon issue ID
+   * @param userIds - Array of user IDs to remove as followers (optional)
+   * @param contactIds - Array of contact IDs to remove as followers (optional)
+   * @returns The updated list of followers
+   */
+  async removeIssueFollowers(
+    issueId: string,
+    userIds?: string[],
+    contactIds?: string[]
+  ): Promise<PylonFollower[]> {
+    const response: AxiosResponse<PylonFollower[] | PylonApiResponse<PylonFollower[]>> =
+      await this.client.post(`/issues/${issueId}/followers`, {
+        user_ids: userIds,
+        contact_ids: contactIds,
+        operation: 'remove',
+      });
+    return this.unwrapArray(response.data);
+  }
+
+  // Issue Deletion API
+
+  /**
+   * Delete an issue.
+   * ⚠️ WARNING: This is a destructive operation and cannot be undone.
+   *
+   * @param issueId - The Pylon issue ID to delete
+   * @returns Object containing the deleted issue ID and deletion confirmation
+   */
+  async deleteIssue(issueId: string): Promise<{ id: string; deleted: boolean }> {
+    const response: AxiosResponse<
+      { id: string; deleted: boolean } | PylonApiResponse<{ id: string; deleted: boolean }>
+    > = await this.client.delete(`/issues/${issueId}`);
+    return this.unwrapData(response.data);
   }
 }

@@ -1023,4 +1023,400 @@ describe('PylonClient - Core Functionality', () => {
       expect(result).toEqual(mockMessages);
     });
   });
+
+  describe('External Issue Linking', () => {
+    it('should link an external Linear issue to a Pylon issue', async () => {
+      const mockUpdatedIssue = {
+        id: 'issue_123',
+        title: 'Test issue',
+        status: 'open',
+        external_issues: [
+          {
+            external_id: 'ABC-123',
+            link: 'https://linear.app/team/issue/ABC-123',
+            source: 'linear',
+          },
+        ],
+      };
+
+      vi.spyOn(mockAxios, 'post').mockResolvedValue({
+        data: mockUpdatedIssue,
+        status: 200,
+        statusText: 'OK',
+        headers: {},
+        config: {} as any,
+      });
+
+      const result = await client.linkExternalIssue('issue_123', 'ABC-123', 'linear');
+
+      expect(mockAxios.post).toHaveBeenCalledWith('/issues/issue_123/external-issues', {
+        external_issue_id: 'ABC-123',
+        source: 'linear',
+        operation: 'link',
+      });
+      expect(result).toEqual(mockUpdatedIssue);
+      expect(result.external_issues).toHaveLength(1);
+      expect(result.external_issues![0].source).toBe('linear');
+    });
+
+    it('should link an external Jira issue to a Pylon issue', async () => {
+      const mockUpdatedIssue = {
+        id: 'issue_123',
+        title: 'Test issue',
+        status: 'open',
+        external_issues: [
+          {
+            external_id: 'PROJ-456',
+            link: 'https://company.atlassian.net/browse/PROJ-456',
+            source: 'jira',
+          },
+        ],
+      };
+
+      vi.spyOn(mockAxios, 'post').mockResolvedValue({
+        data: { data: mockUpdatedIssue, request_id: 'req_1' },
+        status: 200,
+        statusText: 'OK',
+        headers: {},
+        config: {} as any,
+      });
+
+      const result = await client.linkExternalIssue('issue_123', 'PROJ-456', 'jira');
+
+      expect(mockAxios.post).toHaveBeenCalledWith('/issues/issue_123/external-issues', {
+        external_issue_id: 'PROJ-456',
+        source: 'jira',
+        operation: 'link',
+      });
+      expect(result).toEqual(mockUpdatedIssue);
+    });
+
+    it('should link an external GitHub issue to a Pylon issue', async () => {
+      const mockUpdatedIssue = {
+        id: 'issue_123',
+        title: 'Test issue',
+        status: 'open',
+        external_issues: [
+          {
+            external_id: '789',
+            link: 'https://github.com/org/repo/issues/789',
+            source: 'github',
+          },
+        ],
+      };
+
+      vi.spyOn(mockAxios, 'post').mockResolvedValue({
+        data: mockUpdatedIssue,
+        status: 200,
+        statusText: 'OK',
+        headers: {},
+        config: {} as any,
+      });
+
+      const result = await client.linkExternalIssue('issue_123', '789', 'github');
+
+      expect(mockAxios.post).toHaveBeenCalledWith('/issues/issue_123/external-issues', {
+        external_issue_id: '789',
+        source: 'github',
+        operation: 'link',
+      });
+      expect(result.external_issues![0].source).toBe('github');
+    });
+
+    it('should link an external Asana task to a Pylon issue', async () => {
+      const mockUpdatedIssue = {
+        id: 'issue_123',
+        title: 'Test issue',
+        status: 'open',
+        external_issues: [
+          {
+            external_id: '1234567890',
+            link: 'https://app.asana.com/0/project/1234567890',
+            source: 'asana',
+          },
+        ],
+      };
+
+      vi.spyOn(mockAxios, 'post').mockResolvedValue({
+        data: mockUpdatedIssue,
+        status: 200,
+        statusText: 'OK',
+        headers: {},
+        config: {} as any,
+      });
+
+      const result = await client.linkExternalIssue('issue_123', '1234567890', 'asana');
+
+      expect(mockAxios.post).toHaveBeenCalledWith('/issues/issue_123/external-issues', {
+        external_issue_id: '1234567890',
+        source: 'asana',
+        operation: 'link',
+      });
+      expect(result.external_issues![0].source).toBe('asana');
+    });
+
+    it('should unlink an external issue from a Pylon issue', async () => {
+      const mockUpdatedIssue = {
+        id: 'issue_123',
+        title: 'Test issue',
+        status: 'open',
+        external_issues: [],
+      };
+
+      vi.spyOn(mockAxios, 'post').mockResolvedValue({
+        data: mockUpdatedIssue,
+        status: 200,
+        statusText: 'OK',
+        headers: {},
+        config: {} as any,
+      });
+
+      const result = await client.unlinkExternalIssue('issue_123', 'ABC-123', 'linear');
+
+      expect(mockAxios.post).toHaveBeenCalledWith('/issues/issue_123/external-issues', {
+        external_issue_id: 'ABC-123',
+        source: 'linear',
+        operation: 'unlink',
+      });
+      expect(result.external_issues).toHaveLength(0);
+    });
+
+    it('should handle API errors when linking external issues', async () => {
+      vi.spyOn(mockAxios, 'post').mockRejectedValue({
+        response: { status: 404, data: { error: 'Issue not found' } },
+      });
+
+      await expect(
+        client.linkExternalIssue('nonexistent', 'ABC-123', 'linear')
+      ).rejects.toMatchObject({
+        response: { status: 404 },
+      });
+    });
+  });
+
+  describe('Issue Followers Management', () => {
+    it('should get issue followers', async () => {
+      const mockFollowers = [
+        { id: 'user_123', type: 'user' },
+        { id: 'contact_456', type: 'contact' },
+      ];
+
+      vi.spyOn(mockAxios, 'get').mockResolvedValue({
+        data: mockFollowers,
+        status: 200,
+        statusText: 'OK',
+        headers: {},
+        config: {} as any,
+      });
+
+      const result = await client.getIssueFollowers('issue_123');
+
+      expect(mockAxios.get).toHaveBeenCalledWith('/issues/issue_123/followers', {
+        params: undefined,
+      });
+      expect(result).toEqual(mockFollowers);
+      expect(result).toHaveLength(2);
+    });
+
+    it('should get issue followers when API returns wrapped data envelope', async () => {
+      const mockFollowers = [{ id: 'user_123', type: 'user' }];
+
+      vi.spyOn(mockAxios, 'get').mockResolvedValue({
+        data: { data: mockFollowers, request_id: 'req_1' },
+        status: 200,
+        statusText: 'OK',
+        headers: {},
+        config: {} as any,
+      });
+
+      const result = await client.getIssueFollowers('issue_123');
+
+      expect(result).toEqual(mockFollowers);
+    });
+
+    it('should add user followers to an issue', async () => {
+      const mockFollowers = [
+        { id: 'user_123', type: 'user' },
+        { id: 'user_456', type: 'user' },
+      ];
+
+      vi.spyOn(mockAxios, 'post').mockResolvedValue({
+        data: mockFollowers,
+        status: 200,
+        statusText: 'OK',
+        headers: {},
+        config: {} as any,
+      });
+
+      const result = await client.addIssueFollowers('issue_123', ['user_123', 'user_456']);
+
+      expect(mockAxios.post).toHaveBeenCalledWith('/issues/issue_123/followers', {
+        user_ids: ['user_123', 'user_456'],
+        contact_ids: undefined,
+        operation: 'add',
+      });
+      expect(result).toEqual(mockFollowers);
+    });
+
+    it('should add contact followers to an issue', async () => {
+      const mockFollowers = [{ id: 'contact_789', type: 'contact' }];
+
+      vi.spyOn(mockAxios, 'post').mockResolvedValue({
+        data: mockFollowers,
+        status: 200,
+        statusText: 'OK',
+        headers: {},
+        config: {} as any,
+      });
+
+      const result = await client.addIssueFollowers('issue_123', undefined, ['contact_789']);
+
+      expect(mockAxios.post).toHaveBeenCalledWith('/issues/issue_123/followers', {
+        user_ids: undefined,
+        contact_ids: ['contact_789'],
+        operation: 'add',
+      });
+      expect(result).toEqual(mockFollowers);
+    });
+
+    it('should add both user and contact followers to an issue', async () => {
+      const mockFollowers = [
+        { id: 'user_123', type: 'user' },
+        { id: 'contact_789', type: 'contact' },
+      ];
+
+      vi.spyOn(mockAxios, 'post').mockResolvedValue({
+        data: mockFollowers,
+        status: 200,
+        statusText: 'OK',
+        headers: {},
+        config: {} as any,
+      });
+
+      const result = await client.addIssueFollowers('issue_123', ['user_123'], ['contact_789']);
+
+      expect(mockAxios.post).toHaveBeenCalledWith('/issues/issue_123/followers', {
+        user_ids: ['user_123'],
+        contact_ids: ['contact_789'],
+        operation: 'add',
+      });
+      expect(result).toHaveLength(2);
+    });
+
+    it('should remove user followers from an issue', async () => {
+      const mockFollowers: any[] = [];
+
+      vi.spyOn(mockAxios, 'post').mockResolvedValue({
+        data: mockFollowers,
+        status: 200,
+        statusText: 'OK',
+        headers: {},
+        config: {} as any,
+      });
+
+      const result = await client.removeIssueFollowers('issue_123', ['user_123']);
+
+      expect(mockAxios.post).toHaveBeenCalledWith('/issues/issue_123/followers', {
+        user_ids: ['user_123'],
+        contact_ids: undefined,
+        operation: 'remove',
+      });
+      expect(result).toEqual([]);
+    });
+
+    it('should remove contact followers from an issue', async () => {
+      const mockFollowers = [{ id: 'user_123', type: 'user' }];
+
+      vi.spyOn(mockAxios, 'post').mockResolvedValue({
+        data: mockFollowers,
+        status: 200,
+        statusText: 'OK',
+        headers: {},
+        config: {} as any,
+      });
+
+      const result = await client.removeIssueFollowers('issue_123', undefined, ['contact_789']);
+
+      expect(mockAxios.post).toHaveBeenCalledWith('/issues/issue_123/followers', {
+        user_ids: undefined,
+        contact_ids: ['contact_789'],
+        operation: 'remove',
+      });
+      expect(result).toHaveLength(1);
+    });
+
+    it('should handle API errors when getting followers', async () => {
+      vi.spyOn(mockAxios, 'get').mockRejectedValue({
+        response: { status: 404, data: { error: 'Issue not found' } },
+      });
+
+      await expect(client.getIssueFollowers('nonexistent')).rejects.toMatchObject({
+        response: { status: 404 },
+      });
+    });
+  });
+
+  describe('Issue Deletion', () => {
+    it('should delete an issue', async () => {
+      const mockResponse = {
+        id: 'issue_123',
+        deleted: true,
+      };
+
+      vi.spyOn(mockAxios, 'delete').mockResolvedValue({
+        data: { data: mockResponse },
+        status: 200,
+        statusText: 'OK',
+        headers: {},
+        config: {} as any,
+      });
+
+      const result = await client.deleteIssue('issue_123');
+
+      expect(mockAxios.delete).toHaveBeenCalledWith('/issues/issue_123');
+      expect(result).toEqual(mockResponse);
+      expect(result.deleted).toBe(true);
+    });
+
+    it('should handle 404 error when deleting non-existent issue', async () => {
+      vi.spyOn(mockAxios, 'delete').mockRejectedValue({
+        response: { status: 404, data: { error: 'Issue not found' } },
+      });
+
+      await expect(client.deleteIssue('nonexistent')).rejects.toMatchObject({
+        response: { status: 404 },
+      });
+    });
+
+    it('should handle 403 error when unauthorized to delete', async () => {
+      vi.spyOn(mockAxios, 'delete').mockRejectedValue({
+        response: { status: 403, data: { error: 'Forbidden' } },
+      });
+
+      await expect(client.deleteIssue('issue_123')).rejects.toMatchObject({
+        response: { status: 403 },
+      });
+    });
+
+    it('should handle unwrapped response from delete API', async () => {
+      const mockResponse = {
+        id: 'issue_456',
+        deleted: true,
+      };
+
+      vi.spyOn(mockAxios, 'delete').mockResolvedValue({
+        data: mockResponse,
+        status: 200,
+        statusText: 'OK',
+        headers: {},
+        config: {} as any,
+      });
+
+      const result = await client.deleteIssue('issue_456');
+
+      expect(mockAxios.delete).toHaveBeenCalledWith('/issues/issue_456');
+      expect(result).toEqual(mockResponse);
+      expect(result.deleted).toBe(true);
+    });
+  });
 });
