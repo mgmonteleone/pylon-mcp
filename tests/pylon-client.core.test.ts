@@ -1397,5 +1397,26 @@ describe('PylonClient - Core Functionality', () => {
         response: { status: 403 },
       });
     });
+
+    it('should handle unwrapped response from delete API', async () => {
+      const mockResponse = {
+        id: 'issue_456',
+        deleted: true,
+      };
+
+      vi.spyOn(mockAxios, 'delete').mockResolvedValue({
+        data: mockResponse,
+        status: 200,
+        statusText: 'OK',
+        headers: {},
+        config: {} as any,
+      });
+
+      const result = await client.deleteIssue('issue_456');
+
+      expect(mockAxios.delete).toHaveBeenCalledWith('/issues/issue_456');
+      expect(result).toEqual(mockResponse);
+      expect(result.deleted).toBe(true);
+    });
   });
 });

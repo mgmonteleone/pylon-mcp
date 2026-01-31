@@ -1044,8 +1044,9 @@ export class PylonClient {
    * @returns Object containing the deleted issue ID and deletion confirmation
    */
   async deleteIssue(issueId: string): Promise<{ id: string; deleted: boolean }> {
-    const response: AxiosResponse<{ data: { id: string; deleted: boolean } }> =
-      await this.client.delete(`/issues/${issueId}`);
-    return response.data.data;
+    const response: AxiosResponse<
+      { id: string; deleted: boolean } | PylonApiResponse<{ id: string; deleted: boolean }>
+    > = await this.client.delete(`/issues/${issueId}`);
+    return this.unwrapData(response.data);
   }
 }

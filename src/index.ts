@@ -906,8 +906,14 @@ mcpServer.registerTool(
         ),
     },
   },
-  async ({ issue_id, user_ids, contact_ids }) =>
-    jsonResponse(await ensurePylonClient().addIssueFollowers(issue_id, user_ids, contact_ids))
+  async ({ issue_id, user_ids, contact_ids }) => {
+    if ((!user_ids || user_ids.length === 0) && (!contact_ids || contact_ids.length === 0)) {
+      throw new Error('At least one user_id or contact_id must be provided');
+    }
+    return jsonResponse(
+      await ensurePylonClient().addIssueFollowers(issue_id, user_ids, contact_ids)
+    );
+  }
 );
 
 mcpServer.registerTool(
@@ -933,8 +939,14 @@ mcpServer.registerTool(
         ),
     },
   },
-  async ({ issue_id, user_ids, contact_ids }) =>
-    jsonResponse(await ensurePylonClient().removeIssueFollowers(issue_id, user_ids, contact_ids))
+  async ({ issue_id, user_ids, contact_ids }) => {
+    if ((!user_ids || user_ids.length === 0) && (!contact_ids || contact_ids.length === 0)) {
+      throw new Error('At least one user_id or contact_id must be provided');
+    }
+    return jsonResponse(
+      await ensurePylonClient().removeIssueFollowers(issue_id, user_ids, contact_ids)
+    );
+  }
 );
 
 // Issue Deletion Tool
