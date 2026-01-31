@@ -7,6 +7,34 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [3.2.0] - 2026-01-31
+
+### Added
+
+- **External Issue Linking** (Issue #34)
+  - New `pylon_link_external_issue` tool - Link Linear, Jira, GitHub, or Asana issues to Pylon tickets
+  - New `pylon_unlink_external_issue` tool - Remove external issue links
+  - New `PylonExternalIssue` interface for external issue representation
+  - Updated `PylonIssue` interface with `external_issues` field
+  - Supports sources: `linear`, `jira`, `github`, `asana`
+
+- **Issue Followers Management** (Issue #35)
+  - New `pylon_get_issue_followers` tool - Get all followers for an issue
+  - New `pylon_add_issue_followers` tool - Add users and/or contacts as followers
+  - New `pylon_remove_issue_followers` tool - Remove followers from an issue
+  - New `PylonFollower` interface for follower representation
+  - Validation to require at least one user_id or contact_id
+
+- **Issue Deletion** (Issue #36)
+  - New `pylon_delete_issue` tool - Permanently delete an issue
+  - Safety warnings in tool description
+  - Consistent response handling with `unwrapData()`
+
+### Changed
+
+- Total MCP tools: 37 (up from 30)
+- Total tests: 161 (up from 143)
+
 ## [3.1.0] - 2026-01-30
 
 ### Breaking Changes
