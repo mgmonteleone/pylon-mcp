@@ -7,6 +7,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [3.3.0] - 2026-02-11
+
+### Added
+
+- **Enhanced Error Handling** (Issue #42)
+  - Axios interceptors for improved error messages with status codes (e.g., `Pylon API error (400): ...`)
+  - Optional debug logging via `PYLON_DEBUG=true` environment variable
+  - Safe JSON stringification to prevent debug logging from crashing on non-serializable data
+  - 10 new unit tests for error handling scenarios
+
+### Changed
+
+- Updated `@modelcontextprotocol/sdk` from 1.25.2 to 1.26.0 (security fix)
+- Updated `axios` from 1.13.2 to 1.13.5
+- Updated `hono` from 4.11.4 to 4.11.9
+- Updated `zod` from 4.2.1 to 4.3.4
+
 ## [3.2.0] - 2026-01-31
 
 ### Added
