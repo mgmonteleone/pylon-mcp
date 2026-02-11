@@ -264,8 +264,9 @@ mcpServer.registerTool(
     // Check that time range doesn't exceed 30 days
     const rangeMs = endDate.getTime() - startDate.getTime();
     if (rangeMs > MAX_TIME_RANGE_MS) {
-      // Use floor for accurate day count (e.g., 31d + 1s = 31 days, not 32)
-      const rangeDays = Math.floor(rangeMs / (24 * 60 * 60 * 1000));
+      // Show precise day count with 1 decimal place for clarity
+      // This avoids both under-reporting (floor) and over-reporting (ceil)
+      const rangeDays = (rangeMs / (24 * 60 * 60 * 1000)).toFixed(1);
       return {
         content: [
           {

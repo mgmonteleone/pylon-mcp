@@ -310,8 +310,8 @@ describe('pylon-mcp functional tools (stdio, mocked HTTP)', () => {
     });
     expect(res?.content?.[0]?.text).toContain('error');
     expect(res?.content?.[0]?.text).toContain('Time range is too large');
-    // Jan 1 to Apr 1 2024 = 91 days
-    expect(res?.content?.[0]?.text).toContain('91 days');
+    // Jan 1 to Apr 1 2024 = 91 days (displayed with 1 decimal place as 91.0)
+    expect(res?.content?.[0]?.text).toContain('91.0 days');
   });
 
   it('pylon_get_issues validates start_time is before end_time', async () => {
