@@ -385,26 +385,35 @@ export class PylonClient {
 
     // Add debug logging interceptors if PYLON_DEBUG=true
     if (process.env.PYLON_DEBUG === 'true') {
+      // Safe stringify helper that won't throw for non-serializable data
+      const safeStringify = (data: unknown): string => {
+        try {
+          return JSON.stringify(data);
+        } catch {
+          return '[non-serializable data]';
+        }
+      };
+
       this.client.interceptors.request.use((requestConfig) => {
         console.error(
           '[Pylon Request]',
           requestConfig.method?.toUpperCase(),
           requestConfig.url,
-          requestConfig.data ? JSON.stringify(requestConfig.data) : ''
+          requestConfig.data ? safeStringify(requestConfig.data) : ''
         );
         return requestConfig;
       });
 
       this.client.interceptors.response.use(
         (response) => {
-          console.error('[Pylon Response]', response.status, JSON.stringify(response.data));
+          console.error('[Pylon Response]', response.status, safeStringify(response.data));
           return response;
         },
         (error) => {
           console.error(
             '[Pylon Error]',
             error.response?.status,
-            error.response?.data ? JSON.stringify(error.response.data) : error.message
+            error.response?.data ? safeStringify(error.response.data) : error.message
           );
           throw error;
         }
