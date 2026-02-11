@@ -35,6 +35,10 @@ The server implements comprehensive Pylon API coverage:
   - `PYLON_CACHE_TTL` (optional): Cache TTL in milliseconds (default: 30000)
     - Set to `0` to disable caching
     - Applies only to GET requests
+  - `PYLON_DEBUG` (optional): Set to `"true"` to enable debug logging
+    - Logs all requests (method, URL, data) to stderr
+    - Logs all responses (status, data) to stderr
+    - Logs error responses for troubleshooting API issues
 
 ### Caching Strategy
 
@@ -177,9 +181,13 @@ To test the MCP server with a real client:
 ## Error Handling
 
 - All API calls are wrapped in try/catch
-- Axios errors are converted to MCP error responses
+- **Enhanced error messages**: Pylon API error details are extracted from the response body
+  - Error format: `Pylon API error (${status}): ${errorMessage}`
+  - Extracts `error` or `message` field from API response
+  - Preserves original error, status code, and API error object for debugging
 - Required parameters are validated before API calls
 - Type assertions used for request arguments (`args as any`)
+- Enable `PYLON_DEBUG=true` to see detailed request/response logs for troubleshooting
 
 ## Security
 

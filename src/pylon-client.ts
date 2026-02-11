@@ -383,10 +383,67 @@ export class PylonClient {
       timeout: 30000, // 30 second timeout for all requests
     });
 
+    // Set up interceptors for error handling and optional debug logging
+    this.setupInterceptors();
+
     // Initialize cache if TTL is provided and > 0
     const cacheTtl = config.cacheTtl ?? 30000; // Default 30 seconds
     const maxCacheSize = config.maxCacheSize ?? 1000; // Default 1000 entries
     this.cache = cacheTtl > 0 ? new SimpleCache(cacheTtl, maxCacheSize) : null;
+  }
+
+  /**
+   * Set up axios interceptors for enhanced error handling and optional debug logging.
+   * Debug logging can be enabled via PYLON_DEBUG=true environment variable.
+   */
+  private setupInterceptors(): void {
+    const isDebugEnabled = process.env.PYLON_DEBUG === 'true';
+
+    // Request interceptor for debug logging
+    if (isDebugEnabled) {
+      this.client.interceptors.request.use((config) => {
+        console.error(
+          '[Pylon Request]',
+          config.method?.toUpperCase(),
+          config.url,
+          config.data ? JSON.stringify(config.data) : ''
+        );
+        return config;
+      });
+    }
+
+    // Response interceptor for debug logging and error handling
+    this.client.interceptors.response.use(
+      (response) => {
+        if (isDebugEnabled) {
+          console.error('[Pylon Response]', response.status, JSON.stringify(response.data));
+        }
+        return response;
+      },
+      (error) => {
+        if (isDebugEnabled) {
+          console.error('[Pylon Error]', error.response?.status, error.response?.data);
+        }
+
+        // Extract and enhance error message from API response
+        if (error.response?.data) {
+          const apiError = error.response.data;
+          const errorMessage =
+            apiError.error || apiError.message || JSON.stringify(apiError);
+
+          // Create enhanced error with API details
+          const enhancedError = new Error(
+            `Pylon API error (${error.response.status}): ${errorMessage}`
+          ) as Error & { status: number; apiError: unknown; originalError: unknown };
+          enhancedError.status = error.response.status;
+          enhancedError.apiError = apiError;
+          enhancedError.originalError = error;
+
+          throw enhancedError;
+        }
+        throw error;
+      }
+    );
   }
 
   /**

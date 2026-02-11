@@ -280,12 +280,15 @@ describe('pylon-mcp functional tools (stdio, mocked HTTP)', () => {
       'Both start_time and end_time must be provided together'
     );
 
-    // Test with both (should succeed)
+    // Test with both (should succeed - no validation error)
     const res3 = await client.callTool({
       name: 'pylon_get_issues',
       arguments: { start_time: '2024-01-01T00:00:00Z', end_time: '2024-01-31T23:59:59Z' },
     });
-    expect(res3?.content?.[0]?.text).not.toContain('error');
+    // The response should NOT contain our validation error about start_time/end_time
+    expect(res3?.content?.[0]?.text).not.toContain(
+      'Both start_time and end_time must be provided together'
+    );
   });
 
   it('pylon_create_issue', async () => {
