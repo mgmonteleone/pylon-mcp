@@ -874,12 +874,6 @@ export class PylonClient {
     // Build search query from title or provided query
     const searchQuery = options?.query || sourceIssue.title;
 
-    // If no search query is available, we can't perform a meaningful global search
-    // Return empty results rather than sending an invalid filter to the API
-    if (!searchQuery) {
-      return { sourceIssue, similarIssues: [] };
-    }
-
     // Use the new structured filter format - search by title content
     const searchOptions: PylonIssueSearchOptions = {
       filter: {
