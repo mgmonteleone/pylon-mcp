@@ -851,6 +851,33 @@ describe('PylonClient - Core Functionality', () => {
           limit: 20,
         });
       });
+
+      it('should return empty similarIssues when source issue has no title and no query provided', async () => {
+        const sourceIssue = {
+          id: 'issue_1',
+          title: '', // Empty title
+          description: 'Some description',
+          status: 'open',
+          priority: 'normal',
+        };
+
+        vi.spyOn(mockAxios, 'get').mockResolvedValue({
+          data: sourceIssue,
+          status: 200,
+          statusText: 'OK',
+          headers: {},
+          config: {} as any,
+        });
+
+        const postSpy = vi.spyOn(mockAxios, 'post');
+
+        const result = await client.findSimilarIssuesGlobal('issue_1');
+
+        // Should NOT call search API with empty query
+        expect(postSpy).not.toHaveBeenCalled();
+        expect(result.sourceIssue).toEqual(sourceIssue);
+        expect(result.similarIssues).toEqual([]);
+      });
     });
   });
 
