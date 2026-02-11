@@ -187,8 +187,7 @@ mcpServer.registerTool(
     // RFC3339 regex pattern - validates proper format with timezone
     // Matches: YYYY-MM-DDTHH:MM:SSZ or YYYY-MM-DDTHH:MM:SS+HH:MM or YYYY-MM-DDTHH:MM:SS-HH:MM
     // Also allows optional fractional seconds: YYYY-MM-DDTHH:MM:SS.sssZ
-    const rfc3339Regex =
-      /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d+)?(?:Z|[+-]\d{2}:\d{2})$/;
+    const rfc3339Regex = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d+)?(?:Z|[+-]\d{2}:\d{2})$/;
 
     // Validate RFC3339 format for start_time
     if (!rfc3339Regex.test(startTimeStr)) {
@@ -279,9 +278,7 @@ mcpServer.registerTool(
       };
     }
 
-    return jsonResponse(
-      await ensurePylonClient().getIssues({ start_time, end_time })
-    );
+    return jsonResponse(await ensurePylonClient().getIssues({ start_time, end_time }));
   }
 );
 
