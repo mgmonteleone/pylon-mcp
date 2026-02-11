@@ -872,7 +872,13 @@ export class PylonClient {
     const sourceIssue = await this.getIssue(issueId);
 
     // Build search query from title or provided query
-    const searchQuery = options?.query || sourceIssue.title;
+    // Trim whitespace to avoid sending whitespace-only queries to the API
+    const searchQuery = (options?.query || sourceIssue.title || '').trim();
+
+    // If no search query is available, we can't perform a meaningful global search
+    if (!searchQuery) {
+      return { sourceIssue, similarIssues: [] };
+    }
 
     // Use the new structured filter format - search by title content
     const searchOptions: PylonIssueSearchOptions = {
