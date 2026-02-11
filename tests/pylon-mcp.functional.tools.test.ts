@@ -298,7 +298,7 @@ describe('pylon-mcp functional tools (stdio, mocked HTTP)', () => {
       arguments: { start_time: '2024-01-01T00:00:00Z', end_time: '2024-02-01T00:00:01Z' },
     });
     expect(res?.content?.[0]?.text).toContain('error');
-    expect(res?.content?.[0]?.text).toContain('Time range is too large');
+    expect(res?.content?.[0]?.text).toContain('Time range exceeds the maximum allowed');
     expect(res?.content?.[0]?.text).toContain('maximum of 30 days');
   });
 
@@ -309,9 +309,9 @@ describe('pylon-mcp functional tools (stdio, mocked HTTP)', () => {
       arguments: { start_time: '2024-01-01T00:00:00Z', end_time: '2024-04-01T00:00:00Z' },
     });
     expect(res?.content?.[0]?.text).toContain('error');
-    expect(res?.content?.[0]?.text).toContain('Time range is too large');
-    // Jan 1 to Apr 1 2024 = 91 days (displayed with 1 decimal place as 91.0)
-    expect(res?.content?.[0]?.text).toContain('91.0 days');
+    expect(res?.content?.[0]?.text).toContain('Time range exceeds the maximum allowed');
+    // Jan 1 to Apr 1 2024 = 91 days (displayed with 2 decimal places as 91.00)
+    expect(res?.content?.[0]?.text).toContain('91.00 days');
   });
 
   it('pylon_get_issues validates start_time is before end_time', async () => {

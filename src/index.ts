@@ -157,8 +157,13 @@ mcpServer.registerTool(
   async (args) => {
     let { start_time, end_time } = args;
 
+    // Normalize empty strings to undefined to treat them as "not provided"
+    // This prevents empty strings from bypassing validation
+    const startTimeProvided = start_time !== undefined && start_time !== null && start_time !== '';
+    const endTimeProvided = end_time !== undefined && end_time !== null && end_time !== '';
+
     // Validate that both start_time and end_time are provided together, or neither
-    if ((start_time && !end_time) || (!start_time && end_time)) {
+    if (startTimeProvided !== endTimeProvided) {
       return {
         content: [
           {
@@ -172,7 +177,7 @@ mcpServer.registerTool(
     }
 
     // If neither is provided, default to the last 30 days
-    if (!start_time && !end_time) {
+    if (!startTimeProvided && !endTimeProvided) {
       const now = new Date();
       const thirtyDaysAgo = new Date(now.getTime() - MAX_TIME_RANGE_MS);
       start_time = thirtyDaysAgo.toISOString();
@@ -264,15 +269,15 @@ mcpServer.registerTool(
     // Check that time range doesn't exceed 30 days
     const rangeMs = endDate.getTime() - startDate.getTime();
     if (rangeMs > MAX_TIME_RANGE_MS) {
-      // Show precise day count with 1 decimal place for clarity
-      // This avoids both under-reporting (floor) and over-reporting (ceil)
-      const rangeDays = (rangeMs / (24 * 60 * 60 * 1000)).toFixed(1);
+      // Show precise day count with 2 decimal places to avoid confusion
+      // when the range is just barely over 30 days (e.g., 30.01 days)
+      const rangeDays = (rangeMs / (24 * 60 * 60 * 1000)).toFixed(2);
       return {
         content: [
           {
             type: 'text',
             text: JSON.stringify({
-              error: `Time range is too large. The Pylon API allows a maximum of ${MAX_TIME_RANGE_DAYS} days, but the specified range is ${rangeDays} days. Please reduce your time range or use pylon_search_issues for broader queries.`,
+              error: `Time range exceeds the maximum allowed. The Pylon API allows a maximum of ${MAX_TIME_RANGE_DAYS} days, but the specified range is ${rangeDays} days. Please reduce your time range or use pylon_search_issues for broader queries.`,
             }),
           },
         ],
