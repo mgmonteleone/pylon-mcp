@@ -383,6 +383,66 @@ export class PylonClient {
       timeout: 30000, // 30 second timeout for all requests
     });
 
+    // Add debug logging interceptors if PYLON_DEBUG=true
+    if (process.env.PYLON_DEBUG === 'true') {
+      // Safe stringify helper that won't throw for non-serializable data
+      const safeStringify = (data: unknown): string => {
+        try {
+          return JSON.stringify(data);
+        } catch {
+          return '[non-serializable data]';
+        }
+      };
+
+      this.client.interceptors.request.use((requestConfig) => {
+        console.error(
+          '[Pylon Request]',
+          requestConfig.method?.toUpperCase(),
+          requestConfig.url,
+          requestConfig.data ? safeStringify(requestConfig.data) : ''
+        );
+        return requestConfig;
+      });
+
+      this.client.interceptors.response.use(
+        (response) => {
+          console.error('[Pylon Response]', response.status, safeStringify(response.data));
+          return response;
+        },
+        (error) => {
+          console.error(
+            '[Pylon Error]',
+            error.response?.status,
+            error.response?.data ? safeStringify(error.response.data) : error.message
+          );
+          throw error;
+        }
+      );
+    }
+
+    // Add response interceptor to enhance error messages with Pylon API details
+    this.client.interceptors.response.use(
+      (response) => response,
+      (error) => {
+        if (error.response?.data) {
+          // Extract error message from Pylon API response
+          const apiError = error.response.data;
+          const errorMessage = apiError.error || apiError.message || JSON.stringify(apiError);
+
+          // Create enhanced error with API details
+          const enhancedError = new Error(
+            `Pylon API error (${error.response.status}): ${errorMessage}`
+          );
+          (enhancedError as any).status = error.response.status;
+          (enhancedError as any).apiError = apiError;
+          (enhancedError as any).originalError = error;
+
+          throw enhancedError;
+        }
+        throw error;
+      }
+    );
+
     // Initialize cache if TTL is provided and > 0
     const cacheTtl = config.cacheTtl ?? 30000; // Default 30 seconds
     const maxCacheSize = config.maxCacheSize ?? 1000; // Default 1000 entries

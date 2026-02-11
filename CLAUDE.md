@@ -35,6 +35,11 @@ The server implements comprehensive Pylon API coverage:
   - `PYLON_CACHE_TTL` (optional): Cache TTL in milliseconds (default: 30000)
     - Set to `0` to disable caching
     - Applies only to GET requests
+  - `PYLON_DEBUG` (optional): Set to `true` to enable debug logging
+    - Logs all request methods, URLs, and payloads
+    - Logs all response status codes and data
+    - Logs error details for failed requests
+    - Outputs to stderr for easy separation from normal output
 
 ### Caching Strategy
 

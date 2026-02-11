@@ -31,12 +31,15 @@ function makeMockPylonServer(routes: Record<string, Handler>) {
       return;
     }
 
+    // Extract path without query string for matching
+    const urlPath = req.url.split('?')[0];
+
     const match = Object.entries(routes).find(([path]) => {
       if (path.includes(':id')) {
         const base = path.replace(':id', '');
-        return req.url.startsWith(base);
+        return urlPath.startsWith(base);
       }
-      return req.url === path;
+      return urlPath === path;
     });
 
     if (!match) {
