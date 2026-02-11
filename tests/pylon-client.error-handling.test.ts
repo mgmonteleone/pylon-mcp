@@ -45,9 +45,7 @@ describe('PylonClient - Enhanced Error Handling', () => {
     });
 
     it('should extract error message from Pylon API response with "message" field', async () => {
-      nock(BASE_URL)
-        .get('/me')
-        .reply(401, { message: 'Invalid or expired API token' });
+      nock(BASE_URL).get('/me').reply(401, { message: 'Invalid or expired API token' });
 
       try {
         await client.getMe();
@@ -75,9 +73,7 @@ describe('PylonClient - Enhanced Error Handling', () => {
     });
 
     it('should preserve original error on enhanced error', async () => {
-      nock(BASE_URL)
-        .get('/issues/nonexistent')
-        .reply(404, { error: 'Issue not found' });
+      nock(BASE_URL).get('/issues/nonexistent').reply(404, { error: 'Issue not found' });
 
       try {
         await client.getIssue('nonexistent');
@@ -90,20 +86,21 @@ describe('PylonClient - Enhanced Error Handling', () => {
     });
 
     it('should pass through errors without response data', async () => {
-      nock(BASE_URL)
-        .get('/issues')
-        .replyWithError('Network error');
+      nock(BASE_URL).get('/issues').replyWithError('Network error');
 
       await expect(client.getIssues()).rejects.toThrow('Network error');
     });
 
     it('should handle 500 errors with API error details', async () => {
-      nock(BASE_URL)
-        .post('/issues')
-        .reply(500, { error: 'Database connection failed' });
+      nock(BASE_URL).post('/issues').reply(500, { error: 'Database connection failed' });
 
       try {
-        await client.createIssue({ title: 'Test', description: 'Test', status: 'open', priority: 'low' });
+        await client.createIssue({
+          title: 'Test',
+          description: 'Test',
+          status: 'open',
+          priority: 'low',
+        });
         expect.fail('Should have thrown an error');
       } catch (error: any) {
         expect(error.message).toBe('Pylon API error (500): Database connection failed');
@@ -174,4 +171,3 @@ describe('PylonClient - Enhanced Error Handling', () => {
     });
   });
 });
-

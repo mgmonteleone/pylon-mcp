@@ -418,8 +418,7 @@ export class PylonClient {
         if (error.response?.data) {
           // Extract error message from Pylon API response
           const apiError = error.response.data;
-          const errorMessage =
-            apiError.error || apiError.message || JSON.stringify(apiError);
+          const errorMessage = apiError.error || apiError.message || JSON.stringify(apiError);
 
           // Create enhanced error with API details
           const enhancedError = new Error(
