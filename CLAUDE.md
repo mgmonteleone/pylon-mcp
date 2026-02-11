@@ -52,17 +52,83 @@ The client implements intelligent caching to minimize API usage:
 - **Default**: 30 seconds (30000ms)
 - **Manual Control**: `clearCache()` method available for cache invalidation
 
-### Implemented Endpoints
+### API Endpoint Audit (Issue #14)
+
+**Last Updated**: 2026-02-11
+
+This audit compares the current implementation against the official Pylon API documentation at https://docs.usepylon.com/pylon-docs/developer/api/api-reference
+
+#### ✅ Fully Implemented Endpoints
+
+| Category | Endpoint | Method | Client Method | MCP Tool |
+|----------|----------|--------|---------------|----------|
+| **Users** | `/me` | GET | `getMe()` | `pylon_get_me` |
+| **Users** | `/users` | GET | `getUsers()` | `pylon_get_users` |
+| **Users** | `/users/search` | POST | `searchUsers()` | `pylon_search_users` |
+| **Contacts** | `/contacts` | GET | `getContacts()` | `pylon_get_contacts` |
+| **Contacts** | `/contacts` | POST | `createContact()` | `pylon_create_contact` |
+| **Contacts** | `/contacts/search` | POST | `searchContacts()` | `pylon_search_contacts` |
+| **Issues** | `/issues` | GET | `getIssues()` | `pylon_get_issues` |
+| **Issues** | `/issues` | POST | `createIssue()` | `pylon_create_issue` |
+| **Issues** | `/issues/{id}` | GET | `getIssue()` | `pylon_get_issue` |
+| **Issues** | `/issues/{id}` | PATCH | `updateIssue()` | `pylon_update_issue` |
+| **Issues** | `/issues/{id}` | DELETE | `deleteIssue()` | *(No MCP tool - destructive)* |
+| **Issues** | `/issues/search` | POST | `searchIssues()` | `pylon_search_issues` |
+| **Issues** | `/issues/{id}/snooze` | POST | `snoozeIssue()` | `pylon_snooze_issue` |
+| **Messages** | `/issues/{id}/messages` | GET | `getIssueMessages()` | `pylon_get_issue_messages` |
+| **Issues** | `/issues/{id}/followers` | GET | `getIssueFollowers()` | `pylon_get_issue_followers` |
+| **Issues** | `/issues/{id}/followers` | POST | `addIssueFollowers()` | `pylon_add_issue_followers` |
+| **Issues** | `/issues/{id}/followers` | POST | `removeIssueFollowers()` | `pylon_remove_issue_followers` |
+| **Issues** | `/issues/{id}/external-issues` | POST | `linkExternalIssue()` | `pylon_link_external_issue` |
+| **Issues** | `/issues/{id}/external-issues` | POST | `unlinkExternalIssue()` | `pylon_unlink_external_issue` |
+| **Knowledge Bases** | `/knowledge-bases` | GET | `getKnowledgeBases()` | `pylon_get_knowledge_bases` |
+| **Knowledge Bases** | `/knowledge-bases/{id}/articles` | POST | `createKnowledgeBaseArticle()` | `pylon_create_knowledge_base_article` |
+| **Teams** | `/teams` | GET | `getTeams()` | `pylon_get_teams` |
+| **Teams** | `/teams` | POST | `createTeam()` | `pylon_create_team` |
+| **Teams** | `/teams/{id}` | GET | `getTeam()` | `pylon_get_team` |
+| **Accounts** | `/accounts` | GET | `getAccounts()` | `pylon_get_accounts` |
+| **Accounts** | `/accounts/{id}` | GET | `getAccount()` | `pylon_get_account` |
+| **Tags** | `/tags` | GET | `getTags()` | `pylon_get_tags` |
+| **Tags** | `/tags` | POST | `createTag()` | `pylon_create_tag` |
+| **Ticket Forms** | `/ticket-forms` | GET | `getTicketForms()` | `pylon_get_ticket_forms` |
+| **Attachments** | `/attachments` | POST | `createAttachment()` | `pylon_create_attachment` |
+| **Attachments** | `/attachments` | POST | `createAttachmentFromUrl()` | `pylon_create_attachment_from_url` |
+| **Attachments** | `/attachments/{id}` | GET | `getAttachment()` | `pylon_get_attachment` |
+
+#### ❌ Not Implemented (Available in Pylon API)
+
+| Category | Description | Priority | Notes |
+|----------|-------------|----------|-------|
+| **Broadcasts** | Create and manage customer broadcasts | Medium | For mass customer communication |
+| **Custom Fields** | CRUD operations for custom fields | Low | Organization-level configuration |
+| **Surveys** | Customer satisfaction surveys | Low | CSAT functionality |
+| **Tasks & Projects** | Task and project management | Medium | Account intelligence features |
+| **User Roles** | Manage user role assignments | Low | Admin-only functionality |
+
+#### ⚠️ Previously Removed (Invalid Endpoints)
+
+| Tool | Endpoint | Status | Issue |
+|------|----------|--------|-------|
+| `pylon_create_issue_message` | `POST /issues/{id}/messages` | ❌ Removed | #13 - Endpoint doesn't exist in Pylon API |
+| `pylon_get_knowledge_base_articles` | `GET /knowledge-bases/{id}/articles` | ❌ Removed | #19 - Endpoint not in OpenAPI spec |
+
+#### Summary Statistics
+
+- **Total Implemented Endpoints**: 32
+- **MCP Tools Available**: 30+
+- **API Categories Covered**: 10/15 (67%)
+- **Known Gaps**: Broadcasts, Custom Fields, Surveys, Tasks & Projects, User Roles
+
+### Implemented Endpoints (Legacy Reference)
 
 **User Management** (`/me`, `/users`, `/users/search`)
 **Contact Management** (`/contacts`, `/contacts/search`)
-**Issue Management** (`/issues`, `/issues/search`, `/issues/{id}`, `/issues/{id}/snooze`, `/issues/{id}/messages`)
+**Issue Management** (`/issues`, `/issues/search`, `/issues/{id}`, `/issues/{id}/snooze`, `/issues/{id}/messages`, `/issues/{id}/followers`, `/issues/{id}/external-issues`)
 **Knowledge Base** (`/knowledge-bases`, `/knowledge-bases/{id}/articles`)
 **Team Management** (`/teams`, `/teams/{id}`)
 **Account Management** (`/accounts`, `/accounts/{id}`)
 **Tag Management** (`/tags`)
 **Ticket Forms** (`/ticket-forms`)
-**Webhook Management** (`/webhooks`)
 **Attachment Management** (`/attachments`, `/attachments/{id}`)
 
 ## Development Commands
