@@ -129,28 +129,33 @@ mcpServer.registerTool(
 );
 
 // Issue Management Tools
+
+// Maximum time range allowed by Pylon API (30 days in milliseconds)
+const MAX_TIME_RANGE_MS = 30 * 24 * 60 * 60 * 1000;
+const MAX_TIME_RANGE_DAYS = 30;
+
 mcpServer.registerTool(
   'pylon_get_issues',
   {
     description:
-      'Get support issues/tickets from Pylon within a time range. Returns a list of customer support requests with details like title, state, priority, tags, and assigned team member. For filtering by state, tags, or custom statuses, use pylon_search_issues instead.',
+      'Get support issues/tickets from Pylon within a time range. IMPORTANT: The Pylon API enforces a maximum time range of 30 days. If no dates are provided, defaults to the last 30 days. Returns a list of customer support requests with details like title, state, priority, tags, and assigned team member. For filtering by state, tags, or custom statuses, use pylon_search_issues instead.',
     inputSchema: {
       start_time: z
         .string()
         .optional()
         .describe(
-          'Start time (RFC3339 format) of the time range. Required if end_time is provided. Max 30 days range. Example: "2024-01-01T00:00:00Z"'
+          'Start time (RFC3339 format) of the time range. If not provided (along with end_time), defaults to 30 days ago. Max 30 days range allowed. Example: "2024-01-01T00:00:00Z"'
         ),
       end_time: z
         .string()
         .optional()
         .describe(
-          'End time (RFC3339 format) of the time range. Required if start_time is provided. Max 30 days range. Example: "2024-01-31T23:59:59Z"'
+          'End time (RFC3339 format) of the time range. If not provided (along with start_time), defaults to now. Max 30 days range allowed. Example: "2024-01-31T00:00:00Z"'
         ),
     },
   },
   async (args) => {
-    const { start_time, end_time } = args;
+    let { start_time, end_time } = args;
 
     // Validate that both start_time and end_time are provided together, or neither
     if ((start_time && !end_time) || (!start_time && end_time)) {
@@ -166,7 +171,82 @@ mcpServer.registerTool(
       };
     }
 
-    return jsonResponse(await ensurePylonClient().getIssues(args as any));
+    // If neither is provided, default to the last 30 days
+    if (!start_time && !end_time) {
+      const now = new Date();
+      const thirtyDaysAgo = new Date(now.getTime() - MAX_TIME_RANGE_MS);
+      start_time = thirtyDaysAgo.toISOString();
+      end_time = now.toISOString();
+    }
+
+    // At this point, both start_time and end_time are guaranteed to be strings
+    // (either provided together or set to defaults above)
+    const startTimeStr = start_time as string;
+    const endTimeStr = end_time as string;
+
+    // Validate the time range doesn't exceed 30 days
+    const startDate = new Date(startTimeStr);
+    const endDate = new Date(endTimeStr);
+
+    // Check for invalid dates
+    if (isNaN(startDate.getTime())) {
+      return {
+        content: [
+          {
+            type: 'text',
+            text: JSON.stringify({
+              error: `Invalid start_time format: "${args.start_time}". Please use RFC3339 format (e.g., "2024-01-01T00:00:00Z").`,
+            }),
+          },
+        ],
+      };
+    }
+    if (isNaN(endDate.getTime())) {
+      return {
+        content: [
+          {
+            type: 'text',
+            text: JSON.stringify({
+              error: `Invalid end_time format: "${args.end_time}". Please use RFC3339 format (e.g., "2024-01-31T00:00:00Z").`,
+            }),
+          },
+        ],
+      };
+    }
+
+    // Check that start_time is before end_time
+    if (startDate >= endDate) {
+      return {
+        content: [
+          {
+            type: 'text',
+            text: JSON.stringify({
+              error: 'start_time must be before end_time.',
+            }),
+          },
+        ],
+      };
+    }
+
+    // Check that time range doesn't exceed 30 days
+    const rangeMs = endDate.getTime() - startDate.getTime();
+    if (rangeMs > MAX_TIME_RANGE_MS) {
+      const rangeDays = Math.ceil(rangeMs / (24 * 60 * 60 * 1000));
+      return {
+        content: [
+          {
+            type: 'text',
+            text: JSON.stringify({
+              error: `Time range is too large. The Pylon API allows a maximum of ${MAX_TIME_RANGE_DAYS} days, but the specified range is ${rangeDays} days. Please reduce your time range or use pylon_search_issues for broader queries.`,
+            }),
+          },
+        ],
+      };
+    }
+
+    return jsonResponse(
+      await ensurePylonClient().getIssues({ start_time, end_time })
+    );
   }
 );
 

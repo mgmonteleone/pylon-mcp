@@ -283,12 +283,61 @@ describe('pylon-mcp functional tools (stdio, mocked HTTP)', () => {
       'Both start_time and end_time must be provided together'
     );
 
-    // Test with both (should succeed)
+    // Test with both within 30 days (should succeed)
     const res3 = await client.callTool({
       name: 'pylon_get_issues',
-      arguments: { start_time: '2024-01-01T00:00:00Z', end_time: '2024-01-31T23:59:59Z' },
+      arguments: { start_time: '2024-01-01T00:00:00Z', end_time: '2024-01-30T00:00:00Z' },
     });
     expect(res3?.content?.[0]?.text).not.toContain('error');
+  });
+
+  it('pylon_get_issues rejects time range exceeding 30 days', async () => {
+    // Test with 31 days range (should fail)
+    const res = await client.callTool({
+      name: 'pylon_get_issues',
+      arguments: { start_time: '2024-01-01T00:00:00Z', end_time: '2024-02-01T00:00:01Z' },
+    });
+    expect(res?.content?.[0]?.text).toContain('error');
+    expect(res?.content?.[0]?.text).toContain('Time range is too large');
+    expect(res?.content?.[0]?.text).toContain('maximum of 30 days');
+  });
+
+  it('pylon_get_issues rejects time range exceeding 30 days with large range', async () => {
+    // Test with 90 days range (should fail with correct day count)
+    const res = await client.callTool({
+      name: 'pylon_get_issues',
+      arguments: { start_time: '2024-01-01T00:00:00Z', end_time: '2024-04-01T00:00:00Z' },
+    });
+    expect(res?.content?.[0]?.text).toContain('error');
+    expect(res?.content?.[0]?.text).toContain('Time range is too large');
+    expect(res?.content?.[0]?.text).toContain('91 days');
+  });
+
+  it('pylon_get_issues validates start_time is before end_time', async () => {
+    const res = await client.callTool({
+      name: 'pylon_get_issues',
+      arguments: { start_time: '2024-02-01T00:00:00Z', end_time: '2024-01-01T00:00:00Z' },
+    });
+    expect(res?.content?.[0]?.text).toContain('error');
+    expect(res?.content?.[0]?.text).toContain('start_time must be before end_time');
+  });
+
+  it('pylon_get_issues validates date format', async () => {
+    // Test with invalid start_time
+    const res1 = await client.callTool({
+      name: 'pylon_get_issues',
+      arguments: { start_time: 'invalid-date', end_time: '2024-01-31T00:00:00Z' },
+    });
+    expect(res1?.content?.[0]?.text).toContain('error');
+    expect(res1?.content?.[0]?.text).toContain('Invalid start_time format');
+
+    // Test with invalid end_time
+    const res2 = await client.callTool({
+      name: 'pylon_get_issues',
+      arguments: { start_time: '2024-01-01T00:00:00Z', end_time: 'not-a-date' },
+    });
+    expect(res2?.content?.[0]?.text).toContain('error');
+    expect(res2?.content?.[0]?.text).toContain('Invalid end_time format');
   });
 
   it('pylon_create_issue', async () => {
