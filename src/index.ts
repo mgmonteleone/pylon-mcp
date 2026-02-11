@@ -184,18 +184,52 @@ mcpServer.registerTool(
     const startTimeStr = start_time as string;
     const endTimeStr = end_time as string;
 
-    // Validate the time range doesn't exceed 30 days
+    // RFC3339 regex pattern - validates proper format with timezone
+    // Matches: YYYY-MM-DDTHH:MM:SSZ or YYYY-MM-DDTHH:MM:SS+HH:MM or YYYY-MM-DDTHH:MM:SS-HH:MM
+    // Also allows optional fractional seconds: YYYY-MM-DDTHH:MM:SS.sssZ
+    const rfc3339Regex =
+      /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d+)?(?:Z|[+-]\d{2}:\d{2})$/;
+
+    // Validate RFC3339 format for start_time
+    if (!rfc3339Regex.test(startTimeStr)) {
+      return {
+        content: [
+          {
+            type: 'text',
+            text: JSON.stringify({
+              error: `Invalid start_time format: "${args.start_time}". Must be RFC3339 format with timezone (e.g., "2024-01-01T00:00:00Z" or "2024-01-01T00:00:00+00:00").`,
+            }),
+          },
+        ],
+      };
+    }
+
+    // Validate RFC3339 format for end_time
+    if (!rfc3339Regex.test(endTimeStr)) {
+      return {
+        content: [
+          {
+            type: 'text',
+            text: JSON.stringify({
+              error: `Invalid end_time format: "${args.end_time}". Must be RFC3339 format with timezone (e.g., "2024-01-31T00:00:00Z" or "2024-01-31T00:00:00+00:00").`,
+            }),
+          },
+        ],
+      };
+    }
+
+    // Parse dates after format validation
     const startDate = new Date(startTimeStr);
     const endDate = new Date(endTimeStr);
 
-    // Check for invalid dates
+    // Check for invalid dates (e.g., 2024-02-30 would pass regex but be invalid)
     if (isNaN(startDate.getTime())) {
       return {
         content: [
           {
             type: 'text',
             text: JSON.stringify({
-              error: `Invalid start_time format: "${args.start_time}". Please use RFC3339 format (e.g., "2024-01-01T00:00:00Z").`,
+              error: `Invalid start_time date: "${args.start_time}". The date is not valid.`,
             }),
           },
         ],
@@ -207,7 +241,7 @@ mcpServer.registerTool(
           {
             type: 'text',
             text: JSON.stringify({
-              error: `Invalid end_time format: "${args.end_time}". Please use RFC3339 format (e.g., "2024-01-31T00:00:00Z").`,
+              error: `Invalid end_time date: "${args.end_time}". The date is not valid.`,
             }),
           },
         ],
@@ -231,7 +265,8 @@ mcpServer.registerTool(
     // Check that time range doesn't exceed 30 days
     const rangeMs = endDate.getTime() - startDate.getTime();
     if (rangeMs > MAX_TIME_RANGE_MS) {
-      const rangeDays = Math.ceil(rangeMs / (24 * 60 * 60 * 1000));
+      // Use floor for accurate day count (e.g., 31d + 1s = 31 days, not 32)
+      const rangeDays = Math.floor(rangeMs / (24 * 60 * 60 * 1000));
       return {
         content: [
           {
