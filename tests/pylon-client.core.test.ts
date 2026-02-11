@@ -869,11 +869,44 @@ describe('PylonClient - Core Functionality', () => {
           config: {} as any,
         });
 
-        const postSpy = vi.spyOn(mockAxios, 'post');
+        // Mock post to fail if called - ensures we catch regressions deterministically
+        const postSpy = vi
+          .spyOn(mockAxios, 'post')
+          .mockRejectedValue(new Error('Should not be called'));
 
         const result = await client.findSimilarIssuesGlobal('issue_1');
 
         // Should NOT call search API with empty query
+        expect(postSpy).not.toHaveBeenCalled();
+        expect(result.sourceIssue).toEqual(sourceIssue);
+        expect(result.similarIssues).toEqual([]);
+      });
+
+      it('should return empty similarIssues when source issue has whitespace-only title', async () => {
+        const sourceIssue = {
+          id: 'issue_1',
+          title: '   ', // Whitespace-only title
+          description: 'Some description',
+          status: 'open',
+          priority: 'normal',
+        };
+
+        vi.spyOn(mockAxios, 'get').mockResolvedValue({
+          data: sourceIssue,
+          status: 200,
+          statusText: 'OK',
+          headers: {},
+          config: {} as any,
+        });
+
+        // Mock post to fail if called - ensures we catch regressions deterministically
+        const postSpy = vi
+          .spyOn(mockAxios, 'post')
+          .mockRejectedValue(new Error('Should not be called'));
+
+        const result = await client.findSimilarIssuesGlobal('issue_1');
+
+        // Should NOT call search API with whitespace-only query
         expect(postSpy).not.toHaveBeenCalled();
         expect(result.sourceIssue).toEqual(sourceIssue);
         expect(result.similarIssues).toEqual([]);
