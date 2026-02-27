@@ -209,6 +209,41 @@ describe('pylon-mcp functional tools (stdio, mocked HTTP)', () => {
       '/issues/ISSUE-NOT-FOUND': (_req, res) => withJson(res, 404, { error: 'Issue not found' }),
       '/issues/ISSUE-SERVER-ERROR': (_req, res) =>
         withJson(res, 500, { error: 'Internal server error' }),
+      // Tag management test endpoints
+      '/issues/ISSUE-TAGGED': async (req, res) => {
+        if (req.method === 'GET') {
+          withJson(res, 200, {
+            id: 'ISSUE-TAGGED',
+            title: 'Tagged Issue',
+            status: 'open',
+            tags: ['existing-tag', 'another-tag'],
+          });
+        } else if (req.method === 'PATCH') {
+          let body = '';
+          for await (const chunk of req) body += chunk;
+          const updates = body ? JSON.parse(body) : {};
+          withJson(res, 200, { id: 'ISSUE-TAGGED', title: 'Tagged Issue', status: 'open', ...updates });
+        } else {
+          withJson(res, 405, { message: 'Method Not Allowed' });
+        }
+      },
+      '/issues/ISSUE-NO-TAGS': async (req, res) => {
+        if (req.method === 'GET') {
+          withJson(res, 200, {
+            id: 'ISSUE-NO-TAGS',
+            title: 'Issue Without Tags',
+            status: 'open',
+            tags: [],
+          });
+        } else if (req.method === 'PATCH') {
+          let body = '';
+          for await (const chunk of req) body += chunk;
+          const updates = body ? JSON.parse(body) : {};
+          withJson(res, 200, { id: 'ISSUE-NO-TAGS', title: 'Issue Without Tags', status: 'open', ...updates });
+        } else {
+          withJson(res, 405, { message: 'Method Not Allowed' });
+        }
+      },
     });
 
     await new Promise<void>((resolve) => mockServer.listen(0, '127.0.0.1', () => resolve()));
@@ -640,5 +675,134 @@ describe('pylon-mcp functional tools (stdio, mocked HTTP)', () => {
     });
     const text = res?.content?.[0]?.text;
     expect(text).toContain('issue_count');
+  });
+
+  // pylon_update_issue with tags
+  it('pylon_update_issue with tags replaces all tags', async () => {
+    const res = await client.callTool({
+      name: 'pylon_update_issue',
+      arguments: { issue_id: 'ISSUE-TAGGED', tags: ['new-tag', 'replacement-tag'] },
+    });
+    const text = res?.content?.[0]?.text ?? '';
+    expect(text).toContain('new-tag');
+    expect(text).toContain('replacement-tag');
+    // Old tags should NOT be present
+    expect(text).not.toContain('existing-tag');
+  });
+
+  it('pylon_update_issue with tags and other fields together', async () => {
+    const res = await client.callTool({
+      name: 'pylon_update_issue',
+      arguments: { issue_id: 'ISSUE-TAGGED', status: 'resolved', tags: ['resolved', 'done'] },
+    });
+    const text = res?.content?.[0]?.text ?? '';
+    expect(text).toContain('resolved');
+    expect(text).toContain('done');
+  });
+
+  it('pylon_update_issue with empty tags array clears all tags', async () => {
+    const res = await client.callTool({
+      name: 'pylon_update_issue',
+      arguments: { issue_id: 'ISSUE-TAGGED', tags: [] },
+    });
+    const text = res?.content?.[0]?.text ?? '';
+    // Should have empty tags array
+    expect(text).toContain('"tags": []');
+  });
+
+  // pylon_add_tags tests
+  it('pylon_add_tags - adds tags to issue with no existing tags', async () => {
+    const res = await client.callTool({
+      name: 'pylon_add_tags',
+      arguments: { issue_id: 'ISSUE-NO-TAGS', tags: ['brand-new-tag'] },
+    });
+    const text = res?.content?.[0]?.text ?? '';
+    expect(text).toContain('brand-new-tag');
+  });
+
+  it('pylon_add_tags - merges with existing tags without duplication', async () => {
+    const res = await client.callTool({
+      name: 'pylon_add_tags',
+      arguments: { issue_id: 'ISSUE-TAGGED', tags: ['brand-new-tag'] },
+    });
+    const text = res?.content?.[0]?.text ?? '';
+    // Both existing and new tags should be present
+    expect(text).toContain('existing-tag');
+    expect(text).toContain('another-tag');
+    expect(text).toContain('brand-new-tag');
+  });
+
+  it('pylon_add_tags - adding existing tags does not create duplicates', async () => {
+    const res = await client.callTool({
+      name: 'pylon_add_tags',
+      arguments: { issue_id: 'ISSUE-TAGGED', tags: ['existing-tag'] },
+    });
+    const text = res?.content?.[0]?.text ?? '';
+    // existing-tag should appear only once in the tags array
+    const parsed = JSON.parse(text);
+    const tagCount = (parsed.tags as string[]).filter((t: string) => t === 'existing-tag').length;
+    expect(tagCount).toBe(1);
+  });
+
+  it('pylon_add_tags - adding empty array is a no-op', async () => {
+    const res = await client.callTool({
+      name: 'pylon_add_tags',
+      arguments: { issue_id: 'ISSUE-TAGGED', tags: [] },
+    });
+    const text = res?.content?.[0]?.text ?? '';
+    // Existing tags should still be present
+    expect(text).toContain('existing-tag');
+    expect(text).toContain('another-tag');
+  });
+
+  // pylon_remove_tags tests
+  it('pylon_remove_tags - removes specified tags while preserving others', async () => {
+    const res = await client.callTool({
+      name: 'pylon_remove_tags',
+      arguments: { issue_id: 'ISSUE-TAGGED', tags: ['existing-tag'] },
+    });
+    const text = res?.content?.[0]?.text ?? '';
+    // existing-tag should be gone, another-tag should remain
+    expect(text).not.toContain('existing-tag');
+    expect(text).toContain('another-tag');
+  });
+
+  it('pylon_remove_tags - removing non-existent tags leaves existing tags intact', async () => {
+    const res = await client.callTool({
+      name: 'pylon_remove_tags',
+      arguments: { issue_id: 'ISSUE-TAGGED', tags: ['not-a-real-tag'] },
+    });
+    const text = res?.content?.[0]?.text ?? '';
+    // Existing tags should be preserved
+    expect(text).toContain('existing-tag');
+    expect(text).toContain('another-tag');
+  });
+
+  it('pylon_remove_tags - removing all tags results in empty tags array', async () => {
+    const res = await client.callTool({
+      name: 'pylon_remove_tags',
+      arguments: { issue_id: 'ISSUE-TAGGED', tags: ['existing-tag', 'another-tag'] },
+    });
+    const text = res?.content?.[0]?.text ?? '';
+    expect(text).toContain('"tags": []');
+  });
+
+  // Error propagation tests
+  it('pylon_add_tags - propagates API error when issue not found', async () => {
+    const res = await client.callTool({
+      name: 'pylon_add_tags',
+      arguments: { issue_id: 'ISSUE-NOT-FOUND', tags: ['some-tag'] },
+    });
+    const text = res?.content?.[0]?.text ?? '';
+    expect(text).toContain('error');
+  });
+
+  it('pylon_remove_tags - propagates API error when issue not found', async () => {
+    const res = await client.callTool({
+      name: 'pylon_remove_tags',
+      arguments: { issue_id: 'ISSUE-NOT-FOUND', tags: ['some-tag'] },
+    });
+    const text = res?.content?.[0]?.text ?? '';
+    expect(text).toContain('error');
   });
 });
