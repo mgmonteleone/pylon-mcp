@@ -504,6 +504,62 @@ describe('PylonClient - Core Functionality', () => {
       expect(result).toEqual(created);
     });
 
+    it('should update issue with tags (full replacement)', async () => {
+      const updated = { id: 'issue_tag_1', title: 'Tagged Issue', tags: ['billing', 'urgent'] };
+
+      vi.spyOn(mockAxios, 'patch').mockResolvedValue({
+        data: updated,
+        status: 200,
+        statusText: 'OK',
+        headers: {},
+        config: {} as any,
+      });
+
+      const result = await client.updateIssue('issue_tag_1', { tags: ['billing', 'urgent'] });
+
+      expect(mockAxios.patch).toHaveBeenCalledWith('/issues/issue_tag_1', {
+        tags: ['billing', 'urgent'],
+      });
+      expect(result).toEqual(updated);
+      expect(result.tags).toEqual(['billing', 'urgent']);
+    });
+
+    it('should update issue with tags and other fields together', async () => {
+      const updates = { status: 'resolved', tags: ['resolved', 'billing'] };
+      const updated = { id: 'issue_tag_2', title: 'Done', ...updates };
+
+      vi.spyOn(mockAxios, 'patch').mockResolvedValue({
+        data: updated,
+        status: 200,
+        statusText: 'OK',
+        headers: {},
+        config: {} as any,
+      });
+
+      const result = await client.updateIssue('issue_tag_2', updates as any);
+
+      expect(mockAxios.patch).toHaveBeenCalledWith('/issues/issue_tag_2', updates);
+      expect(result.tags).toEqual(['resolved', 'billing']);
+      expect((result as any).status).toBe('resolved');
+    });
+
+    it('should update issue with empty tags array (clears all tags)', async () => {
+      const updated = { id: 'issue_tag_3', title: 'Clear Tags', tags: [] };
+
+      vi.spyOn(mockAxios, 'patch').mockResolvedValue({
+        data: updated,
+        status: 200,
+        statusText: 'OK',
+        headers: {},
+        config: {} as any,
+      });
+
+      const result = await client.updateIssue('issue_tag_3', { tags: [] });
+
+      expect(mockAxios.patch).toHaveBeenCalledWith('/issues/issue_tag_3', { tags: [] });
+      expect(result.tags).toEqual([]);
+    });
+
     it('should list ticket forms', async () => {
       const mockForms = [{ id: 'form1', name: 'Bug Report', fields: [] }];
       vi.spyOn(mockAxios, 'get').mockResolvedValue({

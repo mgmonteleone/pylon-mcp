@@ -7,6 +7,33 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [3.5.0] - 2026-02-27
+
+### Added
+
+- **Tag Management for Issues** (Issue #53)
+  - Added `tags` parameter to `pylon_update_issue` tool for full tag replacement
+  - New `pylon_add_tags` tool for incrementally adding tags to issues (fetch-then-merge with deduplication)
+  - New `pylon_remove_tags` tool for incrementally removing tags from issues (fetch-then-filter)
+  - Clear LLM-guiding tool descriptions to direct usage to the correct tool
+  - 14 new unit tests for tag management scenarios
+
+## [3.4.1] - 2026-02-11
+
+### Fixed
+
+- **fix: handle empty searchQuery in findSimilarIssuesGlobal** (#48)
+  - Fixed `pylon_find_similar_issues_global` failing with 400 error when source issue has empty/missing title
+  - Added `.trim()` to handle whitespace-only queries
+  - Returns empty `similarIssues` array gracefully instead of sending invalid filter to API
+
+## [3.4.0] - 2026-02-11
+
+### Added
+
+- **30-day time range validation for pylon_get_issues** (#46)
+  - Added validation to ensure time range does not exceed 30 days
+
 ## [3.3.0] - 2026-02-11
 
 ### Added

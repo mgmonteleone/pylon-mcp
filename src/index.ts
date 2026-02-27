@@ -343,7 +343,7 @@ mcpServer.registerTool(
   'pylon_update_issue',
   {
     description:
-      'Update an existing support issue/ticket. Use this to change status (e.g., mark as resolved), reassign to different team members, update priority, or modify details as you work on the issue.',
+      'Update an existing support issue/ticket. Use this to change status (e.g., mark as resolved), reassign to different team members, update priority, or modify details as you work on the issue. To add or remove specific tags without replacing all tags, use pylon_add_tags or pylon_remove_tags instead.',
     inputSchema: {
       issue_id: z.string().describe('ID of the issue to update. Example: "issue_abc123"'),
       title: z
@@ -370,10 +370,66 @@ mcpServer.registerTool(
         .string()
         .optional()
         .describe('New assignee email or user ID. Example: "tech-lead@company.com"'),
+      tags: z
+        .array(z.string())
+        .optional()
+        .describe(
+          'Complete replacement list of tags for the issue. This REPLACES all existing tags. To add or remove specific tags without affecting others, use pylon_add_tags or pylon_remove_tags instead. Example: ["billing", "urgent"]'
+        ),
     },
   },
   async ({ issue_id, ...updates }) =>
     jsonResponse(await ensurePylonClient().updateIssue(issue_id, updates))
+);
+
+mcpServer.registerTool(
+  'pylon_add_tags',
+  {
+    description:
+      'Add one or more tags to an existing Pylon issue without removing existing tags. Use this when you want to append tags to an issue. To replace all tags at once, use pylon_update_issue with a tags array. To remove specific tags, use pylon_remove_tags.',
+    inputSchema: {
+      issue_id: z
+        .string()
+        .describe('ID of the issue to add tags to. Example: "issue_abc123"'),
+      tags: z
+        .array(z.string())
+        .describe(
+          'Tags to add to the issue. Duplicates are ignored. Example: ["billing", "urgent"]'
+        ),
+    },
+  },
+  async ({ issue_id, tags }) => {
+    const client = ensurePylonClient();
+    const issue = await client.getIssue(issue_id);
+    const existingTags = issue.tags || [];
+    const mergedTags = [...new Set([...existingTags, ...tags])];
+    return jsonResponse(await client.updateIssue(issue_id, { tags: mergedTags }));
+  }
+);
+
+mcpServer.registerTool(
+  'pylon_remove_tags',
+  {
+    description:
+      'Remove one or more tags from an existing Pylon issue without affecting other tags. Use this when you want to remove specific tags from an issue. To add tags, use pylon_add_tags. To replace all tags at once, use pylon_update_issue with a tags array.',
+    inputSchema: {
+      issue_id: z
+        .string()
+        .describe('ID of the issue to remove tags from. Example: "issue_abc123"'),
+      tags: z
+        .array(z.string())
+        .describe(
+          'Tags to remove from the issue. Tags not present on the issue are ignored. Example: ["billing", "urgent"]'
+        ),
+    },
+  },
+  async ({ issue_id, tags }) => {
+    const client = ensurePylonClient();
+    const issue = await client.getIssue(issue_id);
+    const existingTags = issue.tags || [];
+    const filteredTags = existingTags.filter((t) => !tags.includes(t));
+    return jsonResponse(await client.updateIssue(issue_id, { tags: filteredTags }));
+  }
 );
 
 mcpServer.registerTool(

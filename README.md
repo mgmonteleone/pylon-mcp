@@ -141,9 +141,11 @@ npm run test:coverage
 - `pylon_get_issue`: Get details of a specific issue
 - `pylon_get_issue_with_messages`: Get a complete issue with all messages in one call
 - `pylon_get_issue_messages`: Get conversation history for an issue
-- `pylon_update_issue`: Update issue status, priority, assignee, etc.
+- `pylon_update_issue`: Update issue status, priority, assignee, or replace all tags
+- `pylon_add_tags`: **NEW** - Incrementally add tags to an issue (preserves existing tags, deduplicates)
+- `pylon_remove_tags`: **NEW** - Incrementally remove specific tags from an issue (leaves other tags intact)
 - `pylon_snooze_issue`: Temporarily hide an issue until a future date
-- `pylon_delete_issue`: **NEW** - Permanently delete an issue (⚠️ destructive operation)
+- `pylon_delete_issue`: Permanently delete an issue (⚠️ destructive operation)
 
 ### External Issue Linking Tools
 
