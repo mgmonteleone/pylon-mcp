@@ -7,6 +7,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [3.6.0] - 2026-02-27
+
+### Fixed
+
+- **Graceful Shutdown** (Issue #68): MCP server processes no longer persist after client disconnects. Added signal handlers for SIGINT, SIGTERM, and stdin close with re-entrance guard and proper `mcpServer.close()` cleanup.
+
+### Changed
+
+- **Reduced Tool Description Token Footprint** (Issue #69): Trimmed tool and parameter descriptions by 66% (~14,500 → ~4,900 chars), reducing LLM context usage by ~3,400 tokens per session while preserving all routing hints and constraints.
+- **Minimal Mutation Responses** (CUSS-102): Issue-mutating tools (`pylon_update_issue`, `pylon_add_tags`, `pylon_remove_tags`, `pylon_link_external_issue`, `pylon_unlink_external_issue`, `pylon_add_issue_followers`, `pylon_remove_issue_followers`) now return minimal `{ issue_id, success }` responses instead of full issue objects, further reducing context usage.
+
 ## [3.5.2] - 2026-02-27
 
 ### Fixed

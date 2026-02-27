@@ -1,6 +1,6 @@
 {
   "name": "@customer-support-success/pylon-mcp-server",
-  "version": "3.5.2",
+  "version": "3.6.0",
   "description": "MCP server for Pylon API integration",
   "type": "module",
   "main": "dist/index.js",
@@ -37,6 +37,7 @@
   "author": "",
   "license": "MIT",
   "dependencies": {
+    "@customer-support-success/pylon-mcp-server": "^3.6.0",
     "@modelcontextprotocol/sdk": "^1.25.1",
     "axios": "^1.6.0",
     "hono": "^4.12.3",
