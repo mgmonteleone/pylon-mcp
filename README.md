@@ -441,6 +441,23 @@ Once connected, you can use the available tools:
 "List all knowledge bases" → uses pylon_get_knowledge_bases
 "Create a new help article" → uses pylon_create_knowledge_base_article
 
+# Similar Issues
+"Find similar issues from this customer" → uses pylon_find_similar_issues_for_requestor
+"Check if this account has had similar problems" → uses pylon_find_similar_issues_for_account
+
+# Tags
+"Show all available tags" → uses pylon_get_tags
+"Add a tag to this issue" → uses pylon_add_tags
+
+# External Linking
+"Link this Linear ticket to the Pylon issue" → uses pylon_link_external_issue
+
+# Issue Followers
+"Add me as a follower on this issue" → uses pylon_add_issue_followers
+
+# Ticket Forms
+"Show available ticket forms" → uses pylon_get_ticket_forms
+
 # Team & Account Management
 "Show all teams" → uses pylon_get_teams
 "Get account details" → uses pylon_get_accounts
