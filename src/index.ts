@@ -22,7 +22,7 @@ const pylonClient = createPylonClient(PYLON_API_TOKEN, PYLON_CACHE_TTL);
 // Create the McpServer instance (high-level API, replaces deprecated Server class)
 const mcpServer = new McpServer({
   name: 'pylon-mcp-server',
-  version: '3.6.0',
+  version: '3.6.1',
 });
 
 // Helper function to ensure pylonClient is initialized
