@@ -18,6 +18,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Rewrote Features section to cover all capabilities
   - Expanded Example Tool Usage section
 
+### Removed
+
+- Deleted `GCP_SETUP.md` (outdated, referenced non-existent `publish.yml`)
+- Deleted `SECURITY_AUDIT_REPORT.md` (one-time pre-publication audit, no longer relevant)
+- Removed tracked `.DS_Store` and `.idea/` files (should never have been committed)
+
+### Fixed
+
+- Added `.DS_Store` to `.gitignore`
+- Added `PYLON_RETRY_MAX` and `PYLON_DEBUG` to `.env.example`
+
 ## [3.7.0] - 2026-02-27
 
 ### Added
