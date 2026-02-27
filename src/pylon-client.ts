@@ -135,6 +135,18 @@ export interface PylonConfig {
    * Default: 1000
    */
   maxCacheSize?: number;
+  /**
+   * Maximum number of retry attempts for transient failures.
+   * Set to 0 to disable retries. Default: 3
+   * Retries on: 429 (rate limit), 5xx (server error), timeout/connection errors.
+   * Uses exponential backoff with jitter. Respects Retry-After header.
+   */
+  maxRetries?: number;
+  /**
+   * Base delay in milliseconds for exponential backoff between retries.
+   * Default: 1000
+   */
+  retryBaseDelay?: number;
 }
 
 export interface PylonUser {
@@ -419,6 +431,65 @@ export class PylonClient {
         }
       );
     }
+
+    // Resolve retry configuration
+    const maxRetries = config.maxRetries ?? parseInt(process.env.PYLON_RETRY_MAX || '3', 10);
+    const retryBaseDelay = config.retryBaseDelay ?? 1000;
+
+    // Add retry interceptor for transient failures (BEFORE error enhancement)
+    this.client.interceptors.response.use(
+      (response) => response,
+      async (error) => {
+        const requestConfig = error.config as any;
+
+        if (!requestConfig) {
+          return Promise.reject(error);
+        }
+
+        // Determine if this error is retryable
+        const status = error.response?.status;
+        const code = error.code;
+        const isRetryableStatus =
+          status === 429 || (typeof status === 'number' && status >= 500 && status <= 599);
+        const isRetryableCode =
+          code === 'ECONNABORTED' || code === 'ECONNRESET' || code === 'ETIMEDOUT';
+        const isRetryable = isRetryableStatus || isRetryableCode;
+
+        // Initialize retry count on the config object
+        requestConfig.__retryCount = requestConfig.__retryCount ?? 0;
+
+        if (!isRetryable || requestConfig.__retryCount >= maxRetries) {
+          return Promise.reject(error);
+        }
+
+        requestConfig.__retryCount += 1;
+        const attempt = requestConfig.__retryCount;
+
+        // Calculate delay with exponential backoff + jitter, capped at 30 seconds
+        let delayMs = Math.min(
+          retryBaseDelay * Math.pow(2, attempt - 1) + Math.random() * 500,
+          30000
+        );
+
+        // Respect Retry-After header if present
+        const retryAfterHeader = error.response?.headers?.['retry-after'];
+        if (retryAfterHeader) {
+          const retryAfterSeconds = parseInt(retryAfterHeader, 10);
+          if (!isNaN(retryAfterSeconds)) {
+            delayMs = retryAfterSeconds * 1000;
+          } else {
+            // Try parsing as HTTP date
+            const retryAfterDate = new Date(retryAfterHeader).getTime();
+            if (!isNaN(retryAfterDate)) {
+              delayMs = Math.max(0, retryAfterDate - Date.now());
+            }
+          }
+        }
+
+        await new Promise((resolve) => setTimeout(resolve, delayMs));
+        return this.client.request(requestConfig);
+      }
+    );
 
     // Add response interceptor to enhance error messages with Pylon API details
     this.client.interceptors.response.use(

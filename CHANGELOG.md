@@ -7,6 +7,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- **Retry Logic**: Exponential backoff retry for transient API failures (#76)
+  - Retries on HTTP 429 (rate limit), 5xx server errors, and network timeouts (`ECONNABORTED`, `ECONNRESET`, `ETIMEDOUT`)
+  - Configurable via `PylonConfig.maxRetries` (default: 3) and `PylonConfig.retryBaseDelay` (default: 1000ms)
+  - Also configurable via `PYLON_RETRY_MAX` environment variable
+  - Respects `Retry-After` response header (parsed as seconds or HTTP date)
+  - Delay formula: `min(baseDelay * 2^attempt + random(0, 500), 30000)ms`
+  - Set `maxRetries: 0` to disable retries entirely
+
 ## [3.6.2] - 2026-02-27
 
 ### Fixed

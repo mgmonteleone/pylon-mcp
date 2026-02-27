@@ -40,6 +40,11 @@ The server implements comprehensive Pylon API coverage:
     - Logs all response status codes and data
     - Logs error details for failed requests
     - Outputs to stderr for easy separation from normal output
+  - `PYLON_RETRY_MAX` (optional): Maximum retry attempts for transient failures (default: 3)
+    - Set to `0` to disable retries
+    - Retries on: 429 (rate limit), 5xx (server error), timeout
+    - Uses exponential backoff with jitter
+    - Respects `Retry-After` header
 
 ### Caching Strategy
 
