@@ -7,6 +7,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [3.6.1] - 2026-02-27
+
+### Fixed
+
+- **CI Pipeline Fix**: Removed circular self-dependency from `package.json` that caused `npm ci` to fail in CI/Release workflows
+- **Node Version Alignment**: Standardized CI and Release workflows to Node 22 (LTS); previously CI used Node 20 and Release used Node 24
+- **Prettier Formatting**: Fixed formatting in `src/index.ts` and `tests/tool-descriptions.test.ts`
+
+### Added
+
+- **Pre-commit Hook**: Added `husky` + `lint-staged` to auto-format staged files with Prettier before each commit, preventing future CI format check failures
+
 ## [3.6.0] - 2026-02-27
 
 ### Fixed
