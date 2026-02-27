@@ -138,7 +138,7 @@ mcpServer.registerTool(
   'pylon_get_issues',
   {
     description:
-      'Get support issues/tickets from Pylon within a time range. IMPORTANT: The Pylon API enforces a maximum time range of 30 days. If no dates are provided, defaults to the last 30 days. Returns a list of customer support requests with details like title, state, priority, tags, and assigned team member. For filtering by state, tags, or custom statuses, use pylon_search_issues instead.',
+      'Get support issues/tickets from Pylon within a time range. USE THIS as the default tool when the user asks to \'show me issues\', \'list recent tickets\', or similar unfiltered requests. IMPORTANT: The Pylon API enforces a maximum time range of 30 days. If no dates are provided, defaults to the last 30 days. Returns a list of customer support requests with details like title, state, priority, tags, and assigned team member. For filtering by state, tags, or custom statuses, use pylon_search_issues instead.',
     inputSchema: {
       start_time: z
         .string()
@@ -466,7 +466,7 @@ mcpServer.registerTool(
   'pylon_search_issues',
   {
     description:
-      'Search for support issues/tickets in Pylon using structured filters. Supports filtering by state (including custom statuses), tags, assignee, account, and more. Custom statuses like "Waiting on Eng Input" are represented as state + tag combinations (e.g., state="on_hold" + tag="waiting on eng").',
+      'Search for support issues/tickets in Pylon using structured filters. REQUIRES at least one filter parameter — do NOT call this tool with no filters; use pylon_get_issues instead. Supports filtering by state (including custom statuses), tags, assignee, account, and more. Custom statuses like "Waiting on Eng Input" are represented as state + tag combinations (e.g., state="on_hold" + tag="waiting on eng").',
     inputSchema: {
       state: z
         .string()
@@ -569,7 +569,7 @@ mcpServer.registerTool(
 mcpServer.registerTool(
   'pylon_search_issues_by_status',
   {
-    description: `Search for issues by status name, including custom statuses. This tool automatically handles the mapping between custom status names (like "Waiting on Eng Input") and their underlying state + tag representation.
+    description: `Search for issues by status name, including custom statuses. Use this tool when you know the specific status name to filter by (e.g., "Waiting on Eng Input", "Escalated"). For general unfiltered issue listing, use pylon_get_issues. For multi-filter searches by state, tags, or other fields, use pylon_search_issues. This tool automatically handles the mapping between custom status names (like "Waiting on Eng Input") and their underlying state + tag representation.
 
 **Built-in States:** new, waiting_on_you, waiting_on_customer, on_hold, closed
 
