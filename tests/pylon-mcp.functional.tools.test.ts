@@ -222,7 +222,12 @@ describe('pylon-mcp functional tools (stdio, mocked HTTP)', () => {
           let body = '';
           for await (const chunk of req) body += chunk;
           const updates = body ? JSON.parse(body) : {};
-          withJson(res, 200, { id: 'ISSUE-TAGGED', title: 'Tagged Issue', status: 'open', ...updates });
+          withJson(res, 200, {
+            id: 'ISSUE-TAGGED',
+            title: 'Tagged Issue',
+            status: 'open',
+            ...updates,
+          });
         } else {
           withJson(res, 405, { message: 'Method Not Allowed' });
         }
@@ -239,7 +244,12 @@ describe('pylon-mcp functional tools (stdio, mocked HTTP)', () => {
           let body = '';
           for await (const chunk of req) body += chunk;
           const updates = body ? JSON.parse(body) : {};
-          withJson(res, 200, { id: 'ISSUE-NO-TAGS', title: 'Issue Without Tags', status: 'open', ...updates });
+          withJson(res, 200, {
+            id: 'ISSUE-NO-TAGS',
+            title: 'Issue Without Tags',
+            status: 'open',
+            ...updates,
+          });
         } else {
           withJson(res, 405, { message: 'Method Not Allowed' });
         }
@@ -257,7 +267,12 @@ describe('pylon-mcp functional tools (stdio, mocked HTTP)', () => {
           let body = '';
           for await (const chunk of req) body += chunk;
           const updates = body ? JSON.parse(body) : {};
-          withJson(res, 200, { id: 'ISSUE-UNDEF-TAGS', title: 'Issue With Undefined Tags', status: 'open', ...updates });
+          withJson(res, 200, {
+            id: 'ISSUE-UNDEF-TAGS',
+            title: 'Issue With Undefined Tags',
+            status: 'open',
+            ...updates,
+          });
         } else {
           withJson(res, 405, { message: 'Method Not Allowed' });
         }
