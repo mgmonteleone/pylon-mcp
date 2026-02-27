@@ -138,7 +138,7 @@ mcpServer.registerTool(
   'pylon_get_issues',
   {
     description:
-      'Get support issues/tickets from Pylon within a time range. USE THIS as the default tool when the user asks to \'show me issues\', \'list recent tickets\', or similar unfiltered requests. IMPORTANT: The Pylon API enforces a maximum time range of 30 days. If no dates are provided, defaults to the last 30 days. Returns a list of customer support requests with details like title, state, priority, tags, and assigned team member. For filtering by state, tags, or custom statuses, use pylon_search_issues instead.',
+      "Get support issues/tickets from Pylon within a time range. USE THIS as the default tool when the user asks to 'show me issues', 'list recent tickets', or similar unfiltered requests. IMPORTANT: The Pylon API enforces a maximum time range of 30 days. If no dates are provided, defaults to the last 30 days. Returns a list of customer support requests with details like title, state, priority, tags, and assigned team member. For filtering by state, tags, or custom statuses, use pylon_search_issues instead.",
     inputSchema: {
       start_time: z
         .string()
@@ -383,7 +383,12 @@ mcpServer.registerTool(
       const invalidTag = updates.tags.find((t) => t.trim() === '');
       if (invalidTag !== undefined) {
         return {
-          content: [{ type: 'text' as const, text: 'Error: Tags must not be empty or whitespace-only strings.' }],
+          content: [
+            {
+              type: 'text' as const,
+              text: 'Error: Tags must not be empty or whitespace-only strings.',
+            },
+          ],
           isError: true,
         };
       }
@@ -398,9 +403,7 @@ mcpServer.registerTool(
     description:
       'Add one or more tags to an existing Pylon issue without removing existing tags. Use this when you want to append tags to an issue. To replace all tags at once, use pylon_update_issue with a tags array. To remove specific tags, use pylon_remove_tags. Note: This operation fetches current tags then updates. In rare cases of concurrent modifications, tag changes may conflict.',
     inputSchema: {
-      issue_id: z
-        .string()
-        .describe('ID of the issue to add tags to. Example: "issue_abc123"'),
+      issue_id: z.string().describe('ID of the issue to add tags to. Example: "issue_abc123"'),
       tags: z
         .array(z.string())
         .describe(
@@ -412,7 +415,12 @@ mcpServer.registerTool(
     const invalidTag = tags.find((t) => t.trim() === '');
     if (invalidTag !== undefined) {
       return {
-        content: [{ type: 'text' as const, text: 'Error: Tags must not be empty or whitespace-only strings.' }],
+        content: [
+          {
+            type: 'text' as const,
+            text: 'Error: Tags must not be empty or whitespace-only strings.',
+          },
+        ],
         isError: true,
       };
     }
@@ -420,7 +428,10 @@ mcpServer.registerTool(
     const issue = await client.getIssue(issue_id);
     const currentTags = issue.tags || [];
     const mergedTags = [...new Set([...currentTags, ...tags])];
-    if (mergedTags.length === currentTags.length && mergedTags.every((t) => currentTags.includes(t))) {
+    if (
+      mergedTags.length === currentTags.length &&
+      mergedTags.every((t) => currentTags.includes(t))
+    ) {
       return jsonResponse(issue);
     }
     return jsonResponse(await client.updateIssue(issue_id, { tags: mergedTags }));
@@ -433,9 +444,7 @@ mcpServer.registerTool(
     description:
       'Remove one or more tags from an existing Pylon issue without affecting other tags. Use this when you want to remove specific tags from an issue. To add tags, use pylon_add_tags. To replace all tags at once, use pylon_update_issue with a tags array. Note: This operation fetches current tags then updates. In rare cases of concurrent modifications, tag changes may conflict.',
     inputSchema: {
-      issue_id: z
-        .string()
-        .describe('ID of the issue to remove tags from. Example: "issue_abc123"'),
+      issue_id: z.string().describe('ID of the issue to remove tags from. Example: "issue_abc123"'),
       tags: z
         .array(z.string())
         .describe(
@@ -447,7 +456,12 @@ mcpServer.registerTool(
     const invalidTag = tags.find((t) => t.trim() === '');
     if (invalidTag !== undefined) {
       return {
-        content: [{ type: 'text' as const, text: 'Error: Tags must not be empty or whitespace-only strings.' }],
+        content: [
+          {
+            type: 'text' as const,
+            text: 'Error: Tags must not be empty or whitespace-only strings.',
+          },
+        ],
         isError: true,
       };
     }
@@ -455,7 +469,10 @@ mcpServer.registerTool(
     const issue = await client.getIssue(issue_id);
     const currentTags = issue.tags || [];
     const filteredTags = currentTags.filter((t) => !tags.includes(t));
-    if (filteredTags.length === currentTags.length && filteredTags.every((t) => currentTags.includes(t))) {
+    if (
+      filteredTags.length === currentTags.length &&
+      filteredTags.every((t) => currentTags.includes(t))
+    ) {
       return jsonResponse(issue);
     }
     return jsonResponse(await client.updateIssue(issue_id, { tags: filteredTags }));
