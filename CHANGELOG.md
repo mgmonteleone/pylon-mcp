@@ -5,6 +5,19 @@ All notable changes to the Pylon MCP Server will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [3.7.1] - 2026-02-27
+
+### Changed
+
+- **Documentation**: Comprehensive README and CLAUDE.md update
+  - Added 12 missing tools to Available Tools section (38 total now documented)
+  - Added retry logic documentation (`PYLON_RETRY_MAX`, `PYLON_DEBUG`, Retry Behavior section)
+  - Removed all Smithery references and deleted `smithery.yaml`
+  - Removed stale "NEW" markers from 7 tools
+  - Fixed workflow reference (`publish.yml` → `release.yml`)
+  - Rewrote Features section to cover all capabilities
+  - Expanded Example Tool Usage section
+
 ## [3.7.0] - 2026-02-27
 
 ### Added
