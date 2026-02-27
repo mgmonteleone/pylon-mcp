@@ -244,6 +244,52 @@ describe('pylon-mcp functional tools (stdio, mocked HTTP)', () => {
           withJson(res, 405, { message: 'Method Not Allowed' });
         }
       },
+      // Issue with no tags field at all (undefined) - supports PATCH for adding tags
+      '/issues/ISSUE-UNDEF-TAGS': async (req, res) => {
+        if (req.method === 'GET') {
+          withJson(res, 200, {
+            id: 'ISSUE-UNDEF-TAGS',
+            title: 'Issue With Undefined Tags',
+            status: 'open',
+            // tags field intentionally absent
+          });
+        } else if (req.method === 'PATCH') {
+          let body = '';
+          for await (const chunk of req) body += chunk;
+          const updates = body ? JSON.parse(body) : {};
+          withJson(res, 200, { id: 'ISSUE-UNDEF-TAGS', title: 'Issue With Undefined Tags', status: 'open', ...updates });
+        } else {
+          withJson(res, 405, { message: 'Method Not Allowed' });
+        }
+      },
+      // Issue used for no-op add test: PATCH should NOT be called
+      '/issues/ISSUE-NOOP-ADD': async (req, res) => {
+        if (req.method === 'GET') {
+          withJson(res, 200, {
+            id: 'ISSUE-NOOP-ADD',
+            title: 'No-op Add Test',
+            status: 'open',
+            tags: ['tag-x', 'tag-y'],
+          });
+        } else {
+          // If PATCH is called, return 500 so the test will catch it as an error
+          withJson(res, 500, { error: 'PATCH should not have been called for no-op' });
+        }
+      },
+      // Issue used for no-op remove test: PATCH should NOT be called
+      '/issues/ISSUE-NOOP-REMOVE': async (req, res) => {
+        if (req.method === 'GET') {
+          withJson(res, 200, {
+            id: 'ISSUE-NOOP-REMOVE',
+            title: 'No-op Remove Test',
+            status: 'open',
+            tags: ['tag-x'],
+          });
+        } else {
+          // If PATCH is called, return 500 so the test will catch it as an error
+          withJson(res, 500, { error: 'PATCH should not have been called for no-op' });
+        }
+      },
     });
 
     await new Promise<void>((resolve) => mockServer.listen(0, '127.0.0.1', () => resolve()));
@@ -621,6 +667,57 @@ describe('pylon-mcp functional tools (stdio, mocked HTTP)', () => {
     expect(res?.content?.[0]?.text).toContain('waiting on eng');
   });
 
+  // pylon_search_issues input validation tests
+  it('pylon_search_issues with no filters returns helpful error', async () => {
+    const res = await client.callTool({ name: 'pylon_search_issues', arguments: {} });
+    const text = res?.content?.[0]?.text ?? '';
+    expect(text).toContain('error');
+    expect(text).toContain('pylon_search_issues requires at least one filter parameter');
+    expect(text).toContain('pylon_get_issues');
+  });
+
+  it('pylon_search_issues with whitespace-only string params returns helpful error', async () => {
+    const res = await client.callTool({
+      name: 'pylon_search_issues',
+      arguments: { state: '   ', title_contains: '  ', tag: '\t' },
+    });
+    const text = res?.content?.[0]?.text ?? '';
+    expect(text).toContain('error');
+    expect(text).toContain('pylon_search_issues requires at least one filter parameter');
+    expect(text).toContain('pylon_get_issues');
+  });
+
+  it('pylon_search_issues with whitespace-only tags array returns helpful error', async () => {
+    const res = await client.callTool({
+      name: 'pylon_search_issues',
+      arguments: { tags: ['  ', '  ', '\t'] },
+    });
+    const text = res?.content?.[0]?.text ?? '';
+    expect(text).toContain('error');
+    expect(text).toContain('pylon_search_issues requires at least one filter parameter');
+    expect(text).toContain('pylon_get_issues');
+  });
+
+  it('pylon_search_issues with valid state (trimmed) still works', async () => {
+    const res = await client.callTool({
+      name: 'pylon_search_issues',
+      arguments: { state: '  on_hold  ' },
+    });
+    const text = res?.content?.[0]?.text ?? '';
+    expect(text).not.toContain('requires at least one filter parameter');
+    expect(text).toContain('issue_similar');
+  });
+
+  it('pylon_search_issues with valid tags array (mixed whitespace) filters out blanks', async () => {
+    const res = await client.callTool({
+      name: 'pylon_search_issues',
+      arguments: { tags: ['  ', 'urgent', '  '] },
+    });
+    const text = res?.content?.[0]?.text ?? '';
+    expect(text).not.toContain('requires at least one filter parameter');
+    expect(text).toContain('tag:urgent');
+  });
+
   // pylon_search_issues_by_status tool tests
   it('pylon_search_issues_by_status - searches by built-in state name', async () => {
     const res = await client.callTool({
@@ -804,5 +901,108 @@ describe('pylon-mcp functional tools (stdio, mocked HTTP)', () => {
     });
     const text = res?.content?.[0]?.text ?? '';
     expect(text).toContain('error');
+  });
+
+  // Tags: undefined handling
+  it('pylon_add_tags - works when issue has no tags field (undefined)', async () => {
+    const res = await client.callTool({
+      name: 'pylon_add_tags',
+      arguments: { issue_id: 'ISSUE-UNDEF-TAGS', tags: ['new-tag'] },
+    });
+    const text = res?.content?.[0]?.text ?? '';
+    expect(text).not.toContain('error');
+    expect(text).toContain('new-tag');
+  });
+
+  // No-op optimization tests
+  it('pylon_add_tags - no-op when all tags already exist (PATCH not called)', async () => {
+    // ISSUE-NOOP-ADD has tags ['tag-x', 'tag-y']; adding 'tag-x' is a no-op
+    // The mock returns 500 on PATCH, so if PATCH were called the test would fail
+    const res = await client.callTool({
+      name: 'pylon_add_tags',
+      arguments: { issue_id: 'ISSUE-NOOP-ADD', tags: ['tag-x'] },
+    });
+    const text = res?.content?.[0]?.text ?? '';
+    expect(text).not.toContain('error');
+    // Should return the original issue unchanged
+    expect(text).toContain('tag-x');
+    expect(text).toContain('tag-y');
+  });
+
+  it('pylon_remove_tags - no-op when tags to remove are not on the issue (PATCH not called)', async () => {
+    // ISSUE-NOOP-REMOVE has tags ['tag-x']; removing 'not-present' is a no-op
+    // The mock returns 500 on PATCH, so if PATCH were called the test would fail
+    const res = await client.callTool({
+      name: 'pylon_remove_tags',
+      arguments: { issue_id: 'ISSUE-NOOP-REMOVE', tags: ['not-present'] },
+    });
+    const text = res?.content?.[0]?.text ?? '';
+    expect(text).not.toContain('error');
+    // Should return the original issue unchanged
+    expect(text).toContain('tag-x');
+  });
+
+  // Tag validation tests
+  it('pylon_add_tags - rejects empty string tag', async () => {
+    const res = await client.callTool({
+      name: 'pylon_add_tags',
+      arguments: { issue_id: 'ISSUE-TAGGED', tags: ['valid-tag', ''] },
+    });
+    expect(res?.isError).toBe(true);
+    const text = res?.content?.[0]?.text ?? '';
+    expect(text).toContain('Error');
+    expect(text).toContain('empty');
+  });
+
+  it('pylon_add_tags - rejects whitespace-only tag', async () => {
+    const res = await client.callTool({
+      name: 'pylon_add_tags',
+      arguments: { issue_id: 'ISSUE-TAGGED', tags: ['   '] },
+    });
+    expect(res?.isError).toBe(true);
+    const text = res?.content?.[0]?.text ?? '';
+    expect(text).toContain('Error');
+  });
+
+  it('pylon_remove_tags - rejects empty string tag', async () => {
+    const res = await client.callTool({
+      name: 'pylon_remove_tags',
+      arguments: { issue_id: 'ISSUE-TAGGED', tags: [''] },
+    });
+    expect(res?.isError).toBe(true);
+    const text = res?.content?.[0]?.text ?? '';
+    expect(text).toContain('Error');
+    expect(text).toContain('empty');
+  });
+
+  it('pylon_remove_tags - rejects whitespace-only tag', async () => {
+    const res = await client.callTool({
+      name: 'pylon_remove_tags',
+      arguments: { issue_id: 'ISSUE-TAGGED', tags: ['  \t  '] },
+    });
+    expect(res?.isError).toBe(true);
+    const text = res?.content?.[0]?.text ?? '';
+    expect(text).toContain('Error');
+  });
+
+  it('pylon_update_issue - rejects empty string tag in tags array', async () => {
+    const res = await client.callTool({
+      name: 'pylon_update_issue',
+      arguments: { issue_id: 'ISSUE-TAGGED', tags: ['valid', ''] },
+    });
+    expect(res?.isError).toBe(true);
+    const text = res?.content?.[0]?.text ?? '';
+    expect(text).toContain('Error');
+    expect(text).toContain('empty');
+  });
+
+  it('pylon_update_issue - rejects whitespace-only tag in tags array', async () => {
+    const res = await client.callTool({
+      name: 'pylon_update_issue',
+      arguments: { issue_id: 'ISSUE-TAGGED', tags: ['  '] },
+    });
+    expect(res?.isError).toBe(true);
+    const text = res?.content?.[0]?.text ?? '';
+    expect(text).toContain('Error');
   });
 });

@@ -138,7 +138,7 @@ mcpServer.registerTool(
   'pylon_get_issues',
   {
     description:
-      'Get support issues/tickets from Pylon within a time range. IMPORTANT: The Pylon API enforces a maximum time range of 30 days. If no dates are provided, defaults to the last 30 days. Returns a list of customer support requests with details like title, state, priority, tags, and assigned team member. For filtering by state, tags, or custom statuses, use pylon_search_issues instead.',
+      'Get support issues/tickets from Pylon within a time range. USE THIS as the default tool when the user asks to \'show me issues\', \'list recent tickets\', or similar unfiltered requests. IMPORTANT: The Pylon API enforces a maximum time range of 30 days. If no dates are provided, defaults to the last 30 days. Returns a list of customer support requests with details like title, state, priority, tags, and assigned team member. For filtering by state, tags, or custom statuses, use pylon_search_issues instead.',
     inputSchema: {
       start_time: z
         .string()
@@ -378,15 +378,25 @@ mcpServer.registerTool(
         ),
     },
   },
-  async ({ issue_id, ...updates }) =>
-    jsonResponse(await ensurePylonClient().updateIssue(issue_id, updates))
+  async ({ issue_id, ...updates }) => {
+    if (updates.tags !== undefined) {
+      const invalidTag = updates.tags.find((t) => t.trim() === '');
+      if (invalidTag !== undefined) {
+        return {
+          content: [{ type: 'text' as const, text: 'Error: Tags must not be empty or whitespace-only strings.' }],
+          isError: true,
+        };
+      }
+    }
+    return jsonResponse(await ensurePylonClient().updateIssue(issue_id, updates));
+  }
 );
 
 mcpServer.registerTool(
   'pylon_add_tags',
   {
     description:
-      'Add one or more tags to an existing Pylon issue without removing existing tags. Use this when you want to append tags to an issue. To replace all tags at once, use pylon_update_issue with a tags array. To remove specific tags, use pylon_remove_tags.',
+      'Add one or more tags to an existing Pylon issue without removing existing tags. Use this when you want to append tags to an issue. To replace all tags at once, use pylon_update_issue with a tags array. To remove specific tags, use pylon_remove_tags. Note: This operation fetches current tags then updates. In rare cases of concurrent modifications, tag changes may conflict.',
     inputSchema: {
       issue_id: z
         .string()
@@ -399,10 +409,20 @@ mcpServer.registerTool(
     },
   },
   async ({ issue_id, tags }) => {
+    const invalidTag = tags.find((t) => t.trim() === '');
+    if (invalidTag !== undefined) {
+      return {
+        content: [{ type: 'text' as const, text: 'Error: Tags must not be empty or whitespace-only strings.' }],
+        isError: true,
+      };
+    }
     const client = ensurePylonClient();
     const issue = await client.getIssue(issue_id);
-    const existingTags = issue.tags || [];
-    const mergedTags = [...new Set([...existingTags, ...tags])];
+    const currentTags = issue.tags || [];
+    const mergedTags = [...new Set([...currentTags, ...tags])];
+    if (mergedTags.length === currentTags.length && mergedTags.every((t) => currentTags.includes(t))) {
+      return jsonResponse(issue);
+    }
     return jsonResponse(await client.updateIssue(issue_id, { tags: mergedTags }));
   }
 );
@@ -411,7 +431,7 @@ mcpServer.registerTool(
   'pylon_remove_tags',
   {
     description:
-      'Remove one or more tags from an existing Pylon issue without affecting other tags. Use this when you want to remove specific tags from an issue. To add tags, use pylon_add_tags. To replace all tags at once, use pylon_update_issue with a tags array.',
+      'Remove one or more tags from an existing Pylon issue without affecting other tags. Use this when you want to remove specific tags from an issue. To add tags, use pylon_add_tags. To replace all tags at once, use pylon_update_issue with a tags array. Note: This operation fetches current tags then updates. In rare cases of concurrent modifications, tag changes may conflict.',
     inputSchema: {
       issue_id: z
         .string()
@@ -424,10 +444,20 @@ mcpServer.registerTool(
     },
   },
   async ({ issue_id, tags }) => {
+    const invalidTag = tags.find((t) => t.trim() === '');
+    if (invalidTag !== undefined) {
+      return {
+        content: [{ type: 'text' as const, text: 'Error: Tags must not be empty or whitespace-only strings.' }],
+        isError: true,
+      };
+    }
     const client = ensurePylonClient();
     const issue = await client.getIssue(issue_id);
-    const existingTags = issue.tags || [];
-    const filteredTags = existingTags.filter((t) => !tags.includes(t));
+    const currentTags = issue.tags || [];
+    const filteredTags = currentTags.filter((t) => !tags.includes(t));
+    if (filteredTags.length === currentTags.length && filteredTags.every((t) => currentTags.includes(t))) {
+      return jsonResponse(issue);
+    }
     return jsonResponse(await client.updateIssue(issue_id, { tags: filteredTags }));
   }
 );
@@ -436,7 +466,7 @@ mcpServer.registerTool(
   'pylon_search_issues',
   {
     description:
-      'Search for support issues/tickets in Pylon using structured filters. Supports filtering by state (including custom statuses), tags, assignee, account, and more. Custom statuses like "Waiting on Eng Input" are represented as state + tag combinations (e.g., state="on_hold" + tag="waiting on eng").',
+      'Search for support issues/tickets in Pylon using structured filters. REQUIRES at least one filter parameter — do NOT call this tool with no filters; use pylon_get_issues instead. Supports filtering by state (including custom statuses), tags, assignee, account, and more. Custom statuses like "Waiting on Eng Input" are represented as state + tag combinations (e.g., state="on_hold" + tag="waiting on eng").',
     inputSchema: {
       state: z
         .string()
@@ -481,16 +511,26 @@ mcpServer.registerTool(
   },
   async (args) => {
     const {
-      state,
-      tag,
-      tags,
-      title_contains,
-      assignee_id,
-      account_id,
-      requester_id,
-      team_id,
+      state: stateRaw,
+      tag: tagRaw,
+      tags: tagsRaw,
+      title_contains: titleContainsRaw,
+      assignee_id: assigneeIdRaw,
+      account_id: accountIdRaw,
+      requester_id: requesterIdRaw,
+      team_id: teamIdRaw,
       limit,
     } = args;
+
+    // Sanitize string inputs: trim and treat whitespace-only as undefined
+    const state = stateRaw?.trim() || undefined;
+    const tag = tagRaw?.trim() || undefined;
+    const tags = tagsRaw?.map((t) => t.trim()).filter((t) => t.length > 0);
+    const title_contains = titleContainsRaw?.trim() || undefined;
+    const assignee_id = assigneeIdRaw?.trim() || undefined;
+    const account_id = accountIdRaw?.trim() || undefined;
+    const requester_id = requesterIdRaw?.trim() || undefined;
+    const team_id = teamIdRaw?.trim() || undefined;
 
     // Build the structured filter object with proper types
     const filter: PylonIssueSearchFilter = {};
@@ -525,11 +565,23 @@ mcpServer.registerTool(
       filter.team_id = { operator: 'equals', value: team_id } as PylonSearchFilterCondition;
     }
 
-    const hasFilters = Object.keys(filter).length > 0;
+    if (Object.keys(filter).length === 0) {
+      return {
+        content: [
+          {
+            type: 'text' as const,
+            text: JSON.stringify({
+              error:
+                'pylon_search_issues requires at least one filter parameter (e.g., state, tag, tags, title_contains, assignee_id, account_id, requester_id, or team_id). To list recent issues without filters, use pylon_get_issues instead.',
+            }),
+          },
+        ],
+      };
+    }
 
     return jsonResponse(
       await ensurePylonClient().searchIssues({
-        filter: hasFilters ? filter : undefined,
+        filter,
         limit,
       })
     );
@@ -539,7 +591,7 @@ mcpServer.registerTool(
 mcpServer.registerTool(
   'pylon_search_issues_by_status',
   {
-    description: `Search for issues by status name, including custom statuses. This tool automatically handles the mapping between custom status names (like "Waiting on Eng Input") and their underlying state + tag representation.
+    description: `Search for issues by status name, including custom statuses. Use this tool when you know the specific status name to filter by (e.g., "Waiting on Eng Input", "Escalated"). For general unfiltered issue listing, use pylon_get_issues. For multi-filter searches by state, tags, or other fields, use pylon_search_issues. This tool automatically handles the mapping between custom status names (like "Waiting on Eng Input") and their underlying state + tag representation.
 
 **Built-in States:** new, waiting_on_you, waiting_on_customer, on_hold, closed
 
