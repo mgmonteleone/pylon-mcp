@@ -22,6 +22,14 @@ Set the following environment variables:
 - `PYLON_CACHE_TTL`: Cache time-to-live in milliseconds (optional, default: 30000)
   - Set to `0` to disable caching
   - Example: `PYLON_CACHE_TTL=60000` for 60-second cache
+- `PYLON_RETRY_MAX`: Maximum retry attempts for transient failures (optional, default: 3)
+  - Set to `0` to disable retries
+  - Retries on: 429 (rate limit), 5xx (server error), network timeouts
+  - Only retries idempotent requests (GET, HEAD, OPTIONS, PUT, DELETE)
+  - Uses exponential backoff with jitter
+  - Respects `Retry-After` header (capped at 30 seconds)
+- `PYLON_DEBUG`: Set to `true` to enable debug logging (optional)
+  - Logs request/response details and retry attempts to stderr
 
 ### HTTP Request Timeout
 
@@ -36,6 +44,15 @@ If you encounter timeout errors, check:
 1. Your network connection
 2. Pylon API status
 3. Whether the operation is legitimately slow (e.g., large data queries)
+
+### Retry Behavior
+
+The client automatically retries transient API failures with exponential backoff:
+
+- **Retried errors**: HTTP 429 (rate limit), 5xx (server errors), network timeouts
+- **Not retried**: 4xx client errors (400, 401, 403, 404, 422), POST/PATCH requests
+- **Backoff**: `min(1000ms × 2^attempt + random jitter, 30s)`, respects `Retry-After` header
+- **Default**: 3 retry attempts. Set `PYLON_RETRY_MAX=0` to disable.
 
 ### Caching Behavior
 
@@ -238,13 +255,14 @@ Augment Code supports MCP servers through its Easy MCP feature in VS Code and Je
        "args": ["@customer-support-success/pylon-mcp-server"],
        "env": {
          "PYLON_API_TOKEN": "your_pylon_api_token_here",
-         "PYLON_CACHE_TTL": "30000"
+         "PYLON_CACHE_TTL": "30000",
+         "PYLON_RETRY_MAX": "3"
        }
      }
    }
    ```
 
-   > **Note**: `PYLON_CACHE_TTL` is optional and defaults to 30000ms (30 seconds). Set to `0` to disable caching.
+   > **Note**: `PYLON_RETRY_MAX` is optional and defaults to 3. Set to `0` to disable retries. `PYLON_CACHE_TTL` is optional and defaults to 30000ms (30 seconds). Set to `0` to disable caching.
 
    **Option B: Using local installation**
 
@@ -257,7 +275,8 @@ Augment Code supports MCP servers through its Easy MCP feature in VS Code and Je
        "args": ["/absolute/path/to/pylon-mcp-server/dist/index.js"],
        "env": {
          "PYLON_API_TOKEN": "your_pylon_api_token_here",
-         "PYLON_CACHE_TTL": "30000"
+         "PYLON_CACHE_TTL": "30000",
+         "PYLON_RETRY_MAX": "3"
        }
      }
    }
@@ -310,7 +329,8 @@ Add this to your Claude Desktop MCP settings (`~/Library/Application Support/Cla
       "args": ["@customer-support-success/pylon-mcp-server"],
       "env": {
         "PYLON_API_TOKEN": "your_pylon_api_token_here",
-        "PYLON_CACHE_TTL": "30000"
+        "PYLON_CACHE_TTL": "30000",
+        "PYLON_RETRY_MAX": "3"
       }
     }
   }
@@ -327,7 +347,8 @@ Add this to your Claude Desktop MCP settings (`~/Library/Application Support/Cla
       "args": ["/path/to/pylon-mcp-server/dist/index.js"],
       "env": {
         "PYLON_API_TOKEN": "your_pylon_api_token_here",
-        "PYLON_CACHE_TTL": "30000"
+        "PYLON_CACHE_TTL": "30000",
+        "PYLON_RETRY_MAX": "3"
       }
     }
   }

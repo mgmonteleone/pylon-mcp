@@ -210,6 +210,5 @@ To test the MCP server with a real client:
 
 - Add response type validation
 - Implement proper TypeScript types for all API responses
-- Add retry logic for failed API calls
 - Implement rate limiting
 - Add comprehensive error codes mapping
