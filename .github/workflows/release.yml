@@ -47,6 +47,16 @@ jobs:
           npm publish --access public
           git checkout package.json
 
+      - name: Publish to GitHub Packages
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          echo "@mgmonteleone:registry=https://npm.pkg.github.com" > .npmrc
+          echo "//npm.pkg.github.com/:_authToken=${NODE_AUTH_TOKEN}" >> .npmrc
+          npm pkg set name="@mgmonteleone/pylon-mcp-server"
+          npm publish --access public
+          git checkout package.json
+
       - name: Generate release notes
         id: notes
         uses: actions/github-script@v7
