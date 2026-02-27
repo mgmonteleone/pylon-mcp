@@ -7,6 +7,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [3.5.2] - 2026-02-27
+
+### Fixed
+
+- Consolidated dependency updates (qs 6.14.2, hono 4.12.3, ajv 6.14.0, minimatch 3.1.5, rollup 4.59.0)
+- Fixed hono high-severity IP spoofing vulnerability (GHSA-xh87-mx6m-69f3)
+- Fixed CI pipeline failures (prettier formatting, security audit)
+- Added dual-publish to GitHub Packages in release workflow
+- Fixed npm publish auth (explicit NODE_AUTH_TOKEN)
+
 ## [3.5.0] - 2026-02-27
 
 ### Added
