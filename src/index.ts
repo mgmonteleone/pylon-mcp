@@ -312,7 +312,8 @@ mcpServer.registerTool(
         };
       }
     }
-    return jsonResponse(await ensurePylonClient().updateIssue(issue_id, updates));
+    const result = await ensurePylonClient().updateIssue(issue_id, updates);
+    return jsonResponse({ issue_id: result.id, success: true, updated_fields: Object.keys(updates).filter((k) => (updates as Record<string, unknown>)[k] !== undefined) });
   }
 );
 
@@ -347,9 +348,10 @@ mcpServer.registerTool(
       mergedTags.length === currentTags.length &&
       mergedTags.every((t) => currentTags.includes(t))
     ) {
-      return jsonResponse(issue);
+      return jsonResponse({ issue_id, success: true, message: 'Tags already present, no changes made' });
     }
-    return jsonResponse(await client.updateIssue(issue_id, { tags: mergedTags }));
+    await client.updateIssue(issue_id, { tags: mergedTags });
+    return jsonResponse({ issue_id, success: true, tags_added: tags.filter((t) => !currentTags.includes(t)) });
   }
 );
 
@@ -384,9 +386,10 @@ mcpServer.registerTool(
       filteredTags.length === currentTags.length &&
       filteredTags.every((t) => currentTags.includes(t))
     ) {
-      return jsonResponse(issue);
+      return jsonResponse({ issue_id, success: true, message: 'Specified tags not found, no changes made' });
     }
-    return jsonResponse(await client.updateIssue(issue_id, { tags: filteredTags }));
+    await client.updateIssue(issue_id, { tags: filteredTags });
+    return jsonResponse({ issue_id, success: true, tags_removed: tags.filter((t) => currentTags.includes(t)) });
   }
 );
 
@@ -809,8 +812,10 @@ mcpServer.registerTool(
         .describe('External system: "linear", "jira", "github", or "asana"'),
     },
   },
-  async ({ issue_id, external_issue_id, source }) =>
-    jsonResponse(await ensurePylonClient().linkExternalIssue(issue_id, external_issue_id, source))
+  async ({ issue_id, external_issue_id, source }) => {
+    await ensurePylonClient().linkExternalIssue(issue_id, external_issue_id, source);
+    return jsonResponse({ issue_id, success: true, external_issue_id, source, action: 'linked' });
+  }
 );
 
 mcpServer.registerTool(
@@ -825,8 +830,10 @@ mcpServer.registerTool(
         .describe('External system: "linear", "jira", "github", or "asana"'),
     },
   },
-  async ({ issue_id, external_issue_id, source }) =>
-    jsonResponse(await ensurePylonClient().unlinkExternalIssue(issue_id, external_issue_id, source))
+  async ({ issue_id, external_issue_id, source }) => {
+    await ensurePylonClient().unlinkExternalIssue(issue_id, external_issue_id, source);
+    return jsonResponse({ issue_id, success: true, external_issue_id, source, action: 'unlinked' });
+  }
 );
 
 // Issue Followers Management Tools
@@ -856,9 +863,8 @@ mcpServer.registerTool(
     if ((!user_ids || user_ids.length === 0) && (!contact_ids || contact_ids.length === 0)) {
       throw new Error('At least one user_id or contact_id must be provided');
     }
-    return jsonResponse(
-      await ensurePylonClient().addIssueFollowers(issue_id, user_ids, contact_ids)
-    );
+    await ensurePylonClient().addIssueFollowers(issue_id, user_ids, contact_ids);
+    return jsonResponse({ issue_id, success: true, user_ids_added: user_ids || [], contact_ids_added: contact_ids || [] });
   }
 );
 
@@ -876,9 +882,8 @@ mcpServer.registerTool(
     if ((!user_ids || user_ids.length === 0) && (!contact_ids || contact_ids.length === 0)) {
       throw new Error('At least one user_id or contact_id must be provided');
     }
-    return jsonResponse(
-      await ensurePylonClient().removeIssueFollowers(issue_id, user_ids, contact_ids)
-    );
+    await ensurePylonClient().removeIssueFollowers(issue_id, user_ids, contact_ids);
+    return jsonResponse({ issue_id, success: true, user_ids_removed: user_ids || [], contact_ids_removed: contact_ids || [] });
   }
 );
 

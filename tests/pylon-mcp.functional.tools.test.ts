@@ -796,10 +796,9 @@ describe('pylon-mcp functional tools (stdio, mocked HTTP)', () => {
       arguments: { issue_id: 'ISSUE-TAGGED', tags: ['new-tag', 'replacement-tag'] },
     });
     const text = res?.content?.[0]?.text ?? '';
-    expect(text).toContain('new-tag');
-    expect(text).toContain('replacement-tag');
-    // Old tags should NOT be present
-    expect(text).not.toContain('existing-tag');
+    expect(text).toContain('"success": true');
+    const parsed = JSON.parse(text);
+    expect(parsed.updated_fields).toContain('tags');
   });
 
   it('pylon_update_issue with tags and other fields together', async () => {
@@ -808,8 +807,10 @@ describe('pylon-mcp functional tools (stdio, mocked HTTP)', () => {
       arguments: { issue_id: 'ISSUE-TAGGED', status: 'resolved', tags: ['resolved', 'done'] },
     });
     const text = res?.content?.[0]?.text ?? '';
-    expect(text).toContain('resolved');
-    expect(text).toContain('done');
+    expect(text).toContain('"success": true');
+    const parsed = JSON.parse(text);
+    expect(parsed.updated_fields).toContain('tags');
+    expect(parsed.updated_fields).toContain('status');
   });
 
   it('pylon_update_issue with empty tags array clears all tags', async () => {
@@ -818,8 +819,9 @@ describe('pylon-mcp functional tools (stdio, mocked HTTP)', () => {
       arguments: { issue_id: 'ISSUE-TAGGED', tags: [] },
     });
     const text = res?.content?.[0]?.text ?? '';
-    // Should have empty tags array
-    expect(text).toContain('"tags": []');
+    expect(text).toContain('"success": true');
+    const parsed = JSON.parse(text);
+    expect(parsed.updated_fields).toContain('tags');
   });
 
   // pylon_add_tags tests
@@ -829,6 +831,7 @@ describe('pylon-mcp functional tools (stdio, mocked HTTP)', () => {
       arguments: { issue_id: 'ISSUE-NO-TAGS', tags: ['brand-new-tag'] },
     });
     const text = res?.content?.[0]?.text ?? '';
+    expect(text).toContain('"success": true');
     expect(text).toContain('brand-new-tag');
   });
 
@@ -838,22 +841,22 @@ describe('pylon-mcp functional tools (stdio, mocked HTTP)', () => {
       arguments: { issue_id: 'ISSUE-TAGGED', tags: ['brand-new-tag'] },
     });
     const text = res?.content?.[0]?.text ?? '';
-    // Both existing and new tags should be present
-    expect(text).toContain('existing-tag');
-    expect(text).toContain('another-tag');
+    expect(text).toContain('"success": true');
+    // Only the newly added tag should appear in tags_added
     expect(text).toContain('brand-new-tag');
+    const parsed = JSON.parse(text);
+    expect(parsed.tags_added).toContain('brand-new-tag');
   });
 
-  it('pylon_add_tags - adding existing tags does not create duplicates', async () => {
+  it('pylon_add_tags - adding existing tags does not create duplicates (no-op)', async () => {
     const res = await client.callTool({
       name: 'pylon_add_tags',
       arguments: { issue_id: 'ISSUE-TAGGED', tags: ['existing-tag'] },
     });
     const text = res?.content?.[0]?.text ?? '';
-    // existing-tag should appear only once in the tags array
+    expect(text).toContain('"success": true');
     const parsed = JSON.parse(text);
-    const tagCount = (parsed.tags as string[]).filter((t: string) => t === 'existing-tag').length;
-    expect(tagCount).toBe(1);
+    expect(parsed.message).toContain('Tags already present');
   });
 
   it('pylon_add_tags - adding empty array is a no-op', async () => {
@@ -862,9 +865,9 @@ describe('pylon-mcp functional tools (stdio, mocked HTTP)', () => {
       arguments: { issue_id: 'ISSUE-TAGGED', tags: [] },
     });
     const text = res?.content?.[0]?.text ?? '';
-    // Existing tags should still be present
-    expect(text).toContain('existing-tag');
-    expect(text).toContain('another-tag');
+    expect(text).toContain('"success": true');
+    const parsed = JSON.parse(text);
+    expect(parsed.message).toContain('Tags already present');
   });
 
   // pylon_remove_tags tests
@@ -874,29 +877,32 @@ describe('pylon-mcp functional tools (stdio, mocked HTTP)', () => {
       arguments: { issue_id: 'ISSUE-TAGGED', tags: ['existing-tag'] },
     });
     const text = res?.content?.[0]?.text ?? '';
-    // existing-tag should be gone, another-tag should remain
-    expect(text).not.toContain('existing-tag');
-    expect(text).toContain('another-tag');
+    expect(text).toContain('"success": true');
+    const parsed = JSON.parse(text);
+    expect(parsed.tags_removed).toContain('existing-tag');
   });
 
-  it('pylon_remove_tags - removing non-existent tags leaves existing tags intact', async () => {
+  it('pylon_remove_tags - removing non-existent tags leaves existing tags intact (no-op)', async () => {
     const res = await client.callTool({
       name: 'pylon_remove_tags',
       arguments: { issue_id: 'ISSUE-TAGGED', tags: ['not-a-real-tag'] },
     });
     const text = res?.content?.[0]?.text ?? '';
-    // Existing tags should be preserved
-    expect(text).toContain('existing-tag');
-    expect(text).toContain('another-tag');
+    expect(text).toContain('"success": true');
+    const parsed = JSON.parse(text);
+    expect(parsed.message).toContain('Specified tags not found');
   });
 
-  it('pylon_remove_tags - removing all tags results in empty tags array', async () => {
+  it('pylon_remove_tags - removing all tags results in empty tags_removed list', async () => {
     const res = await client.callTool({
       name: 'pylon_remove_tags',
       arguments: { issue_id: 'ISSUE-TAGGED', tags: ['existing-tag', 'another-tag'] },
     });
     const text = res?.content?.[0]?.text ?? '';
-    expect(text).toContain('"tags": []');
+    expect(text).toContain('"success": true');
+    const parsed = JSON.parse(text);
+    expect(parsed.tags_removed).toContain('existing-tag');
+    expect(parsed.tags_removed).toContain('another-tag');
   });
 
   // Error propagation tests
@@ -939,9 +945,9 @@ describe('pylon-mcp functional tools (stdio, mocked HTTP)', () => {
     });
     const text = res?.content?.[0]?.text ?? '';
     expect(text).not.toContain('error');
-    // Should return the original issue unchanged
-    expect(text).toContain('tag-x');
-    expect(text).toContain('tag-y');
+    expect(text).toContain('"success": true');
+    const parsed = JSON.parse(text);
+    expect(parsed.message).toContain('Tags already present');
   });
 
   it('pylon_remove_tags - no-op when tags to remove are not on the issue (PATCH not called)', async () => {
@@ -953,8 +959,9 @@ describe('pylon-mcp functional tools (stdio, mocked HTTP)', () => {
     });
     const text = res?.content?.[0]?.text ?? '';
     expect(text).not.toContain('error');
-    // Should return the original issue unchanged
-    expect(text).toContain('tag-x');
+    expect(text).toContain('"success": true');
+    const parsed = JSON.parse(text);
+    expect(parsed.message).toContain('Specified tags not found');
   });
 
   // Tag validation tests
