@@ -1221,6 +1221,24 @@ async function main() {
   const transport = new StdioServerTransport();
   await mcpServer.connect(transport);
   console.error('Pylon MCP Server running on stdio');
+
+  let isShuttingDown = false;
+  async function shutdown() {
+    if (isShuttingDown) return;
+    isShuttingDown = true;
+    console.error('Pylon MCP Server shutting down...');
+    try {
+      await mcpServer.close();
+    } catch (err) {
+      console.error('Error during shutdown:', err);
+    } finally {
+      process.exit(0);
+    }
+  }
+
+  process.on('SIGINT', shutdown);
+  process.on('SIGTERM', shutdown);
+  process.stdin.on('close', shutdown);
 }
 
 main().catch((error) => {
