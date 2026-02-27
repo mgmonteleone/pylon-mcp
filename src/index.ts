@@ -36,8 +36,7 @@ function ensurePylonClient(): PylonClient {
 mcpServer.registerTool(
   'pylon_get_me',
   {
-    description:
-      'Get current user information from Pylon. Returns your user profile including name, email, role, and permissions. Use this to verify your authentication and see what access level you have.',
+    description: 'Get the current authenticated user profile including name, email, role, and permissions.',
   },
   async () => jsonResponse(await ensurePylonClient().getMe())
 );
@@ -45,8 +44,7 @@ mcpServer.registerTool(
 mcpServer.registerTool(
   'pylon_get_users',
   {
-    description:
-      'Get all team members and support agents in your Pylon workspace. Returns user profiles including names, roles, teams, and availability status.',
+    description: 'Get all team members and support agents in your Pylon workspace.',
   },
   async () => jsonResponse(await ensurePylonClient().getUsers())
 );
@@ -54,14 +52,9 @@ mcpServer.registerTool(
 mcpServer.registerTool(
   'pylon_search_users',
   {
-    description:
-      'Search for team members and support agents in Pylon. Use this to find colleagues by name, email, or department when assigning issues or checking availability.',
+    description: 'Search for team members and support agents by name, email, or department.',
     inputSchema: {
-      query: z
-        .string()
-        .describe(
-          'Search term to find users by name, email, or department. Examples: "john", "support@company.com", "technical team"'
-        ),
+      query: z.string().describe('Search query'),
     },
   },
   async ({ query }) => jsonResponse(await ensurePylonClient().searchUsers(query))
@@ -71,19 +64,10 @@ mcpServer.registerTool(
 mcpServer.registerTool(
   'pylon_get_contacts',
   {
-    description:
-      'Get customer contacts from Pylon. Use this to find customers who have submitted support tickets or inquiries. Returns contact details like name, email, company, and contact history.',
+    description: 'Get customer contacts from Pylon. Returns contact details like name, email, and company.',
     inputSchema: {
-      search: z
-        .string()
-        .optional()
-        .describe(
-          'Search contacts by name, email, or company. Examples: "john@example.com", "Acme Corp", "John Smith"'
-        ),
-      limit: z
-        .number()
-        .optional()
-        .describe('Maximum number of contacts to return (1-100). Default is 20. Example: 50'),
+      search: z.string().optional().describe('Search contacts by name, email, or company'),
+      limit: z.number().optional().describe('Max results to return'),
     },
   },
   async (args) => jsonResponse(await ensurePylonClient().getContacts(args))
@@ -92,21 +76,11 @@ mcpServer.registerTool(
 mcpServer.registerTool(
   'pylon_create_contact',
   {
-    description:
-      'Create a new customer contact in Pylon. Use this when adding a new customer who will submit support requests or access your customer portal. Use this carefully.',
+    description: 'Create a new customer contact in Pylon. Use carefully.',
     inputSchema: {
-      email: z
-        .string()
-        .describe(
-          'Contact email address. Must be valid email format. Example: "sarah@company.com"'
-        ),
-      name: z.string().describe('Full name of the contact. Example: "Sarah Johnson"'),
-      portal_role: z
-        .string()
-        .optional()
-        .describe(
-          'Role in customer portal: "admin", "member", "viewer". Determines access level. Example: "member"'
-        ),
+      email: z.string(),
+      name: z.string(),
+      portal_role: z.string().optional().describe('Role in customer portal: "admin", "member", or "viewer"'),
     },
   },
   async (args) => jsonResponse(await ensurePylonClient().createContact(args))
@@ -115,14 +89,9 @@ mcpServer.registerTool(
 mcpServer.registerTool(
   'pylon_search_contacts',
   {
-    description:
-      'Search for customer contacts in Pylon by name, email, company, or other details. Use this to quickly find a specific customer when you need to view their information or create an issue for them.',
+    description: 'Search for customer contacts by name, email, company, or phone.',
     inputSchema: {
-      query: z
-        .string()
-        .describe(
-          'Search term to find contacts. Can search by name, email, company, or phone. Examples: "alice@example.com", "Acme Corporation", "John Smith", "+1-555-0123"'
-        ),
+      query: z.string().describe('Search query'),
     },
   },
   async ({ query }) => jsonResponse(await ensurePylonClient().searchContacts(query))
@@ -138,20 +107,16 @@ mcpServer.registerTool(
   'pylon_get_issues',
   {
     description:
-      "Get support issues/tickets from Pylon within a time range. USE THIS as the default tool when the user asks to 'show me issues', 'list recent tickets', or similar unfiltered requests. IMPORTANT: The Pylon API enforces a maximum time range of 30 days. If no dates are provided, defaults to the last 30 days. Returns a list of customer support requests with details like title, state, priority, tags, and assigned team member. For filtering by state, tags, or custom statuses, use pylon_search_issues instead.",
+      'Get support issues within a time range (max 30 days); defaults to last 30 days. Use this for unfiltered listing. For filtering by state, tags, or custom statuses, use pylon_search_issues instead.',
     inputSchema: {
       start_time: z
         .string()
         .optional()
-        .describe(
-          'Start time (RFC3339 format) of the time range. If not provided (along with end_time), defaults to 30 days ago. Max 30 days range allowed. Example: "2024-01-01T00:00:00Z"'
-        ),
+        .describe('Start of time range (RFC3339, e.g. "2024-01-01T00:00:00Z"). Defaults to 30 days ago.'),
       end_time: z
         .string()
         .optional()
-        .describe(
-          'End time (RFC3339 format) of the time range. If not provided (along with start_time), defaults to now. Max 30 days range allowed. Example: "2024-01-31T00:00:00Z"'
-        ),
+        .describe('End of time range (RFC3339, e.g. "2024-01-31T00:00:00Z"). Defaults to now.'),
     },
   },
   async (args) => {
@@ -291,33 +256,13 @@ mcpServer.registerTool(
 mcpServer.registerTool(
   'pylon_create_issue',
   {
-    description:
-      'Create a new support issue/ticket in Pylon. Use this to log customer problems, bug reports, or feature requests that need to be tracked and resolved.',
+    description: 'Create a new support issue/ticket in Pylon.',
     inputSchema: {
-      title: z
-        .string()
-        .describe(
-          'Brief title describing the issue. Examples: "Login page not loading", "Cannot upload files", "Billing question"'
-        ),
-      description: z
-        .string()
-        .describe(
-          'Detailed description of the issue, including steps to reproduce and impact. Example: "User reports that clicking login button shows error message. Affects all Chrome users on Windows."'
-        ),
-      status: z
-        .string()
-        .describe(
-          'Initial status: "open", "in_progress", "pending", "resolved", "closed". Usually "open" for new issues. Example: "open"'
-        ),
-      priority: z
-        .string()
-        .describe('Priority level: "low", "medium", "high", "urgent". Example: "high"'),
-      assignee: z
-        .string()
-        .optional()
-        .describe(
-          'Team member to assign (optional). Use email or user ID. Example: "support@company.com"'
-        ),
+      title: z.string(),
+      description: z.string(),
+      status: z.string().describe('"open", "in_progress", "pending", "resolved", or "closed"'),
+      priority: z.string().describe('"low", "medium", "high", or "urgent"'),
+      assignee: z.string().optional().describe('Team member email or user ID to assign (optional)'),
     },
   },
   async (args) => jsonResponse(await ensurePylonClient().createIssue(args))
@@ -326,14 +271,9 @@ mcpServer.registerTool(
 mcpServer.registerTool(
   'pylon_get_issue',
   {
-    description:
-      'Get complete details of a specific support issue/ticket. If you are given a ticket/issue number, call this tool first (no need to use the more complex message/history tools). Returns title, description, status, priority, assignee, customer info, and basic conversation metadata.',
+    description: 'Get complete details of a specific issue. Prefer this over message tools when you only need issue metadata.',
     inputSchema: {
-      issue_id: z
-        .string()
-        .describe(
-          'ID (ticket/issue number) to retrieve. You can pass the user-provided ticket number directly; you do not need to call other tools first. Example: "36800"'
-        ),
+      issue_id: z.string().describe('Pylon issue ID'),
     },
   },
   async ({ issue_id }) => jsonResponse(await ensurePylonClient().getIssue(issue_id))
@@ -343,39 +283,18 @@ mcpServer.registerTool(
   'pylon_update_issue',
   {
     description:
-      'Update an existing support issue/ticket. Use this to change status (e.g., mark as resolved), reassign to different team members, update priority, or modify details as you work on the issue. To add or remove specific tags without replacing all tags, use pylon_add_tags or pylon_remove_tags instead.',
+      'Update an existing issue\'s title, description, status, priority, assignee, or tags. To add/remove tags without replacing all, use pylon_add_tags or pylon_remove_tags.',
     inputSchema: {
-      issue_id: z.string().describe('ID of the issue to update. Example: "issue_abc123"'),
-      title: z
-        .string()
-        .optional()
-        .describe('New title for the issue. Example: "RESOLVED: Login page not loading"'),
-      description: z
-        .string()
-        .optional()
-        .describe(
-          'Updated description with new information or resolution details. Example: "Fixed CSS conflict causing login button to not render properly."'
-        ),
-      status: z
-        .string()
-        .optional()
-        .describe(
-          'New status: "open", "in_progress", "pending", "resolved", "closed". Example: "resolved"'
-        ),
-      priority: z
-        .string()
-        .optional()
-        .describe('New priority level: "low", "medium", "high", "urgent". Example: "medium"'),
-      assignee: z
-        .string()
-        .optional()
-        .describe('New assignee email or user ID. Example: "tech-lead@company.com"'),
+      issue_id: z.string().describe('Pylon issue ID'),
+      title: z.string().optional(),
+      description: z.string().optional(),
+      status: z.string().optional().describe('"open", "in_progress", "pending", "resolved", or "closed"'),
+      priority: z.string().optional().describe('"low", "medium", "high", or "urgent"'),
+      assignee: z.string().optional(),
       tags: z
         .array(z.string())
         .optional()
-        .describe(
-          'Complete replacement list of tags for the issue. This REPLACES all existing tags. To add or remove specific tags without affecting others, use pylon_add_tags or pylon_remove_tags instead. Example: ["billing", "urgent"]'
-        ),
+        .describe('Complete replacement tag list. Use pylon_add_tags or pylon_remove_tags to modify without replacing all.'),
     },
   },
   async ({ issue_id, ...updates }) => {
@@ -401,14 +320,10 @@ mcpServer.registerTool(
   'pylon_add_tags',
   {
     description:
-      'Add one or more tags to an existing Pylon issue without removing existing tags. Use this when you want to append tags to an issue. To replace all tags at once, use pylon_update_issue with a tags array. To remove specific tags, use pylon_remove_tags. Note: This operation fetches current tags then updates. In rare cases of concurrent modifications, tag changes may conflict.',
+      'Add tags to a Pylon issue without removing existing tags. To replace all tags, use pylon_update_issue; to remove tags, use pylon_remove_tags.',
     inputSchema: {
-      issue_id: z.string().describe('ID of the issue to add tags to. Example: "issue_abc123"'),
-      tags: z
-        .array(z.string())
-        .describe(
-          'Tags to add to the issue. Duplicates are ignored. Example: ["billing", "urgent"]'
-        ),
+      issue_id: z.string().describe('Pylon issue ID'),
+      tags: z.array(z.string()).describe('Tags to add (duplicates ignored)'),
     },
   },
   async ({ issue_id, tags }) => {
@@ -442,14 +357,10 @@ mcpServer.registerTool(
   'pylon_remove_tags',
   {
     description:
-      'Remove one or more tags from an existing Pylon issue without affecting other tags. Use this when you want to remove specific tags from an issue. To add tags, use pylon_add_tags. To replace all tags at once, use pylon_update_issue with a tags array. Note: This operation fetches current tags then updates. In rare cases of concurrent modifications, tag changes may conflict.',
+      'Remove specific tags from a Pylon issue without affecting other tags. To add tags, use pylon_add_tags; to replace all, use pylon_update_issue.',
     inputSchema: {
-      issue_id: z.string().describe('ID of the issue to remove tags from. Example: "issue_abc123"'),
-      tags: z
-        .array(z.string())
-        .describe(
-          'Tags to remove from the issue. Tags not present on the issue are ignored. Example: ["billing", "urgent"]'
-        ),
+      issue_id: z.string().describe('Pylon issue ID'),
+      tags: z.array(z.string()).describe('Tags to remove (missing tags ignored)'),
     },
   },
   async ({ issue_id, tags }) => {
@@ -483,47 +394,26 @@ mcpServer.registerTool(
   'pylon_search_issues',
   {
     description:
-      'Search for support issues/tickets in Pylon using structured filters. REQUIRES at least one filter parameter — do NOT call this tool with no filters; use pylon_get_issues instead. Supports filtering by state (including custom statuses), tags, assignee, account, and more. Custom statuses like "Waiting on Eng Input" are represented as state + tag combinations (e.g., state="on_hold" + tag="waiting on eng").',
+      'Search issues using structured filters; requires at least one filter. For unfiltered listing, use pylon_get_issues instead.',
     inputSchema: {
       state: z
         .string()
         .optional()
-        .describe(
-          'Filter by issue state. Built-in values: "new", "waiting_on_you", "waiting_on_customer", "on_hold", "closed". Can also use custom status slugs. Example: "on_hold"'
-        ),
+        .describe('Filter by state: "new", "waiting_on_you", "waiting_on_customer", "on_hold", or "closed"'),
       tag: z
         .string()
         .optional()
-        .describe(
-          'Filter by tag name. Use this with state to filter by custom statuses. Example: "waiting on eng" (combined with state="on_hold" for "Waiting on Eng Input" status)'
-        ),
+        .describe('Filter by single tag; combine with state for custom statuses (e.g., state="on_hold" + tag="waiting on eng")'),
       tags: z
         .array(z.string())
         .optional()
-        .describe(
-          'Filter by multiple tags (issues must have ALL specified tags). Example: ["urgent", "billing"]'
-        ),
-      title_contains: z
-        .string()
-        .optional()
-        .describe('Search for issues with titles containing this text. Example: "login error"'),
-      assignee_id: z
-        .string()
-        .optional()
-        .describe('Filter by assignee user ID. Example: "user_abc123"'),
-      account_id: z
-        .string()
-        .optional()
-        .describe('Filter by account/company ID. Example: "acc_xyz789"'),
-      requester_id: z
-        .string()
-        .optional()
-        .describe('Filter by requester/contact ID. Example: "contact_123"'),
-      team_id: z.string().optional().describe('Filter by team ID. Example: "team_456"'),
-      limit: z
-        .number()
-        .optional()
-        .describe('Maximum number of issues to return (1-1000). Default is 100. Example: 50'),
+        .describe('Filter by multiple tags (issue must have ALL specified tags)'),
+      title_contains: z.string().optional().describe('Search text within issue titles'),
+      assignee_id: z.string().optional().describe('Filter by assignee user ID'),
+      account_id: z.string().optional().describe('Filter by account/company ID'),
+      requester_id: z.string().optional().describe('Filter by requester/contact ID'),
+      team_id: z.string().optional().describe('Filter by team ID'),
+      limit: z.number().optional().describe('Max results to return'),
     },
   },
   async (args) => {
@@ -608,31 +498,13 @@ mcpServer.registerTool(
 mcpServer.registerTool(
   'pylon_search_issues_by_status',
   {
-    description: `Search for issues by status name, including custom statuses. Use this tool when you know the specific status name to filter by (e.g., "Waiting on Eng Input", "Escalated"). For general unfiltered issue listing, use pylon_get_issues. For multi-filter searches by state, tags, or other fields, use pylon_search_issues. This tool automatically handles the mapping between custom status names (like "Waiting on Eng Input") and their underlying state + tag representation.
-
-**Built-in States:** new, waiting_on_you, waiting_on_customer, on_hold, closed
-
-**Common Custom Statuses (automatically mapped):**
-- "Waiting on Eng Input" → state: on_hold + tag: waiting on eng
-- "Waiting on Product" → state: on_hold + tag: waiting on product
-- "Escalated" → state: on_hold + tag: escalated
-- "In Progress" → state: waiting_on_you + tag: in progress
-- "Blocked" → state: on_hold + tag: blocked
-- "Pending" → state: on_hold + tag: pending
-
-If a status name is not recognized, it will be treated as a tag name with state "on_hold".
-
-Returns both the matching issues and information about how the status was resolved.`,
+    description:
+      'Search issues by status name, including custom statuses like "Waiting on Eng Input" or "Escalated". Automatically maps status names to state+tag combinations. For multi-filter searches, use pylon_search_issues instead.',
     inputSchema: {
       status: z
         .string()
-        .describe(
-          'Status name to search for. Can be a built-in state (e.g., "on_hold", "closed") or a custom status name (e.g., "Waiting on Eng Input", "Escalated"). Case-insensitive.'
-        ),
-      limit: z
-        .number()
-        .optional()
-        .describe('Maximum number of issues to return (1-100). Default: 50. Example: 25'),
+        .describe('Status name (built-in state or custom, e.g., "Waiting on Eng Input"). Case-insensitive.'),
+      limit: z.number().optional().describe('Max results to return'),
     },
   },
   async ({ status, limit }) => {
@@ -649,24 +521,11 @@ Returns both the matching issues and information about how the status was resolv
 mcpServer.registerTool(
   'pylon_find_similar_issues_for_requestor',
   {
-    description:
-      'Find similar issues from the same requestor (contact). Helps identify patterns or recurring issues from a specific customer. Fetches the source issue, then searches for issues from the same requestor with similar content.',
+    description: 'Find issues from the same requestor as the source issue to identify recurring patterns.',
     inputSchema: {
-      issue_id: z
-        .string()
-        .describe(
-          'The source issue ID to find similar issues for. Example: "issue_abc123" or "36800"'
-        ),
-      query: z
-        .string()
-        .optional()
-        .describe(
-          'Optional search terms to narrow results. If not provided, uses the source issue title. Example: "login error"'
-        ),
-      limit: z
-        .number()
-        .optional()
-        .describe('Maximum number of similar issues to return. Example: 10'),
+      issue_id: z.string().describe('Pylon issue ID'),
+      query: z.string().optional().describe('Optional search terms; defaults to source issue title'),
+      limit: z.number().optional().describe('Max results to return'),
     },
   },
   async ({ issue_id, query, limit }) =>
@@ -678,24 +537,11 @@ mcpServer.registerTool(
 mcpServer.registerTool(
   'pylon_find_similar_issues_for_account',
   {
-    description:
-      'Find similar issues from the same account/company. Helps identify company-wide issues or patterns. Fetches the source issue to get the account ID, then searches for issues from the same account with similar content.',
+    description: 'Find issues from the same company/account to identify company-wide problems.',
     inputSchema: {
-      issue_id: z
-        .string()
-        .describe(
-          'The source issue ID to find similar issues for. Example: "issue_abc123" or "36800"'
-        ),
-      query: z
-        .string()
-        .optional()
-        .describe(
-          'Optional search terms to narrow results. If not provided, uses the source issue title. Example: "billing problem"'
-        ),
-      limit: z
-        .number()
-        .optional()
-        .describe('Maximum number of similar issues to return. Example: 10'),
+      issue_id: z.string().describe('Pylon issue ID'),
+      query: z.string().optional().describe('Optional search terms; defaults to source issue title'),
+      limit: z.number().optional().describe('Max results to return'),
     },
   },
   async ({ issue_id, query, limit }) =>
@@ -705,24 +551,11 @@ mcpServer.registerTool(
 mcpServer.registerTool(
   'pylon_find_similar_issues_global',
   {
-    description:
-      'Find similar issues across all users and companies. Helps identify widespread issues or find solutions from past tickets. Searches for issues with similar content to the source issue, excluding the source issue from results.',
+    description: 'Find similar issues across all accounts to identify widespread issues or find past solutions.',
     inputSchema: {
-      issue_id: z
-        .string()
-        .describe(
-          'The source issue ID to find similar issues for. Example: "issue_abc123" or "36800"'
-        ),
-      query: z
-        .string()
-        .optional()
-        .describe(
-          'Optional search terms to narrow results. If not provided, uses the source issue title. Example: "API timeout"'
-        ),
-      limit: z
-        .number()
-        .optional()
-        .describe('Maximum number of similar issues to return. Example: 20'),
+      issue_id: z.string().describe('Pylon issue ID'),
+      query: z.string().optional().describe('Optional search terms; defaults to source issue title'),
+      limit: z.number().optional().describe('Max results to return'),
     },
   },
   async ({ issue_id, query, limit }) =>
@@ -732,15 +565,10 @@ mcpServer.registerTool(
 mcpServer.registerTool(
   'pylon_snooze_issue',
   {
-    description:
-      'Temporarily hide an issue until a future date/time. Use this for issues that cannot be worked on now but need follow-up later (e.g., waiting for customer response, scheduled maintenance, feature release).',
+    description: 'Temporarily hide an issue until a future date/time for deferred follow-up.',
     inputSchema: {
-      issue_id: z.string().describe('ID of the issue to snooze. Example: "issue_abc123"'),
-      until: z
-        .string()
-        .describe(
-          'Date and time when issue should reappear (ISO 8601 format). Examples: "2024-01-15T09:00:00Z" (specific date/time), "2024-01-20T00:00:00Z" (beginning of day)'
-        ),
+      issue_id: z.string().describe('Pylon issue ID'),
+      until: z.string().describe('Date/time to reactivate (ISO 8601, e.g., "2024-01-15T09:00:00Z")'),
     },
   },
   async ({ issue_id, until }) => {
@@ -757,14 +585,9 @@ mcpServer.registerTool(
 mcpServer.registerTool(
   'pylon_get_issue_with_messages',
   {
-    description:
-      'Get a complete support issue with all its messages in a single call. Use this when you explicitly need the full conversation history. If you only need issue details and have a ticket number, prefer pylon_get_issue first; reach for this when message bodies are required.',
+    description: 'Get an issue with its full conversation history. Prefer pylon_get_issue when you only need issue details.',
     inputSchema: {
-      issue_id: z
-        .string()
-        .describe(
-          'ID (ticket/issue number) to retrieve with messages. You can pass the user-provided ticket number directly. Example: "issue_abc123"'
-        ),
+      issue_id: z.string().describe('Pylon issue ID'),
     },
   },
   async ({ issue_id }) => jsonResponse(await ensurePylonClient().getIssueWithMessages(issue_id))
@@ -773,14 +596,9 @@ mcpServer.registerTool(
 mcpServer.registerTool(
   'pylon_get_issue_messages',
   {
-    description:
-      'Get the conversation history for a specific support issue. Use when you need message bodies only. If you have a ticket number and just need issue details, call pylon_get_issue first; use this when you specifically need the messages.',
+    description: 'Get the message history for an issue. Use when you need message content, not just issue metadata.',
     inputSchema: {
-      issue_id: z
-        .string()
-        .describe(
-          'ID (ticket/issue number) of the issue to get messages for. You can pass the user-provided ticket number directly. Example: "issue_abc123"'
-        ),
+      issue_id: z.string().describe('Pylon issue ID'),
     },
   },
   async ({ issue_id }) => jsonResponse(await ensurePylonClient().getIssueMessages(issue_id))
@@ -798,8 +616,7 @@ mcpServer.registerTool(
 mcpServer.registerTool(
   'pylon_get_knowledge_bases',
   {
-    description:
-      'Get all knowledge bases from Pylon. Knowledge bases contain help articles, FAQs, and documentation that customers can access. Returns list of available knowledge bases with their names and article counts.',
+    description: 'Get all knowledge bases in Pylon.',
   },
   async () => jsonResponse(await ensurePylonClient().getKnowledgeBases())
 );
@@ -812,46 +629,16 @@ mcpServer.registerTool(
 mcpServer.registerTool(
   'pylon_create_knowledge_base_article',
   {
-    description:
-      'Create a new help article in a knowledge base. Use this to add new documentation, FAQs, or troubleshooting guides that customers can access for self-service support.',
+    description: 'Create a new help article in a knowledge base.',
     inputSchema: {
-      knowledge_base_id: z
-        .string()
-        .describe('ID of the knowledge base to add article to. Example: "kb_123abc"'),
-      title: z
-        .string()
-        .describe(
-          'Article title that clearly describes the topic. Examples: "How to Reset Your Password", "Troubleshooting Login Issues", "Billing FAQ"'
-        ),
-      body_html: z
-        .string()
-        .describe(
-          'Full article content in HTML format. Include step-by-step instructions, screenshots, and links. Example: "<h2>Steps to Reset Password</h2><ol><li>Go to login page</li><li>Click Forgot Password...</li></ol>"'
-        ),
-      author_user_id: z
-        .string()
-        .optional()
-        .describe(
-          'Optional ID of the user attributed as the author of the article. If not provided, defaults to the authenticated user. Example: "user_123abc"'
-        ),
-      collection_id: z
-        .string()
-        .optional()
-        .describe('Optional ID of the collection to add the article to. Example: "col_123abc"'),
-      is_published: z
-        .boolean()
-        .optional()
-        .describe('Whether the article should be published immediately. Defaults to false.'),
-      is_unlisted: z
-        .boolean()
-        .optional()
-        .describe('Whether the article can only be accessed via direct link. Defaults to false.'),
-      slug: z
-        .string()
-        .optional()
-        .describe(
-          'Custom slug for the article URL. Defaults to a slug based on the title. Example: "reset-password-guide"'
-        ),
+      knowledge_base_id: z.string().describe('ID of the knowledge base'),
+      title: z.string(),
+      body_html: z.string().describe('Article content in HTML format'),
+      author_user_id: z.string().optional().describe('User ID to attribute as author; defaults to authenticated user'),
+      collection_id: z.string().optional().describe('ID of the collection to place the article in'),
+      is_published: z.boolean().optional(),
+      is_unlisted: z.boolean().optional(),
+      slug: z.string().optional().describe('Custom URL slug; defaults to slug based on title'),
     },
   },
   async ({
@@ -886,8 +673,7 @@ mcpServer.registerTool(
 mcpServer.registerTool(
   'pylon_get_teams',
   {
-    description:
-      'Get all support teams from Pylon. Teams are groups of support agents that handle different types of issues (e.g., Technical, Billing, Sales). Returns team names, member counts, and specializations.',
+    description: 'Get all support teams in Pylon.',
   },
   async () => jsonResponse(await ensurePylonClient().getTeams())
 );
@@ -895,14 +681,9 @@ mcpServer.registerTool(
 mcpServer.registerTool(
   'pylon_get_team',
   {
-    description:
-      'Get detailed information about a specific support team. Returns team members, their roles, current workload, and team performance metrics.',
+    description: 'Get details of a specific support team including members and workload.',
     inputSchema: {
-      team_id: z
-        .string()
-        .describe(
-          'ID of the team to get details for. Get this from pylon_get_teams first. Example: "team_456def"'
-        ),
+      team_id: z.string().describe('Pylon team ID'),
     },
   },
   async ({ team_id }) => jsonResponse(await ensurePylonClient().getTeam(team_id))
@@ -911,26 +692,11 @@ mcpServer.registerTool(
 mcpServer.registerTool(
   'pylon_create_team',
   {
-    description:
-      'Create a new support team in Pylon. Use this to organize support agents into specialized groups for handling different types of customer issues (e.g., Technical Support, Billing, Enterprise accounts).',
+    description: 'Create a new support team in Pylon.',
     inputSchema: {
-      name: z
-        .string()
-        .describe(
-          'Team name that describes their specialization. Examples: "Technical Support", "Billing Team", "Enterprise Support", "Level 2 Support"'
-        ),
-      description: z
-        .string()
-        .optional()
-        .describe(
-          'Description of team responsibilities and expertise. Example: "Handles complex technical issues, API questions, and integration support"'
-        ),
-      members: z
-        .array(z.string())
-        .optional()
-        .describe(
-          'Array of user IDs or emails of team members. Example: ["john@company.com", "user_123", "sarah@company.com"]'
-        ),
+      name: z.string(),
+      description: z.string().optional(),
+      members: z.array(z.string()).optional().describe('Array of user IDs or emails of team members'),
     },
   },
   async (args) => jsonResponse(await ensurePylonClient().createTeam(args))
@@ -940,8 +706,7 @@ mcpServer.registerTool(
 mcpServer.registerTool(
   'pylon_get_accounts',
   {
-    description:
-      'Get all customer accounts from Pylon. Accounts represent companies or organizations that use your service. Returns account details like company name, subscription level, and contact information.',
+    description: 'Get all customer accounts from Pylon.',
   },
   async () => jsonResponse(await ensurePylonClient().getAccounts())
 );
@@ -949,14 +714,9 @@ mcpServer.registerTool(
 mcpServer.registerTool(
   'pylon_get_account',
   {
-    description:
-      'Get detailed information about a specific customer account. Returns company details, subscription info, billing status, and associated contacts and issues.',
+    description: 'Get details of a specific customer account.',
     inputSchema: {
-      account_id: z
-        .string()
-        .describe(
-          'ID of the account to get details for. Get this from pylon_get_accounts or customer records. Example: "acc_789xyz"'
-        ),
+      account_id: z.string().describe('Pylon account ID'),
     },
   },
   async ({ account_id }) => jsonResponse(await ensurePylonClient().getAccount(account_id))
@@ -966,8 +726,7 @@ mcpServer.registerTool(
 mcpServer.registerTool(
   'pylon_get_tags',
   {
-    description:
-      'Get all available tags for categorizing issues and contacts. Tags help organize and filter support tickets by topic, urgency, or type (e.g., "bug", "feature-request", "billing", "urgent").',
+    description: 'Get all available tags for categorizing issues and contacts.',
   },
   async () => jsonResponse(await ensurePylonClient().getTags())
 );
@@ -975,20 +734,10 @@ mcpServer.registerTool(
 mcpServer.registerTool(
   'pylon_create_tag',
   {
-    description:
-      'Create a new tag for categorizing issues and contacts. Use this to add new categories that help organize and filter your support tickets effectively.',
+    description: 'Create a new tag for categorizing issues and contacts.',
     inputSchema: {
-      name: z
-        .string()
-        .describe(
-          'Tag name that describes the category. Examples: "billing-question", "feature-request", "bug-report", "urgent", "enterprise-customer"'
-        ),
-      color: z
-        .string()
-        .optional()
-        .describe(
-          'Color for the tag in hex format or color name. Examples: "#FF0000", "red", "#00AA00", "blue"'
-        ),
+      name: z.string(),
+      color: z.string().optional().describe('Tag color in hex or color name (e.g., "#FF0000" or "red")'),
     },
   },
   async (args) => jsonResponse(await ensurePylonClient().createTag(args))
@@ -998,8 +747,7 @@ mcpServer.registerTool(
 mcpServer.registerTool(
   'pylon_get_ticket_forms',
   {
-    description:
-      'Get all ticket submission forms available to customers. Forms define what information customers provide when creating new support requests (e.g., bug report form, billing inquiry form).',
+    description: 'Get all ticket submission forms available to customers.',
   },
   async () => jsonResponse(await ensurePylonClient().getTicketForms())
 );
@@ -1024,14 +772,9 @@ mcpServer.registerTool(
 mcpServer.registerTool(
   'pylon_get_attachment',
   {
-    description:
-      'Get details of a specific attachment from Pylon. Returns attachment metadata (id, name, url, description). Use this when you have an attachment_id from an issue message’s attachments array (via pylon_get_issue_messages or pylon_get_issue_with_messages). To download the file contents, fetch the returned url (signed URLs may expire).',
+    description: 'Get attachment metadata by ID. Use when you have an attachment_id from an issue message. Download the file using the returned URL.',
     inputSchema: {
-      attachment_id: z
-        .string()
-        .describe(
-          'ID of the attachment to retrieve. Get this from an issue message attachments array (from pylon_get_issue_messages or pylon_get_issue_with_messages). Example: "att_abc123"'
-        ),
+      attachment_id: z.string().describe('Pylon attachment ID'),
     },
   },
   async ({ attachment_id }) => jsonResponse(await ensurePylonClient().getAttachment(attachment_id))
@@ -1040,20 +783,10 @@ mcpServer.registerTool(
 mcpServer.registerTool(
   'pylon_create_attachment_from_url',
   {
-    description:
-      'Create an attachment in Pylon from a URL. Downloads the file from the provided URL and creates an attachment that can be used in messages or knowledge base articles. Returns the attachment details including the Pylon-hosted URL.',
+    description: 'Create a Pylon attachment by downloading a file from a public URL.',
     inputSchema: {
-      file_url: z
-        .string()
-        .describe(
-          'URL of the file to download and attach. Must be publicly accessible. Example: "https://example.com/document.pdf"'
-        ),
-      description: z
-        .string()
-        .optional()
-        .describe(
-          'Optional description of the attachment. Example: "Product specification document"'
-        ),
+      file_url: z.string().describe('Publicly accessible URL of the file to attach'),
+      description: z.string().optional(),
     },
   },
   async ({ file_url, description }) =>
@@ -1065,22 +798,15 @@ mcpServer.registerTool(
 mcpServer.registerTool(
   'pylon_link_external_issue',
   {
-    description:
-      'Link an external issue from a ticketing system (Linear, Jira, GitHub, or Asana) to a Pylon support issue. Use this to connect customer support tickets with engineering issues for tracking and visibility. Returns the updated issue with the linked external issues.',
+    description: 'Link a Linear, Jira, GitHub, or Asana issue to a Pylon support issue for cross-system tracking.',
     inputSchema: {
-      issue_id: z
-        .string()
-        .describe('ID of the Pylon issue to link an external issue to. Example: "issue_abc123"'),
+      issue_id: z.string().describe('Pylon issue ID'),
       external_issue_id: z
         .string()
-        .describe(
-          'ID of the external issue in the source system. Examples: "ABC-123" (Linear), "PROJ-456" (Jira), "123" (GitHub issue number), "1234567890" (Asana task ID)'
-        ),
+        .describe('ID of the external issue (e.g., "ABC-123" for Linear, "123" for GitHub)'),
       source: z
         .enum(['linear', 'jira', 'github', 'asana'])
-        .describe(
-          'The source ticketing system. Must be one of: "linear", "jira", "github", "asana"'
-        ),
+        .describe('External system: "linear", "jira", "github", or "asana"'),
     },
   },
   async ({ issue_id, external_issue_id, source }) =>
@@ -1090,22 +816,13 @@ mcpServer.registerTool(
 mcpServer.registerTool(
   'pylon_unlink_external_issue',
   {
-    description:
-      'Unlink an external issue from a Pylon support issue. Use this to remove the connection between a customer support ticket and an engineering issue. Returns the updated issue with the remaining linked external issues.',
+    description: 'Remove the link between a Pylon issue and an external ticketing system issue.',
     inputSchema: {
-      issue_id: z
-        .string()
-        .describe(
-          'ID of the Pylon issue to unlink an external issue from. Example: "issue_abc123"'
-        ),
-      external_issue_id: z
-        .string()
-        .describe('ID of the external issue to unlink. Example: "ABC-123"'),
+      issue_id: z.string().describe('Pylon issue ID'),
+      external_issue_id: z.string().describe('ID of the external issue to unlink'),
       source: z
         .enum(['linear', 'jira', 'github', 'asana'])
-        .describe(
-          'The source ticketing system of the external issue. Must be one of: "linear", "jira", "github", "asana"'
-        ),
+        .describe('External system: "linear", "jira", "github", or "asana"'),
     },
   },
   async ({ issue_id, external_issue_id, source }) =>
@@ -1117,12 +834,9 @@ mcpServer.registerTool(
 mcpServer.registerTool(
   'pylon_get_issue_followers',
   {
-    description:
-      'Get the list of followers for a Pylon issue. Returns all users (team members) and contacts (customers) who are following the issue and will receive updates about its progress.',
+    description: 'Get all users and contacts following a Pylon issue.',
     inputSchema: {
-      issue_id: z
-        .string()
-        .describe('ID of the issue to get followers for. Example: "issue_abc123"'),
+      issue_id: z.string().describe('Pylon issue ID'),
     },
   },
   async ({ issue_id }) => jsonResponse(await ensurePylonClient().getIssueFollowers(issue_id))
@@ -1131,22 +845,11 @@ mcpServer.registerTool(
 mcpServer.registerTool(
   'pylon_add_issue_followers',
   {
-    description:
-      'Add followers to a Pylon issue. Followers receive updates and notifications about the issue. You can add team members (users) and/or customers (contacts) as followers.',
+    description: 'Add team members (user_ids) or customers (contact_ids) as followers to a Pylon issue.',
     inputSchema: {
-      issue_id: z.string().describe('ID of the issue to add followers to. Example: "issue_abc123"'),
-      user_ids: z
-        .array(z.string())
-        .optional()
-        .describe(
-          'Array of user IDs (team members) to add as followers. Example: ["user_123", "user_456"]'
-        ),
-      contact_ids: z
-        .array(z.string())
-        .optional()
-        .describe(
-          'Array of contact IDs (customers) to add as followers. Example: ["contact_789", "contact_012"]'
-        ),
+      issue_id: z.string().describe('Pylon issue ID'),
+      user_ids: z.array(z.string()).optional().describe('Array of team member user IDs to add as followers'),
+      contact_ids: z.array(z.string()).optional().describe('Array of customer contact IDs to add as followers'),
     },
   },
   async ({ issue_id, user_ids, contact_ids }) => {
@@ -1162,24 +865,11 @@ mcpServer.registerTool(
 mcpServer.registerTool(
   'pylon_remove_issue_followers',
   {
-    description:
-      'Remove followers from a Pylon issue. Removed followers will no longer receive updates or notifications about the issue.',
+    description: 'Remove team members or customers from following a Pylon issue.',
     inputSchema: {
-      issue_id: z
-        .string()
-        .describe('ID of the issue to remove followers from. Example: "issue_abc123"'),
-      user_ids: z
-        .array(z.string())
-        .optional()
-        .describe(
-          'Array of user IDs (team members) to remove as followers. Example: ["user_123", "user_456"]'
-        ),
-      contact_ids: z
-        .array(z.string())
-        .optional()
-        .describe(
-          'Array of contact IDs (customers) to remove as followers. Example: ["contact_789", "contact_012"]'
-        ),
+      issue_id: z.string().describe('Pylon issue ID'),
+      user_ids: z.array(z.string()).optional().describe('Array of team member user IDs to remove as followers'),
+      contact_ids: z.array(z.string()).optional().describe('Array of customer contact IDs to remove as followers'),
     },
   },
   async ({ issue_id, user_ids, contact_ids }) => {
@@ -1197,20 +887,9 @@ mcpServer.registerTool(
 mcpServer.registerTool(
   'pylon_delete_issue',
   {
-    description: `⚠️ DESTRUCTIVE OPERATION: Permanently delete a Pylon issue. This action cannot be undone.
-
-Use this tool with extreme caution. Deleted issues cannot be recovered. Before deleting:
-- Verify you have the correct issue ID
-- Confirm the issue should be permanently removed (not just closed)
-- Consider if the issue history needs to be preserved for compliance/audit purposes
-
-Returns confirmation of the deletion with the deleted issue ID.`,
+    description: '⚠️ Permanently delete a Pylon issue. This cannot be undone. Verify the correct issue ID before proceeding.',
     inputSchema: {
-      issue_id: z
-        .string()
-        .describe(
-          'ID of the issue to permanently delete. Example: "issue_abc123". Double-check this is the correct issue before proceeding.'
-        ),
+      issue_id: z.string().describe('Pylon issue ID to permanently delete'),
     },
   },
   async ({ issue_id }) => jsonResponse(await ensurePylonClient().deleteIssue(issue_id))
