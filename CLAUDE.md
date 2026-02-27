@@ -13,13 +13,12 @@ This is an MCP (Model Context Protocol) server that provides comprehensive integ
 - **HTTP Client**: Axios for API communication
 - **Caching**: In-memory cache with configurable TTL (default 30s)
 - **Build System**: TypeScript compiler
-- **Deployment**: Smithery platform
+- **Deployment**: npm registry
 
 ## Key Files
 
 - `src/pylon-client.ts` - Pylon API client with authentication and all endpoint methods
 - `src/index.ts` - MCP server implementation with tool definitions and handlers
-- `smithery.yaml` - Smithery deployment configuration
 - `package.json` - Dependencies and build scripts
 
 ## API Coverage
@@ -132,12 +131,6 @@ To test the MCP server with a real client:
 - Use built `dist/index.js` as entrypoint
 - Can run with `npx pylon-mcp-server` after publishing to npm
 
-### Smithery Production
-
-- Uses `smithery.yaml` configuration
-- Automatic dependency installation and build
-- Environment variable configuration through Smithery UI
-
 ## Code Patterns
 
 ### Adding New API Endpoints
@@ -183,8 +176,6 @@ To test the MCP server with a real client:
      };
    }
    ```
-
-5. **Update smithery.yaml** tools list
 
 ## Error Handling
 

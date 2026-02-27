@@ -367,26 +367,6 @@ Use pylon_get_issues to show recent support tickets
 Search for contacts with pylon_search_contacts using "customer@example.com"
 ```
 
-### Running via Smithery
-
-1. **Deploy to Smithery**:
-   - Upload your project to Smithery
-   - Smithery will automatically use the `smithery.yaml` configuration
-   - Set the `PYLON_API_TOKEN` environment variable in Smithery's deployment settings
-
-2. **Configure in Claude Desktop**:
-
-```json
-{
-  "mcpServers": {
-    "pylon": {
-      "command": "npx",
-      "args": ["-y", "@smithery/pylon-mcp-server"]
-    }
-  }
-}
-```
-
 ### Example Tool Usage
 
 Once connected, you can use the available tools:
@@ -413,15 +393,6 @@ Once connected, you can use the available tools:
 "Show all teams" → uses pylon_get_teams
 "Get account details" → uses pylon_get_accounts
 ```
-
-## Deployment to Smithery
-
-This server is designed to be deployed to Smithery using the included `smithery.yaml` configuration. The deployment will automatically:
-
-- Install dependencies with `npm install && npm run build`
-- Configure the Node.js runtime with proper entrypoint
-- Expose all supported Pylon API tools
-- Require the `PYLON_API_TOKEN` environment variable
 
 ## API Reference
 
