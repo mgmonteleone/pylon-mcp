@@ -15,7 +15,8 @@ describe('PylonClient - Enhanced Error Handling', () => {
   });
 
   beforeEach(() => {
-    client = new PylonClient({ apiToken: 'test-token', baseUrl: BASE_URL });
+    // Disable retries so error-handling tests fail fast without retry delays
+    client = new PylonClient({ apiToken: 'test-token', baseUrl: BASE_URL, maxRetries: 0 });
   });
 
   afterEach(() => {
@@ -92,6 +93,7 @@ describe('PylonClient - Enhanced Error Handling', () => {
     });
 
     it('should handle 500 errors with API error details', async () => {
+      // Single mock: retries disabled in beforeEach (maxRetries: 0)
       nock(BASE_URL).post('/issues').reply(500, { error: 'Database connection failed' });
 
       try {
@@ -150,9 +152,9 @@ describe('PylonClient - Enhanced Error Handling', () => {
       const nonDebugClient = new PylonClient({ apiToken: 'test-token' });
       const axiosInstance = (nonDebugClient as any).client;
 
-      // Only the error enhancement interceptor should be present
+      // Retry interceptor + error enhancement interceptor (no debug interceptors)
       expect(axiosInstance.interceptors.request.handlers.length).toBe(0);
-      expect(axiosInstance.interceptors.response.handlers.length).toBe(1);
+      expect(axiosInstance.interceptors.response.handlers.length).toBe(2);
 
       nonDebugClient.destroy();
     });
@@ -163,9 +165,9 @@ describe('PylonClient - Enhanced Error Handling', () => {
       const nonDebugClient = new PylonClient({ apiToken: 'test-token' });
       const axiosInstance = (nonDebugClient as any).client;
 
-      // Only the error enhancement interceptor should be present
+      // Retry interceptor + error enhancement interceptor (no debug interceptors)
       expect(axiosInstance.interceptors.request.handlers.length).toBe(0);
-      expect(axiosInstance.interceptors.response.handlers.length).toBe(1);
+      expect(axiosInstance.interceptors.response.handlers.length).toBe(2);
 
       nonDebugClient.destroy();
     });
