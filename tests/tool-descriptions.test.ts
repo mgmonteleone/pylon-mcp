@@ -8,7 +8,9 @@ const indexSource = readFileSync(indexPath, 'utf8');
 describe('Tool descriptions guide ticket-number usage', () => {
   it('pylon_get_issue encourages direct use with ticket numbers', () => {
     expect(indexSource).toContain("'pylon_get_issue'");
-    expect(indexSource).toContain('Prefer this over message tools when you only need issue metadata');
+    expect(indexSource).toContain(
+      'Prefer this over message tools when you only need issue metadata'
+    );
   });
 
   it('pylon_get_issue_with_messages is positioned as full history option', () => {

@@ -36,7 +36,8 @@ function ensurePylonClient(): PylonClient {
 mcpServer.registerTool(
   'pylon_get_me',
   {
-    description: 'Get the current authenticated user profile including name, email, role, and permissions.',
+    description:
+      'Get the current authenticated user profile including name, email, role, and permissions.',
   },
   async () => jsonResponse(await ensurePylonClient().getMe())
 );
@@ -64,7 +65,8 @@ mcpServer.registerTool(
 mcpServer.registerTool(
   'pylon_get_contacts',
   {
-    description: 'Get customer contacts from Pylon. Returns contact details like name, email, and company.',
+    description:
+      'Get customer contacts from Pylon. Returns contact details like name, email, and company.',
     inputSchema: {
       search: z.string().optional().describe('Search contacts by name, email, or company'),
       limit: z.number().optional().describe('Max results to return'),
@@ -80,7 +82,10 @@ mcpServer.registerTool(
     inputSchema: {
       email: z.string(),
       name: z.string(),
-      portal_role: z.string().optional().describe('Role in customer portal: "admin", "member", or "viewer"'),
+      portal_role: z
+        .string()
+        .optional()
+        .describe('Role in customer portal: "admin", "member", or "viewer"'),
     },
   },
   async (args) => jsonResponse(await ensurePylonClient().createContact(args))
@@ -112,7 +117,9 @@ mcpServer.registerTool(
       start_time: z
         .string()
         .optional()
-        .describe('Start of time range (RFC3339, e.g. "2024-01-01T00:00:00Z"). Defaults to 30 days ago.'),
+        .describe(
+          'Start of time range (RFC3339, e.g. "2024-01-01T00:00:00Z"). Defaults to 30 days ago.'
+        ),
       end_time: z
         .string()
         .optional()
@@ -271,7 +278,8 @@ mcpServer.registerTool(
 mcpServer.registerTool(
   'pylon_get_issue',
   {
-    description: 'Get complete details of a specific issue. Prefer this over message tools when you only need issue metadata.',
+    description:
+      'Get complete details of a specific issue. Prefer this over message tools when you only need issue metadata.',
     inputSchema: {
       issue_id: z.string().describe('Pylon issue ID'),
     },
@@ -283,18 +291,23 @@ mcpServer.registerTool(
   'pylon_update_issue',
   {
     description:
-      'Update an existing issue\'s title, description, status, priority, assignee, or tags. To add/remove tags without replacing all, use pylon_add_tags or pylon_remove_tags.',
+      "Update an existing issue's title, description, status, priority, assignee, or tags. To add/remove tags without replacing all, use pylon_add_tags or pylon_remove_tags.",
     inputSchema: {
       issue_id: z.string().describe('Pylon issue ID'),
       title: z.string().optional(),
       description: z.string().optional(),
-      status: z.string().optional().describe('"open", "in_progress", "pending", "resolved", or "closed"'),
+      status: z
+        .string()
+        .optional()
+        .describe('"open", "in_progress", "pending", "resolved", or "closed"'),
       priority: z.string().optional().describe('"low", "medium", "high", or "urgent"'),
       assignee: z.string().optional(),
       tags: z
         .array(z.string())
         .optional()
-        .describe('Complete replacement tag list. Use pylon_add_tags or pylon_remove_tags to modify without replacing all.'),
+        .describe(
+          'Complete replacement tag list. Use pylon_add_tags or pylon_remove_tags to modify without replacing all.'
+        ),
     },
   },
   async ({ issue_id, ...updates }) => {
@@ -313,7 +326,13 @@ mcpServer.registerTool(
       }
     }
     const result = await ensurePylonClient().updateIssue(issue_id, updates);
-    return jsonResponse({ issue_id: result.id, success: true, updated_fields: Object.keys(updates).filter((k) => (updates as Record<string, unknown>)[k] !== undefined) });
+    return jsonResponse({
+      issue_id: result.id,
+      success: true,
+      updated_fields: Object.keys(updates).filter(
+        (k) => (updates as Record<string, unknown>)[k] !== undefined
+      ),
+    });
   }
 );
 
@@ -348,10 +367,18 @@ mcpServer.registerTool(
       mergedTags.length === currentTags.length &&
       mergedTags.every((t) => currentTags.includes(t))
     ) {
-      return jsonResponse({ issue_id, success: true, message: 'Tags already present, no changes made' });
+      return jsonResponse({
+        issue_id,
+        success: true,
+        message: 'Tags already present, no changes made',
+      });
     }
     await client.updateIssue(issue_id, { tags: mergedTags });
-    return jsonResponse({ issue_id, success: true, tags_added: tags.filter((t) => !currentTags.includes(t)) });
+    return jsonResponse({
+      issue_id,
+      success: true,
+      tags_added: tags.filter((t) => !currentTags.includes(t)),
+    });
   }
 );
 
@@ -386,10 +413,18 @@ mcpServer.registerTool(
       filteredTags.length === currentTags.length &&
       filteredTags.every((t) => currentTags.includes(t))
     ) {
-      return jsonResponse({ issue_id, success: true, message: 'Specified tags not found, no changes made' });
+      return jsonResponse({
+        issue_id,
+        success: true,
+        message: 'Specified tags not found, no changes made',
+      });
     }
     await client.updateIssue(issue_id, { tags: filteredTags });
-    return jsonResponse({ issue_id, success: true, tags_removed: tags.filter((t) => currentTags.includes(t)) });
+    return jsonResponse({
+      issue_id,
+      success: true,
+      tags_removed: tags.filter((t) => currentTags.includes(t)),
+    });
   }
 );
 
@@ -402,11 +437,15 @@ mcpServer.registerTool(
       state: z
         .string()
         .optional()
-        .describe('Filter by state: "new", "waiting_on_you", "waiting_on_customer", "on_hold", or "closed"'),
+        .describe(
+          'Filter by state: "new", "waiting_on_you", "waiting_on_customer", "on_hold", or "closed"'
+        ),
       tag: z
         .string()
         .optional()
-        .describe('Filter by single tag; combine with state for custom statuses (e.g., state="on_hold" + tag="waiting on eng")'),
+        .describe(
+          'Filter by single tag; combine with state for custom statuses (e.g., state="on_hold" + tag="waiting on eng")'
+        ),
       tags: z
         .array(z.string())
         .optional()
@@ -506,7 +545,9 @@ mcpServer.registerTool(
     inputSchema: {
       status: z
         .string()
-        .describe('Status name (built-in state or custom, e.g., "Waiting on Eng Input"). Case-insensitive.'),
+        .describe(
+          'Status name (built-in state or custom, e.g., "Waiting on Eng Input"). Case-insensitive.'
+        ),
       limit: z.number().optional().describe('Max results to return'),
     },
   },
@@ -524,10 +565,14 @@ mcpServer.registerTool(
 mcpServer.registerTool(
   'pylon_find_similar_issues_for_requestor',
   {
-    description: 'Find issues from the same requestor as the source issue to identify recurring patterns.',
+    description:
+      'Find issues from the same requestor as the source issue to identify recurring patterns.',
     inputSchema: {
       issue_id: z.string().describe('Pylon issue ID'),
-      query: z.string().optional().describe('Optional search terms; defaults to source issue title'),
+      query: z
+        .string()
+        .optional()
+        .describe('Optional search terms; defaults to source issue title'),
       limit: z.number().optional().describe('Max results to return'),
     },
   },
@@ -543,7 +588,10 @@ mcpServer.registerTool(
     description: 'Find issues from the same company/account to identify company-wide problems.',
     inputSchema: {
       issue_id: z.string().describe('Pylon issue ID'),
-      query: z.string().optional().describe('Optional search terms; defaults to source issue title'),
+      query: z
+        .string()
+        .optional()
+        .describe('Optional search terms; defaults to source issue title'),
       limit: z.number().optional().describe('Max results to return'),
     },
   },
@@ -554,10 +602,14 @@ mcpServer.registerTool(
 mcpServer.registerTool(
   'pylon_find_similar_issues_global',
   {
-    description: 'Find similar issues across all accounts to identify widespread issues or find past solutions.',
+    description:
+      'Find similar issues across all accounts to identify widespread issues or find past solutions.',
     inputSchema: {
       issue_id: z.string().describe('Pylon issue ID'),
-      query: z.string().optional().describe('Optional search terms; defaults to source issue title'),
+      query: z
+        .string()
+        .optional()
+        .describe('Optional search terms; defaults to source issue title'),
       limit: z.number().optional().describe('Max results to return'),
     },
   },
@@ -571,7 +623,9 @@ mcpServer.registerTool(
     description: 'Temporarily hide an issue until a future date/time for deferred follow-up.',
     inputSchema: {
       issue_id: z.string().describe('Pylon issue ID'),
-      until: z.string().describe('Date/time to reactivate (ISO 8601, e.g., "2024-01-15T09:00:00Z")'),
+      until: z
+        .string()
+        .describe('Date/time to reactivate (ISO 8601, e.g., "2024-01-15T09:00:00Z")'),
     },
   },
   async ({ issue_id, until }) => {
@@ -588,7 +642,8 @@ mcpServer.registerTool(
 mcpServer.registerTool(
   'pylon_get_issue_with_messages',
   {
-    description: 'Get an issue with its full conversation history. Prefer pylon_get_issue when you only need issue details.',
+    description:
+      'Get an issue with its full conversation history. Prefer pylon_get_issue when you only need issue details.',
     inputSchema: {
       issue_id: z.string().describe('Pylon issue ID'),
     },
@@ -599,7 +654,8 @@ mcpServer.registerTool(
 mcpServer.registerTool(
   'pylon_get_issue_messages',
   {
-    description: 'Get the message history for an issue. Use when you need message content, not just issue metadata.',
+    description:
+      'Get the message history for an issue. Use when you need message content, not just issue metadata.',
     inputSchema: {
       issue_id: z.string().describe('Pylon issue ID'),
     },
@@ -637,7 +693,10 @@ mcpServer.registerTool(
       knowledge_base_id: z.string().describe('ID of the knowledge base'),
       title: z.string(),
       body_html: z.string().describe('Article content in HTML format'),
-      author_user_id: z.string().optional().describe('User ID to attribute as author; defaults to authenticated user'),
+      author_user_id: z
+        .string()
+        .optional()
+        .describe('User ID to attribute as author; defaults to authenticated user'),
       collection_id: z.string().optional().describe('ID of the collection to place the article in'),
       is_published: z.boolean().optional(),
       is_unlisted: z.boolean().optional(),
@@ -699,7 +758,10 @@ mcpServer.registerTool(
     inputSchema: {
       name: z.string(),
       description: z.string().optional(),
-      members: z.array(z.string()).optional().describe('Array of user IDs or emails of team members'),
+      members: z
+        .array(z.string())
+        .optional()
+        .describe('Array of user IDs or emails of team members'),
     },
   },
   async (args) => jsonResponse(await ensurePylonClient().createTeam(args))
@@ -740,7 +802,10 @@ mcpServer.registerTool(
     description: 'Create a new tag for categorizing issues and contacts.',
     inputSchema: {
       name: z.string(),
-      color: z.string().optional().describe('Tag color in hex or color name (e.g., "#FF0000" or "red")'),
+      color: z
+        .string()
+        .optional()
+        .describe('Tag color in hex or color name (e.g., "#FF0000" or "red")'),
     },
   },
   async (args) => jsonResponse(await ensurePylonClient().createTag(args))
@@ -775,7 +840,8 @@ mcpServer.registerTool(
 mcpServer.registerTool(
   'pylon_get_attachment',
   {
-    description: 'Get attachment metadata by ID. Use when you have an attachment_id from an issue message. Download the file using the returned URL.',
+    description:
+      'Get attachment metadata by ID. Use when you have an attachment_id from an issue message. Download the file using the returned URL.',
     inputSchema: {
       attachment_id: z.string().describe('Pylon attachment ID'),
     },
@@ -801,7 +867,8 @@ mcpServer.registerTool(
 mcpServer.registerTool(
   'pylon_link_external_issue',
   {
-    description: 'Link a Linear, Jira, GitHub, or Asana issue to a Pylon support issue for cross-system tracking.',
+    description:
+      'Link a Linear, Jira, GitHub, or Asana issue to a Pylon support issue for cross-system tracking.',
     inputSchema: {
       issue_id: z.string().describe('Pylon issue ID'),
       external_issue_id: z
@@ -852,11 +919,18 @@ mcpServer.registerTool(
 mcpServer.registerTool(
   'pylon_add_issue_followers',
   {
-    description: 'Add team members (user_ids) or customers (contact_ids) as followers to a Pylon issue.',
+    description:
+      'Add team members (user_ids) or customers (contact_ids) as followers to a Pylon issue.',
     inputSchema: {
       issue_id: z.string().describe('Pylon issue ID'),
-      user_ids: z.array(z.string()).optional().describe('Array of team member user IDs to add as followers'),
-      contact_ids: z.array(z.string()).optional().describe('Array of customer contact IDs to add as followers'),
+      user_ids: z
+        .array(z.string())
+        .optional()
+        .describe('Array of team member user IDs to add as followers'),
+      contact_ids: z
+        .array(z.string())
+        .optional()
+        .describe('Array of customer contact IDs to add as followers'),
     },
   },
   async ({ issue_id, user_ids, contact_ids }) => {
@@ -864,7 +938,12 @@ mcpServer.registerTool(
       throw new Error('At least one user_id or contact_id must be provided');
     }
     await ensurePylonClient().addIssueFollowers(issue_id, user_ids, contact_ids);
-    return jsonResponse({ issue_id, success: true, user_ids_added: user_ids || [], contact_ids_added: contact_ids || [] });
+    return jsonResponse({
+      issue_id,
+      success: true,
+      user_ids_added: user_ids || [],
+      contact_ids_added: contact_ids || [],
+    });
   }
 );
 
@@ -874,8 +953,14 @@ mcpServer.registerTool(
     description: 'Remove team members or customers from following a Pylon issue.',
     inputSchema: {
       issue_id: z.string().describe('Pylon issue ID'),
-      user_ids: z.array(z.string()).optional().describe('Array of team member user IDs to remove as followers'),
-      contact_ids: z.array(z.string()).optional().describe('Array of customer contact IDs to remove as followers'),
+      user_ids: z
+        .array(z.string())
+        .optional()
+        .describe('Array of team member user IDs to remove as followers'),
+      contact_ids: z
+        .array(z.string())
+        .optional()
+        .describe('Array of customer contact IDs to remove as followers'),
     },
   },
   async ({ issue_id, user_ids, contact_ids }) => {
@@ -883,7 +968,12 @@ mcpServer.registerTool(
       throw new Error('At least one user_id or contact_id must be provided');
     }
     await ensurePylonClient().removeIssueFollowers(issue_id, user_ids, contact_ids);
-    return jsonResponse({ issue_id, success: true, user_ids_removed: user_ids || [], contact_ids_removed: contact_ids || [] });
+    return jsonResponse({
+      issue_id,
+      success: true,
+      user_ids_removed: user_ids || [],
+      contact_ids_removed: contact_ids || [],
+    });
   }
 );
 
@@ -892,7 +982,8 @@ mcpServer.registerTool(
 mcpServer.registerTool(
   'pylon_delete_issue',
   {
-    description: '⚠️ Permanently delete a Pylon issue. This cannot be undone. Verify the correct issue ID before proceeding.',
+    description:
+      '⚠️ Permanently delete a Pylon issue. This cannot be undone. Verify the correct issue ID before proceeding.',
     inputSchema: {
       issue_id: z.string().describe('Pylon issue ID to permanently delete'),
     },
