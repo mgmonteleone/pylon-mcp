@@ -39,6 +39,9 @@ docs/
 # Scripts
 publish.sh
 
+# Git hooks
+.husky/
+
 # Misc
 *.log
 .DS_Store
