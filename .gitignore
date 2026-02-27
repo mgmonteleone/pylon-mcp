@@ -135,5 +135,8 @@ build/
 
 .claude
 
-# IDE state
+# macOS
+.DS_Store
+
+# IDE state (JetBrains)
 .idea/
