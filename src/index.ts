@@ -511,16 +511,26 @@ mcpServer.registerTool(
   },
   async (args) => {
     const {
-      state,
-      tag,
-      tags,
-      title_contains,
-      assignee_id,
-      account_id,
-      requester_id,
-      team_id,
+      state: stateRaw,
+      tag: tagRaw,
+      tags: tagsRaw,
+      title_contains: titleContainsRaw,
+      assignee_id: assigneeIdRaw,
+      account_id: accountIdRaw,
+      requester_id: requesterIdRaw,
+      team_id: teamIdRaw,
       limit,
     } = args;
+
+    // Sanitize string inputs: trim and treat whitespace-only as undefined
+    const state = stateRaw?.trim() || undefined;
+    const tag = tagRaw?.trim() || undefined;
+    const tags = tagsRaw?.map((t) => t.trim()).filter((t) => t.length > 0);
+    const title_contains = titleContainsRaw?.trim() || undefined;
+    const assignee_id = assigneeIdRaw?.trim() || undefined;
+    const account_id = accountIdRaw?.trim() || undefined;
+    const requester_id = requesterIdRaw?.trim() || undefined;
+    const team_id = teamIdRaw?.trim() || undefined;
 
     // Build the structured filter object with proper types
     const filter: PylonIssueSearchFilter = {};
@@ -555,11 +565,23 @@ mcpServer.registerTool(
       filter.team_id = { operator: 'equals', value: team_id } as PylonSearchFilterCondition;
     }
 
-    const hasFilters = Object.keys(filter).length > 0;
+    if (Object.keys(filter).length === 0) {
+      return {
+        content: [
+          {
+            type: 'text' as const,
+            text: JSON.stringify({
+              error:
+                'pylon_search_issues requires at least one filter parameter (e.g., state, tag, tags, title_contains, assignee_id, account_id, requester_id, or team_id). To list recent issues without filters, use pylon_get_issues instead.',
+            }),
+          },
+        ],
+      };
+    }
 
     return jsonResponse(
       await ensurePylonClient().searchIssues({
-        filter: hasFilters ? filter : undefined,
+        filter,
         limit,
       })
     );

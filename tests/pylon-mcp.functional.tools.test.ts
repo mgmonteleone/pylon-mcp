@@ -667,6 +667,57 @@ describe('pylon-mcp functional tools (stdio, mocked HTTP)', () => {
     expect(res?.content?.[0]?.text).toContain('waiting on eng');
   });
 
+  // pylon_search_issues input validation tests
+  it('pylon_search_issues with no filters returns helpful error', async () => {
+    const res = await client.callTool({ name: 'pylon_search_issues', arguments: {} });
+    const text = res?.content?.[0]?.text ?? '';
+    expect(text).toContain('error');
+    expect(text).toContain('pylon_search_issues requires at least one filter parameter');
+    expect(text).toContain('pylon_get_issues');
+  });
+
+  it('pylon_search_issues with whitespace-only string params returns helpful error', async () => {
+    const res = await client.callTool({
+      name: 'pylon_search_issues',
+      arguments: { state: '   ', title_contains: '  ', tag: '\t' },
+    });
+    const text = res?.content?.[0]?.text ?? '';
+    expect(text).toContain('error');
+    expect(text).toContain('pylon_search_issues requires at least one filter parameter');
+    expect(text).toContain('pylon_get_issues');
+  });
+
+  it('pylon_search_issues with whitespace-only tags array returns helpful error', async () => {
+    const res = await client.callTool({
+      name: 'pylon_search_issues',
+      arguments: { tags: ['  ', '  ', '\t'] },
+    });
+    const text = res?.content?.[0]?.text ?? '';
+    expect(text).toContain('error');
+    expect(text).toContain('pylon_search_issues requires at least one filter parameter');
+    expect(text).toContain('pylon_get_issues');
+  });
+
+  it('pylon_search_issues with valid state (trimmed) still works', async () => {
+    const res = await client.callTool({
+      name: 'pylon_search_issues',
+      arguments: { state: '  on_hold  ' },
+    });
+    const text = res?.content?.[0]?.text ?? '';
+    expect(text).not.toContain('requires at least one filter parameter');
+    expect(text).toContain('issue_similar');
+  });
+
+  it('pylon_search_issues with valid tags array (mixed whitespace) filters out blanks', async () => {
+    const res = await client.callTool({
+      name: 'pylon_search_issues',
+      arguments: { tags: ['  ', 'urgent', '  '] },
+    });
+    const text = res?.content?.[0]?.text ?? '';
+    expect(text).not.toContain('requires at least one filter parameter');
+    expect(text).toContain('tag:urgent');
+  });
+
   // pylon_search_issues_by_status tool tests
   it('pylon_search_issues_by_status - searches by built-in state name', async () => {
     const res = await client.callTool({
