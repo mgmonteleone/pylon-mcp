@@ -378,15 +378,25 @@ mcpServer.registerTool(
         ),
     },
   },
-  async ({ issue_id, ...updates }) =>
-    jsonResponse(await ensurePylonClient().updateIssue(issue_id, updates))
+  async ({ issue_id, ...updates }) => {
+    if (updates.tags !== undefined) {
+      const invalidTag = updates.tags.find((t) => t.trim() === '');
+      if (invalidTag !== undefined) {
+        return {
+          content: [{ type: 'text' as const, text: 'Error: Tags must not be empty or whitespace-only strings.' }],
+          isError: true,
+        };
+      }
+    }
+    return jsonResponse(await ensurePylonClient().updateIssue(issue_id, updates));
+  }
 );
 
 mcpServer.registerTool(
   'pylon_add_tags',
   {
     description:
-      'Add one or more tags to an existing Pylon issue without removing existing tags. Use this when you want to append tags to an issue. To replace all tags at once, use pylon_update_issue with a tags array. To remove specific tags, use pylon_remove_tags.',
+      'Add one or more tags to an existing Pylon issue without removing existing tags. Use this when you want to append tags to an issue. To replace all tags at once, use pylon_update_issue with a tags array. To remove specific tags, use pylon_remove_tags. Note: This operation fetches current tags then updates. In rare cases of concurrent modifications, tag changes may conflict.',
     inputSchema: {
       issue_id: z
         .string()
@@ -399,10 +409,20 @@ mcpServer.registerTool(
     },
   },
   async ({ issue_id, tags }) => {
+    const invalidTag = tags.find((t) => t.trim() === '');
+    if (invalidTag !== undefined) {
+      return {
+        content: [{ type: 'text' as const, text: 'Error: Tags must not be empty or whitespace-only strings.' }],
+        isError: true,
+      };
+    }
     const client = ensurePylonClient();
     const issue = await client.getIssue(issue_id);
-    const existingTags = issue.tags || [];
-    const mergedTags = [...new Set([...existingTags, ...tags])];
+    const currentTags = issue.tags || [];
+    const mergedTags = [...new Set([...currentTags, ...tags])];
+    if (mergedTags.length === currentTags.length && mergedTags.every((t) => currentTags.includes(t))) {
+      return jsonResponse(issue);
+    }
     return jsonResponse(await client.updateIssue(issue_id, { tags: mergedTags }));
   }
 );
@@ -411,7 +431,7 @@ mcpServer.registerTool(
   'pylon_remove_tags',
   {
     description:
-      'Remove one or more tags from an existing Pylon issue without affecting other tags. Use this when you want to remove specific tags from an issue. To add tags, use pylon_add_tags. To replace all tags at once, use pylon_update_issue with a tags array.',
+      'Remove one or more tags from an existing Pylon issue without affecting other tags. Use this when you want to remove specific tags from an issue. To add tags, use pylon_add_tags. To replace all tags at once, use pylon_update_issue with a tags array. Note: This operation fetches current tags then updates. In rare cases of concurrent modifications, tag changes may conflict.',
     inputSchema: {
       issue_id: z
         .string()
@@ -424,10 +444,20 @@ mcpServer.registerTool(
     },
   },
   async ({ issue_id, tags }) => {
+    const invalidTag = tags.find((t) => t.trim() === '');
+    if (invalidTag !== undefined) {
+      return {
+        content: [{ type: 'text' as const, text: 'Error: Tags must not be empty or whitespace-only strings.' }],
+        isError: true,
+      };
+    }
     const client = ensurePylonClient();
     const issue = await client.getIssue(issue_id);
-    const existingTags = issue.tags || [];
-    const filteredTags = existingTags.filter((t) => !tags.includes(t));
+    const currentTags = issue.tags || [];
+    const filteredTags = currentTags.filter((t) => !tags.includes(t));
+    if (filteredTags.length === currentTags.length && filteredTags.every((t) => currentTags.includes(t))) {
+      return jsonResponse(issue);
+    }
     return jsonResponse(await client.updateIssue(issue_id, { tags: filteredTags }));
   }
 );
