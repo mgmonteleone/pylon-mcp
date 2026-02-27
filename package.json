@@ -1,6 +1,6 @@
 {
   "name": "@customer-support-success/pylon-mcp-server",
-  "version": "3.4.1",
+  "version": "3.5.0",
   "description": "MCP server for Pylon API integration",
   "type": "module",
   "main": "dist/index.js",
