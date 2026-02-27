@@ -43,8 +43,10 @@ The server implements comprehensive Pylon API coverage:
   - `PYLON_RETRY_MAX` (optional): Maximum retry attempts for transient failures (default: 3)
     - Set to `0` to disable retries
     - Retries on: 429 (rate limit), 5xx (server error), timeout
+    - Only retries idempotent requests (GET, HEAD, OPTIONS, PUT, DELETE)
+    - POST and PATCH requests are NOT retried to prevent duplicate operations
     - Uses exponential backoff with jitter
-    - Respects `Retry-After` header
+    - Respects `Retry-After` header (capped at 30 seconds)
 
 ### Caching Strategy
 

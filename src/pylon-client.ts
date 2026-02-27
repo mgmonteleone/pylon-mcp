@@ -433,8 +433,13 @@ export class PylonClient {
     }
 
     // Resolve retry configuration
-    const maxRetries = config.maxRetries ?? parseInt(process.env.PYLON_RETRY_MAX || '3', 10);
+    const parsedRetries = config.maxRetries ?? parseInt(process.env.PYLON_RETRY_MAX || '3', 10);
+    const maxRetries = Number.isFinite(parsedRetries) && parsedRetries >= 0 ? parsedRetries : 3;
     const retryBaseDelay = config.retryBaseDelay ?? 1000;
+
+    // Retry constants
+    const RETRY_JITTER_MAX_MS = 500;
+    const RETRY_MAX_DELAY_MS = 30000;
 
     // Add retry interceptor for transient failures (BEFORE error enhancement)
     this.client.interceptors.response.use(
@@ -455,35 +460,47 @@ export class PylonClient {
           code === 'ECONNABORTED' || code === 'ECONNRESET' || code === 'ETIMEDOUT';
         const isRetryable = isRetryableStatus || isRetryableCode;
 
+        // Only retry idempotent methods
+        const idempotentMethods = ['get', 'head', 'options', 'put', 'delete'];
+        const isIdempotent = idempotentMethods.includes((requestConfig.method || '').toLowerCase());
+
         // Initialize retry count on the config object
         requestConfig.__retryCount = requestConfig.__retryCount ?? 0;
 
-        if (!isRetryable || requestConfig.__retryCount >= maxRetries) {
+        if (!isRetryable || !isIdempotent || requestConfig.__retryCount >= maxRetries) {
           return Promise.reject(error);
         }
 
         requestConfig.__retryCount += 1;
         const attempt = requestConfig.__retryCount;
 
-        // Calculate delay with exponential backoff + jitter, capped at 30 seconds
+        // Calculate delay with exponential backoff + jitter, capped at max delay
         let delayMs = Math.min(
-          retryBaseDelay * Math.pow(2, attempt - 1) + Math.random() * 500,
-          30000
+          retryBaseDelay * Math.pow(2, attempt - 1) + Math.random() * RETRY_JITTER_MAX_MS,
+          RETRY_MAX_DELAY_MS
         );
 
         // Respect Retry-After header if present
         const retryAfterHeader = error.response?.headers?.['retry-after'];
         if (retryAfterHeader) {
-          const retryAfterSeconds = parseInt(retryAfterHeader, 10);
-          if (!isNaN(retryAfterSeconds)) {
-            delayMs = retryAfterSeconds * 1000;
+          const parsed = parseInt(retryAfterHeader, 10);
+          if (!isNaN(parsed) && String(parsed) === retryAfterHeader.trim()) {
+            // Valid integer seconds value
+            delayMs = Math.min(parsed * 1000, RETRY_MAX_DELAY_MS);
           } else {
             // Try parsing as HTTP date
             const retryAfterDate = new Date(retryAfterHeader).getTime();
             if (!isNaN(retryAfterDate)) {
-              delayMs = Math.max(0, retryAfterDate - Date.now());
+              delayMs = Math.min(Math.max(0, retryAfterDate - Date.now()), RETRY_MAX_DELAY_MS);
             }
           }
+        }
+
+        // Debug logging for retries
+        if (process.env.PYLON_DEBUG === 'true') {
+          console.error(
+            `[Pylon Retry] Attempt ${attempt}/${maxRetries} for ${requestConfig.method?.toUpperCase()} ${requestConfig.url} after ${delayMs}ms (status: ${status || code})`
+          );
         }
 
         await new Promise((resolve) => setTimeout(resolve, delayMs));

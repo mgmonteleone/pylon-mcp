@@ -7,6 +7,7 @@ const BASE_URL = 'https://api.usepylon.com';
 describe('PylonClient - Retry Logic', () => {
   beforeEach(() => {
     nock.cleanAll();
+    nock.disableNetConnect();
     vi.clearAllMocks();
     vi.useRealTimers();
   });
@@ -185,4 +186,95 @@ describe('PylonClient - Retry Logic', () => {
     // With exponential backoff retryBaseDelay=10: delay1≈10ms + delay2≈20ms = at least 20ms total
     expect(elapsed).toBeGreaterThan(10);
   });
+
+  it('should fall back to exponential backoff when Retry-After is malformed', async () => {
+    nock(BASE_URL).get('/issues').reply(429, {}, { 'retry-after': 'not-a-number' });
+    nock(BASE_URL).get('/issues').reply(200, []);
+
+    const client = new PylonClient({
+      apiToken: 'test-token',
+      maxRetries: 3,
+      retryBaseDelay: 10,
+    });
+
+    const result = await client.getIssues();
+    expect(Array.isArray(result)).toBe(true);
+  });
+
+  it('should retry on ETIMEDOUT error', async () => {
+    nock(BASE_URL)
+      .get('/issues')
+      .replyWithError({ code: 'ETIMEDOUT', message: 'Connection timed out' });
+    nock(BASE_URL).get('/issues').reply(200, []);
+
+    const client = new PylonClient({
+      apiToken: 'test-token',
+      maxRetries: 3,
+      retryBaseDelay: 10,
+    });
+
+    const result = await client.getIssues();
+    expect(Array.isArray(result)).toBe(true);
+  });
+
+  it('should retry on ECONNRESET error', async () => {
+    nock(BASE_URL)
+      .get('/issues')
+      .replyWithError({ code: 'ECONNRESET', message: 'Connection reset' });
+    nock(BASE_URL).get('/issues').reply(200, []);
+
+    const client = new PylonClient({
+      apiToken: 'test-token',
+      maxRetries: 3,
+      retryBaseDelay: 10,
+    });
+
+    const result = await client.getIssues();
+    expect(Array.isArray(result)).toBe(true);
+  });
+
+  it('should NOT retry POST requests on 500', async () => {
+    nock(BASE_URL).post('/contacts').reply(500, { error: 'server error' });
+
+    const client = new PylonClient({
+      apiToken: 'test-token',
+      maxRetries: 3,
+      retryBaseDelay: 10,
+    });
+
+    // createContact makes a POST request
+    await expect(
+      client.createContact({ name: 'Test', email: 'test@example.com' })
+    ).rejects.toThrow();
+    expect(nock.pendingMocks()).toHaveLength(0);
+  });
+
+  it('should cap Retry-After delay at 30 seconds', async () => {
+    const timerSpy = vi.spyOn(global, 'setTimeout');
+
+    nock(BASE_URL).get('/issues').reply(429, {}, { 'retry-after': '3600' });
+    nock(BASE_URL).get('/issues').reply(200, []);
+
+    const client = new PylonClient({
+      apiToken: 'test-token',
+      maxRetries: 3,
+      retryBaseDelay: 10,
+    });
+
+    await client.getIssues();
+
+    // Verify the delay was capped at 30000ms, not 3600000ms (3600s = 3600000ms)
+    const retryDelayCall = timerSpy.mock.calls.find(
+      (call) => typeof call[1] === 'number' && call[1] >= 29000 && call[1] <= 31000
+    );
+    expect(retryDelayCall).toBeDefined();
+
+    // Ensure no call used the uncapped 3600s value (3600000ms)
+    const uncappedCall = timerSpy.mock.calls.find(
+      (call) => typeof call[1] === 'number' && call[1] > 100000
+    );
+    expect(uncappedCall).toBeUndefined();
+
+    timerSpy.mockRestore();
+  }, 35000); // 35 second timeout to allow for the 30 second delay
 });
