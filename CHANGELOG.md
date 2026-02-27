@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [3.6.2] - 2026-02-27
+
+### Fixed
+
+- **npm Publish**: Restored Node 24 for release workflow — `npm publish --provenance` requires npm 11 (bundled with Node 24) for OIDC-based authentication in GitHub Actions; npm 10 (Node 22) fails with `ENEEDAUTH`
+
 ## [3.6.1] - 2026-02-27
 
 ### Fixed
