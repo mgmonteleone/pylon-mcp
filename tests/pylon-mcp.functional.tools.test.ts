@@ -95,34 +95,35 @@ describe('pylon-mcp functional tools (stdio, mocked HTTP)', () => {
         let body = '';
         for await (const chunk of req) body += chunk;
         const parsed = body ? JSON.parse(body) : {};
-        // Extract search terms from the new structured filter format
-        // The filter can contain: state, tags, title, requester_id, account_id, etc.
+        // Extract search terms from the new flat/and-subfilters API format
+        // Single filter: { field: 'state', operator: 'equals', value: 'new' }
+        // Multiple: { operator: 'and', subfilters: [{ field: '...', ... }, ...] }
         let searchTerm = 'unknown';
         let requestorId = 'contact_1';
         let accountId = 'account_1';
 
         if (parsed.filter) {
-          // Check for title filter (string_contains or equals)
-          if (parsed.filter.title?.value) {
-            searchTerm = parsed.filter.title.value;
+          // Collect all filter conditions into a flat list
+          const conditions: any[] = [];
+          if (parsed.filter.subfilters) {
+            conditions.push(...parsed.filter.subfilters);
+          } else if (parsed.filter.field) {
+            conditions.push(parsed.filter);
           }
-          // Check for state filter
-          else if (parsed.filter.state?.value) {
-            searchTerm = `state:${parsed.filter.state.value}`;
-          }
-          // Check for tag filter
-          else if (parsed.filter.tags?.value) {
-            const tagValue = Array.isArray(parsed.filter.tags.value)
-              ? parsed.filter.tags.value.join(',')
-              : parsed.filter.tags.value;
-            searchTerm = `tag:${tagValue}`;
-          }
-          // Get requester_id and account_id from filter
-          if (parsed.filter.requester_id?.value) {
-            requestorId = parsed.filter.requester_id.value;
-          }
-          if (parsed.filter.account_id?.value) {
-            accountId = parsed.filter.account_id.value;
+
+          for (const cond of conditions) {
+            if (cond.field === 'title' && cond.value) {
+              searchTerm = cond.value;
+            } else if (cond.field === 'state' && cond.value) {
+              if (searchTerm === 'unknown') searchTerm = `state:${cond.value}`;
+            } else if (cond.field === 'tags') {
+              const tagValue = cond.values ? cond.values.join(',') : cond.value || '';
+              if (searchTerm === 'unknown') searchTerm = `tag:${tagValue}`;
+            } else if (cond.field === 'requester_id' && cond.value) {
+              requestorId = cond.value;
+            } else if (cond.field === 'account_id' && cond.value) {
+              accountId = cond.value;
+            }
           }
         }
         // Return mock similar issues based on filters

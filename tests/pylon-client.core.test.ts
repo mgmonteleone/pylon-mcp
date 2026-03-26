@@ -204,7 +204,9 @@ describe('PylonClient - Core Functionality', () => {
 
       expect(mockAxios.post).toHaveBeenCalledWith('/issues/search', {
         filter: {
-          state: { operator: 'equals', value: 'pending' },
+          field: 'state',
+          operator: 'equals',
+          value: 'pending',
         },
         limit: 5,
       });
@@ -235,7 +237,9 @@ describe('PylonClient - Core Functionality', () => {
 
       expect(mockAxios.post).toHaveBeenCalledWith('/issues/search', {
         filter: {
-          state: { operator: 'equals', value: 'pending' },
+          field: 'state',
+          operator: 'equals',
+          value: 'pending',
         },
         limit: 5,
       });
@@ -680,8 +684,11 @@ describe('PylonClient - Core Functionality', () => {
         expect(mockAxios.get).toHaveBeenCalledWith('/issues/issue_1', { params: undefined });
         expect(mockAxios.post).toHaveBeenCalledWith('/issues/search', {
           filter: {
-            requester_id: { operator: 'equals', value: 'contact_123' },
-            title: { operator: 'string_contains', value: 'Login problem' },
+            operator: 'and',
+            subfilters: [
+              { field: 'requester_id', operator: 'equals', value: 'contact_123' },
+              { field: 'title', operator: 'string_contains', value: 'Login problem' },
+            ],
           },
         });
         expect(result.sourceIssue).toEqual(sourceIssue);
@@ -747,8 +754,11 @@ describe('PylonClient - Core Functionality', () => {
 
         expect(mockAxios.post).toHaveBeenCalledWith('/issues/search', {
           filter: {
-            requester_id: { operator: 'equals', value: 'contact_123' },
-            title: { operator: 'string_contains', value: 'custom search' },
+            operator: 'and',
+            subfilters: [
+              { field: 'requester_id', operator: 'equals', value: 'contact_123' },
+              { field: 'title', operator: 'string_contains', value: 'custom search' },
+            ],
           },
           limit: 5,
         });
@@ -792,8 +802,11 @@ describe('PylonClient - Core Functionality', () => {
 
         expect(mockAxios.post).toHaveBeenCalledWith('/issues/search', {
           filter: {
-            account_id: { operator: 'equals', value: 'account_456' },
-            title: { operator: 'string_contains', value: 'API timeout' },
+            operator: 'and',
+            subfilters: [
+              { field: 'account_id', operator: 'equals', value: 'account_456' },
+              { field: 'title', operator: 'string_contains', value: 'API timeout' },
+            ],
           },
         });
         expect(result.sourceIssue).toEqual(sourceIssue);
@@ -862,7 +875,9 @@ describe('PylonClient - Core Functionality', () => {
 
         expect(mockAxios.post).toHaveBeenCalledWith('/issues/search', {
           filter: {
-            title: { operator: 'string_contains', value: 'Server error 500' },
+            field: 'title',
+            operator: 'string_contains',
+            value: 'Server error 500',
           },
         });
         expect(result.sourceIssue).toEqual(sourceIssue);
@@ -902,7 +917,9 @@ describe('PylonClient - Core Functionality', () => {
 
         expect(mockAxios.post).toHaveBeenCalledWith('/issues/search', {
           filter: {
-            title: { operator: 'string_contains', value: 'error 500' },
+            field: 'title',
+            operator: 'string_contains',
+            value: 'error 500',
           },
           limit: 20,
         });

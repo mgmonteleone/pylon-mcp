@@ -705,7 +705,7 @@ export class PylonClient {
     const body: Record<string, unknown> = {};
 
     if (options?.filter) {
-      body.filter = options.filter;
+      body.filter = PylonClient.convertFilterToApiFormat(options.filter);
     }
     if (options?.limit) {
       body.limit = options.limit;
@@ -717,6 +717,54 @@ export class PylonClient {
     const response: AxiosResponse<PylonIssue[] | PylonApiResponse<PylonIssue[]>> =
       await this.client.post('/issues/search', body);
     return this.unwrapArray(response.data);
+  }
+
+  /**
+   * Convert our internal field-keyed filter format to Pylon API's actual Filter format.
+   *
+   * Internal format:  { state: { operator: 'equals', value: 'new' }, assignee_id: { operator: 'equals', value: 'uuid' } }
+   * API format:       { operator: 'and', subfilters: [{ field: 'state', operator: 'equals', value: 'new' }, { field: 'assignee_id', operator: 'equals', value: 'uuid' }] }
+   *
+   * Single filter:    { field: 'state', operator: 'equals', value: 'new' }
+   */
+  private static convertFilterToApiFormat(filter: PylonIssueSearchFilter): Record<string, unknown> {
+    const conditions: Record<string, unknown>[] = [];
+
+    for (const [field, condition] of Object.entries(filter)) {
+      if (!condition) continue;
+
+      const apiFilter: Record<string, unknown> = {
+        field,
+        operator: condition.operator,
+      };
+
+      // Map value/values based on operator
+      if (condition.operator === 'in' || condition.operator === 'not_in') {
+        // Multi-value operators use 'values' array
+        apiFilter.values = Array.isArray(condition.value) ? condition.value : [condition.value];
+      } else if (condition.operator === 'time_range') {
+        // time_range uses start/end
+        apiFilter.value = condition.start;
+        // Pylon API may handle time_range differently; include both
+        if (condition.end) {
+          apiFilter.values = [condition.start!, condition.end];
+        }
+      } else if (condition.operator !== 'is_set' && condition.operator !== 'is_unset') {
+        // Single-value operators use 'value'
+        apiFilter.value = Array.isArray(condition.value) ? condition.value[0] : condition.value;
+      }
+
+      conditions.push(apiFilter);
+    }
+
+    if (conditions.length === 0) {
+      return {};
+    }
+    if (conditions.length === 1) {
+      return conditions[0];
+    }
+    // Multiple conditions -> wrap in 'and'
+    return { operator: 'and', subfilters: conditions };
   }
 
   /**

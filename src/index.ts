@@ -3,7 +3,12 @@
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js';
 import { z } from 'zod';
-import { PylonClient, PylonIssueSearchFilter, PylonSearchFilterCondition } from './pylon-client.js';
+import {
+  PylonClient,
+  PylonIssueSearchFilter,
+  PylonSearchFilterCondition,
+  PylonUser,
+} from './pylon-client.js';
 import {
   parseCacheTtl,
   createPylonClient,
@@ -451,7 +456,18 @@ mcpServer.registerTool(
         .optional()
         .describe('Filter by multiple tags (issue must have ALL specified tags)'),
       title_contains: z.string().optional().describe('Search text within issue titles'),
-      assignee_id: z.string().optional().describe('Filter by assignee user ID'),
+      assignee: z
+        .string()
+        .optional()
+        .describe(
+          'Filter by assignee name or email (e.g., "Jane Smith" or "jane@company.com"). Resolves to user ID automatically. Use this OR assignee_id, not both.'
+        ),
+      assignee_id: z
+        .string()
+        .optional()
+        .describe(
+          'Filter by assignee user ID (raw UUID). Prefer using "assignee" with a name or email instead.'
+        ),
       account_id: z.string().optional().describe('Filter by account/company ID'),
       requester_id: z.string().optional().describe('Filter by requester/contact ID'),
       team_id: z.string().optional().describe('Filter by team ID'),
@@ -464,6 +480,7 @@ mcpServer.registerTool(
       tag: tagRaw,
       tags: tagsRaw,
       title_contains: titleContainsRaw,
+      assignee: assigneeRaw,
       assignee_id: assigneeIdRaw,
       account_id: accountIdRaw,
       requester_id: requesterIdRaw,
@@ -476,10 +493,50 @@ mcpServer.registerTool(
     const tag = tagRaw?.trim() || undefined;
     const tags = tagsRaw?.map((t) => t.trim()).filter((t) => t.length > 0);
     const title_contains = titleContainsRaw?.trim() || undefined;
-    const assignee_id = assigneeIdRaw?.trim() || undefined;
+    const assignee = assigneeRaw?.trim() || undefined;
+    let assignee_id = assigneeIdRaw?.trim() || undefined;
     const account_id = accountIdRaw?.trim() || undefined;
     const requester_id = requesterIdRaw?.trim() || undefined;
     const team_id = teamIdRaw?.trim() || undefined;
+
+    // Resolve assignee name/email to user ID if provided
+    if (assignee && !assignee_id) {
+      const client = ensurePylonClient();
+      // GET /users returns all users; /users/search only supports email filter, not name.
+      // So we fetch all users and match locally by name or email.
+      const allUsers = await client.getUsers();
+      const users: PylonUser[] = Array.isArray(allUsers)
+        ? allUsers
+        : Array.isArray((allUsers as any)?.data)
+          ? (allUsers as any).data
+          : [];
+      const assigneeLower = assignee.toLowerCase();
+      // Exact match on email or name
+      const exactMatch = users.find(
+        (u) => u.email?.toLowerCase() === assigneeLower || u.name?.toLowerCase() === assigneeLower
+      );
+      // Partial match as fallback (name contains the search term)
+      const partialMatch =
+        exactMatch ||
+        users.find(
+          (u) =>
+            u.name?.toLowerCase().includes(assigneeLower) ||
+            u.email?.toLowerCase().includes(assigneeLower)
+        );
+      if (!partialMatch) {
+        return {
+          content: [
+            {
+              type: 'text' as const,
+              text: JSON.stringify({
+                error: `No user found matching "${assignee}". Try a different name or email, or use assignee_id with a known user ID.`,
+              }),
+            },
+          ],
+        };
+      }
+      assignee_id = partialMatch.id;
+    }
 
     // Build the structured filter object with proper types
     const filter: PylonIssueSearchFilter = {};
@@ -521,7 +578,7 @@ mcpServer.registerTool(
             type: 'text' as const,
             text: JSON.stringify({
               error:
-                'pylon_search_issues requires at least one filter parameter (e.g., state, tag, tags, title_contains, assignee_id, account_id, requester_id, or team_id). To list recent issues without filters, use pylon_get_issues instead.',
+                'pylon_search_issues requires at least one filter parameter (e.g., state, tag, tags, title_contains, assignee, assignee_id, account_id, requester_id, or team_id). To list recent issues without filters, use pylon_get_issues instead.',
             }),
           },
         ],
