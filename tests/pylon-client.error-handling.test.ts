@@ -110,6 +110,37 @@ describe('PylonClient - Enhanced Error Handling', () => {
       }
     });
 
+    it('should extract error messages from Pylon API "errors" array response', async () => {
+      nock(BASE_URL)
+        .post('/issues/search')
+        .reply(400, { errors: ['Invalid filter operator: '], request_id: 'req_123' });
+
+      try {
+        await client.searchIssues({
+          filter: { state: { operator: 'equals', value: 'on_hold' } },
+        });
+        expect.fail('Should have thrown an error');
+      } catch (error: any) {
+        expect(error.message).toBe('Pylon API error (400): Invalid filter operator: ');
+        expect(error.status).toBe(400);
+        expect(error.apiError.errors).toEqual(['Invalid filter operator: ']);
+      }
+    });
+
+    it('should join multiple errors from "errors" array with semicolons', async () => {
+      nock(BASE_URL)
+        .get('/issues/issue_123')
+        .reply(400, { errors: ['First error', 'Second error'] });
+
+      try {
+        await client.getIssue('issue_123');
+        expect.fail('Should have thrown an error');
+      } catch (error: any) {
+        expect(error.message).toBe('Pylon API error (400): First error; Second error');
+        expect(error.status).toBe(400);
+      }
+    });
+
     it('should prefer "error" field over "message" field', async () => {
       nock(BASE_URL)
         .get('/issues/issue_123')

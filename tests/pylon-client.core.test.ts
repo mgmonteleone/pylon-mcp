@@ -242,6 +242,53 @@ describe('PylonClient - Core Functionality', () => {
       expect(result).toEqual(mockIssues);
     });
 
+    it('should throw when a filter condition has an empty operator', async () => {
+      await expect(
+        client.searchIssues({
+          filter: {
+            state: { operator: '' as any, value: 'on_hold' },
+          },
+        })
+      ).rejects.toThrow('Invalid filter: field "state" has an empty operator');
+    });
+
+    it('should throw when a filter condition has a whitespace-only operator', async () => {
+      await expect(
+        client.searchIssues({
+          filter: {
+            tags: { operator: '   ' as any, value: 'urgent' },
+          },
+        })
+      ).rejects.toThrow('Invalid filter: field "tags" has an empty operator');
+    });
+
+    it('should pass through valid filter operators without error', async () => {
+      const mockIssues = [{ id: 'issue_1', title: 'Test', status: 'open' }];
+
+      vi.spyOn(mockAxios, 'post').mockResolvedValue({
+        data: mockIssues,
+        status: 200,
+        statusText: 'OK',
+        headers: {},
+        config: {} as any,
+      });
+
+      const result = await client.searchIssues({
+        filter: {
+          state: { operator: 'equals', value: 'on_hold' },
+          tags: { operator: 'contains', value: 'urgent' },
+        },
+      });
+
+      expect(mockAxios.post).toHaveBeenCalledWith('/issues/search', {
+        filter: {
+          state: { operator: 'equals', value: 'on_hold' },
+          tags: { operator: 'contains', value: 'urgent' },
+        },
+      });
+      expect(result).toEqual(mockIssues);
+    });
+
     it('should update an issue', async () => {
       const updates = { status: 'closed', priority: 'low' } as const;
       const updated = { id: 'issue_3', title: 'Done', ...updates };

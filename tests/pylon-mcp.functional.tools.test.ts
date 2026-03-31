@@ -789,6 +789,24 @@ describe('pylon-mcp functional tools (stdio, mocked HTTP)', () => {
     expect(text).toContain('issue_count');
   });
 
+  it('pylon_search_issues_by_status - rejects empty status string', async () => {
+    const res = await client.callTool({
+      name: 'pylon_search_issues_by_status',
+      arguments: { status: '' },
+    });
+    const text = res?.content?.[0]?.text ?? '';
+    expect(text).toContain('must not be empty');
+  });
+
+  it('pylon_search_issues_by_status - rejects whitespace-only status string', async () => {
+    const res = await client.callTool({
+      name: 'pylon_search_issues_by_status',
+      arguments: { status: '   ' },
+    });
+    const text = res?.content?.[0]?.text ?? '';
+    expect(text).toContain('must not be empty');
+  });
+
   // pylon_update_issue with tags
   it('pylon_update_issue with tags replaces all tags', async () => {
     const res = await client.callTool({
