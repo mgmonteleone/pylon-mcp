@@ -545,6 +545,7 @@ mcpServer.registerTool(
     inputSchema: {
       status: z
         .string()
+        .min(1, 'Status name must not be empty')
         .describe(
           'Status name (built-in state or custom, e.g., "Waiting on Eng Input"). Case-insensitive.'
         ),
@@ -552,7 +553,23 @@ mcpServer.registerTool(
     },
   },
   async ({ status, limit }) => {
-    const result = await ensurePylonClient().searchIssuesByStatus(status, { limit });
+    // Defensive guard: reject empty/whitespace-only status even if schema validation is bypassed
+    const trimmedStatus = status?.trim();
+    if (!trimmedStatus) {
+      return {
+        content: [
+          {
+            type: 'text' as const,
+            text: JSON.stringify({
+              error:
+                'Status name must not be empty. Provide a built-in state (e.g., "on_hold", "closed") or a custom status name (e.g., "Waiting on Eng Input").',
+            }),
+          },
+        ],
+        isError: true,
+      };
+    }
+    const result = await ensurePylonClient().searchIssuesByStatus(trimmedStatus, { limit });
     return jsonResponse({
       status_resolved: result.resolvedStatus,
       issue_count: result.issues.length,

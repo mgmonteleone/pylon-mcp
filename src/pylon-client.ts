@@ -514,8 +514,17 @@ export class PylonClient {
       (error) => {
         if (error.response?.data) {
           // Extract error message from Pylon API response
+          // Pylon API returns errors in multiple formats:
+          //   { errors: ["message1", "message2"] }  — most common (e.g., search validation)
+          //   { error: "message" }                   — single error string
+          //   { message: "message" }                 — generic format
           const apiError = error.response.data;
-          const errorMessage = apiError.error || apiError.message || JSON.stringify(apiError);
+          let errorMessage: string;
+          if (Array.isArray(apiError.errors) && apiError.errors.length > 0) {
+            errorMessage = apiError.errors.join('; ');
+          } else {
+            errorMessage = apiError.error || apiError.message || JSON.stringify(apiError);
+          }
 
           // Create enhanced error with API details
           const enhancedError = new Error(
@@ -705,7 +714,23 @@ export class PylonClient {
     const body: Record<string, unknown> = {};
 
     if (options?.filter) {
-      body.filter = options.filter;
+      // Validate filter conditions: ensure no empty operators reach the API
+      const sanitizedFilter: Record<string, unknown> = {};
+      for (const [key, condition] of Object.entries(options.filter)) {
+        if (condition && typeof condition === 'object' && 'operator' in condition) {
+          if (
+            !condition.operator ||
+            (typeof condition.operator === 'string' && !condition.operator.trim())
+          ) {
+            throw new Error(
+              `Invalid filter: field "${key}" has an empty operator. ` +
+                `Each filter condition must have a valid operator (e.g., "equals", "contains", "in").`
+            );
+          }
+        }
+        sanitizedFilter[key] = condition;
+      }
+      body.filter = sanitizedFilter;
     }
     if (options?.limit) {
       body.limit = options.limit;
