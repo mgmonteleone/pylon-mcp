@@ -5,6 +5,25 @@ All notable changes to the Pylon MCP Server will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [3.7.2] - 2026-03-31
+
+### 🔧 CI
+
+- Aligned security.yml workflow to Node 22 (was Node 20, matching CI workflow)
+
+### 📦 Dependencies
+
+- Bumped path-to-regexp from 8.3.0 to 8.4.0
+- Bumped picomatch from 2.3.1 to 2.3.2
+- Bumped flatted from 3.3.3 to 3.4.2
+- Bumped hono from 4.12.3 to 4.12.7
+- Bumped express-rate-limit from 8.2.1 to 8.3.0
+- Bumped @hono/node-server from 1.19.9 to 1.19.10
+
+### 🔒 Security
+
+- Resolved npm audit vulnerability via dependency updates
+
 ## [3.7.1] - 2026-02-27
 
 ### Changed
